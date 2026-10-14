@@ -15,9 +15,15 @@ Updated: 2026-10-14
 
 ## Product direction
 
-Toolgrain is a TypeScript toolkit for building MCP servers with a simple, typed developer API. Implement MCP support directly against an explicitly selected protocol revision. Owning that implementation means owning compatibility, interoperability testing, and protocol maintenance.
+Toolgrain is a TypeScript toolkit for building MCP servers with a simple, typed developer API. Implement MCP support directly against protocol revision `2026-07-28`. Older specification revisions are unsupported for now. Owning that implementation means owning compatibility, interoperability testing, and protocol maintenance.
 
 A protocol-independent tool execution core is the proposed architecture. Ease of defining and composing tools is the intended product value; SDK independence gives us control over the implementation.
+
+## Confirmed MCP protocol target
+
+- Implement MCP revision `2026-07-28` first.
+- Do not add compatibility with older specification revisions for now.
+- Reference: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro
 
 ## Naming and hosting
 
@@ -69,23 +75,27 @@ Proposed semantics:
 
 1. Refine API examples and agree on the smallest useful scope.
 2. Build a protocol-independent core for tool definitions and execution.
-3. Implement MCP messages, lifecycle, capabilities, and errors for an explicit protocol revision.
+3. Implement MCP messages, lifecycle, capabilities, and errors for protocol revision `2026-07-28`.
 4. Start with tool discovery and execution over stdio, then consider Streamable HTTP.
 5. Test interoperability with real MCP clients before expanding into resources, prompts, and other features.
 
 This roadmap is a proposal, not a committed implementation plan.
 
+## Confirmed core package decisions
+
+- `@toolgrain/core` is implemented in `packages/core`, version `0.0.0`, private and unpublished.
+- `tool()` defines reusable tools; `createRegistry()` snapshots named registrations and provides `list()` and asynchronous `execute(name, unknownInput)`.
+- Zod 4 is a peer dependency. Validation uses asynchronous parsing; handlers receive the schema's parsed output, including transforms and defaults.
+- Handler outputs remain unchanged. MCP result conversion belongs to a future protocol layer.
+- Unknown names and invalid input reject with `UnknownToolError` and `ToolInputError`; handler failures propagate unchanged.
+- Literal names infer specific output types; dynamic names infer the union of registered outputs.
+- No handler context, output validation, MCP messages, transports, or server facade yet.
+- Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
+
 ## Repository state and next step
 
-The user has created this repository and made it the primary project. The starter apps and packages have been removed. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and a shared root `tsconfig.base.json`. No Jest presets or test runner are installed. `apps/` and `packages/` are placeholders for future workspaces. The Turborepo skill is installed under `.agents/skills/turborepo`; it is independent of gstack.
+The first core package is implemented on `codex/core-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The earlier server example remains a proposal for later work.
 
-Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation. Do not assume behavior from a different version.
+Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
-Next, agree with the user on one small implementation or design step. Open decisions include:
-
-- Schema library support.
-- Final package boundaries and API names.
-- Tool result conversion and rich content helpers.
-- Supported MCP protocol revision.
-- Initial transport and feature scope.
-- Test runner and package build tooling when the first package is introduced.
+Next, review the core API with the user before planning MCP support. The protocol target is `2026-07-28`; schema-to-JSON conversion, result conversion, and transport boundaries remain open. No commits, publication, or deployment are authorized by core implementation alone.
