@@ -3,8 +3,40 @@
 A TypeScript toolkit for building MCP servers, implemented independently of
 `@modelcontextprotocol/sdk`.
 
-Toolgrain is in the design stage. The developer API is a proposal; no MCP
-implementation exists yet. See [agent.md](./agent.md) for project decisions.
+The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
+validation, and direct execution. MCP support and transports are not implemented
+yet. See [agent.md](./agent.md) for project decisions.
+
+## Core package
+
+```ts
+import { createRegistry, tool } from "@toolgrain/core";
+import { z } from "zod";
+
+const greet = tool({
+  description: "Greet someone",
+  input: z.object({ name: z.string() }),
+  execute({ name }) {
+    return { message: `Hello, ${name}!` };
+  },
+});
+
+const registry = createRegistry({ greet });
+const result = await registry.execute("greet", { name: "Ada" });
+```
+
+Registration keys supply tool names. `list()` returns fresh metadata entries with
+the original schemas. Execution accepts unknown input, applies asynchronous Zod
+validation (including transforms and defaults), and returns handler values unchanged.
+Handlers can be synchronous or asynchronous and receive only parsed input.
+
+Unknown names reject with `UnknownToolError`; validation failures reject with
+`ToolInputError`, exposing `toolName`, `issues`, and the original Zod error as
+`cause`. Handler failures propagate unchanged. Literal names infer their output
+type; dynamic strings infer the union of registered outputs.
+
+The package is private and unpublished. Build it before importing its compiled
+entry point in another workspace.
 
 ## Development
 
@@ -13,6 +45,10 @@ Use Bun 1.3.14 and the Node version declared in `package.json`.
 ```sh
 bun install --frozen-lockfile
 bun run check
+bun run check-types
+bun run test
+bun run build
+bun run --cwd packages/core test:package
 bun run check:fix
 bun run format
 ```
@@ -20,19 +56,18 @@ bun run format
 Biome is installed and configured once at the repository root. Its configuration
 applies across apps and packages; installed skills are excluded from checks.
 
-- `packages/`: future Toolgrain libraries.
+- `packages/core/`: ESM library compiled with TypeScript; tests use Vitest.
 - `apps/`: future examples or documentation applications.
 - `tsconfig.base.json`: shared strict TypeScript defaults; future workspaces extend
   it and define their own input files, output paths, and runtime-specific options.
 - `turbo.json`: build, test, and type-check orchestration for future workspaces.
 
 The starter applications, UI/logger packages, ESLint, Prettier, and Jest presets
-have been removed. There are currently no build, test, or type-check workspace
-tasks to execute. A test runner will be chosen with the first implementation.
+have been removed. Core build, test, and type-check tasks run through Turbo.
 
 ## Continuous integration
 
 GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
 requests and pushes to `main`. The workflow reads the Bun version from
-`package.json`. Build, type-check, and test steps will be added with the first
-implementation package.
+`package.json`. It also runs type checks, Vitest, builds, and a compiled-package import and
+declaration smoke check using Node 24.20.0.
