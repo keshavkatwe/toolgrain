@@ -5,7 +5,7 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 
 The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
 validation, and direct execution. MCP support and transports are not implemented
-yet. See [agent.md](./agent.md) for project decisions.
+yet. See [AGENTS.md](./AGENTS.md) for project decisions.
 
 ## Core package
 
