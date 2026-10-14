@@ -9,6 +9,21 @@
         "turbo": "2.11.8",
       },
     },
+    "apps/stdio-example": {
+      "name": "@toolgrain/stdio-example",
+      "version": "0.0.0",
+      "dependencies": {
+        "@toolgrain/core": "workspace:*",
+        "@toolgrain/mcp": "workspace:*",
+        "@toolgrain/node": "workspace:*",
+        "zod": "4.6.7",
+      },
+      "devDependencies": {
+        "@types/node": "24.10.0",
+        "typescript": "7.0.2",
+        "vitest": "5.0.4",
+      },
+    },
     "packages/core": {
       "name": "@toolgrain/core",
       "version": "0.0.0",
@@ -35,6 +50,18 @@
       },
       "peerDependencies": {
         "zod": "^4.0.0",
+      },
+    },
+    "packages/node": {
+      "name": "@toolgrain/node",
+      "version": "0.0.0",
+      "dependencies": {
+        "@toolgrain/mcp": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "24.10.0",
+        "typescript": "7.0.2",
+        "vitest": "5.0.4",
       },
     },
   },
@@ -100,6 +127,10 @@
     "@toolgrain/core": ["@toolgrain/core@workspace:packages/core"],
 
     "@toolgrain/mcp": ["@toolgrain/mcp@workspace:packages/mcp"],
+
+    "@toolgrain/node": ["@toolgrain/node@workspace:packages/node"],
+
+    "@toolgrain/stdio-example": ["@toolgrain/stdio-example@workspace:apps/stdio-example"],
 
     "@turbo/darwin-64": ["@turbo/darwin-64@2.11.8", "", { "os": "darwin", "cpu": "x64" }, "sha512-u+6s4C2hskRYx6MkW2uT7BCW6sESCL/+5bjHDDWUfQfQliCSJ7lAHAL6RQaw0an9WU6nJvwYgT786mEWul2kDw=="],
 

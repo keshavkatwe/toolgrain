@@ -5,7 +5,7 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 
 The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
 validation, and direct execution. `@toolgrain/mcp` adds discovery and tool
-requests for MCP `2026-07-28`. Stdio and HTTP adapters are not implemented yet. See [AGENTS.md](./AGENTS.md) for project decisions.
+requests for MCP `2026-07-28`. The Node stdio adapter provides a complete server flow; HTTP remains future work. See [AGENTS.md](./AGENTS.md) for project decisions.
 
 ## Core package
 
@@ -43,6 +43,7 @@ entry point in another workspace.
 ```ts
 import { tool } from "@toolgrain/core";
 import { createServer } from "@toolgrain/mcp";
+import { stdio } from "@toolgrain/node";
 import { z } from "zod";
 
 const server = createServer({
@@ -56,8 +57,7 @@ const server = createServer({
   },
 });
 
-// Supply an adapter implementing Transport; stdio will follow in @toolgrain/node.
-await server.listen(transport);
+await server.listen(stdio());
 await server.close();
 ```
 
@@ -102,10 +102,80 @@ The complete upstream schema is vendored unchanged at commit
 under `packages/mcp/src/vendor`. Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
-Resources, prompts, subscriptions, extensions, rich-content helpers, and production
-transports remain future work. Both packages are private and unpublished.
+Resources, prompts, subscriptions, extensions, rich-content helpers, and HTTP
+remain future work. All packages are private and unpublished.
+
+## Node stdio and complete flow
+
+`@toolgrain/node` exports `stdio()`, using the process's stdin/stdout by default.
+It frames newline-delimited UTF-8 JSON, handles partial chunks, reports malformed
+messages, and serializes writes with backpressure. Diagnostics belong on stderr.
+
+`stdio({ input, output, maxMessageBytes })` accepts custom Node streams and an
+incoming-message byte limit (default 1 MiB, excluding the newline). Oversized
+messages terminate the transport. EOF or stream failure closes the attachment.
+Explicit close removes listeners and pauses input; it does not destroy or end
+caller-owned streams, or force the process to exit.
+
+Build and launch the example:
+
+```sh
+bun run build
+node apps/stdio-example/dist/index.js
+```
+
+To launch the MCP Inspector browser UI (run `bun run dev` or `bun run build` first):
+
+```sh
+bun run --cwd apps/stdio-example inspect
+```
+
+The script runs the official `@modelcontextprotocol/inspector` through `npm exec` outside the Bun-managed workspace and
+pins Inspector 2.11.0 and runs the compiled server with Bun and
+`--protocol-era modern` (Inspector defaults to legacy otherwise). In Inspector, connect to the server,
+list tools, and call `greet` with a name. See the
+[Inspector documentation](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector).
+
+Paste this single-line request into its stdin to call `greet`:
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}},"name":"greet","arguments":{"name":"Ada"}}}
+```
+
+The response includes `structuredContent: {"message":"Hello, Ada!"}` and a text
+representation. Send `server/discover` or `tools/list` with the same `_meta` to
+inspect the server. Closing stdin ends the example naturally.
+
+`bun run test` includes subprocess integration tests that launch the compiled
+example and check discovery, tool listing/execution, malformed-input recovery,
+error responses, and EOF shutdown. These use a small test client; Inspector 2.11.0 has also been verified for discovery, listing, and greeting
+execution in modern protocol mode.
 
 ## Development
+
+Use two terminals from the repository root:
+
+```sh
+# Terminal 1: run every package and app's dev task.
+bun run dev
+
+# Terminal 2: launch Inspector against the compiled stdio example.
+bun run --cwd apps/stdio-example inspect
+```
+
+Root `dev` is `turbo run dev`, without a filter. Every workspace runs its own
+TypeScript watch build: changes in `src` emit updated JavaScript and declarations
+to `dist`. Initial builds run in dependency order before watchers start so package
+imports resolve even on a clean checkout. The MCP build also prepares vendor files.
+
+All package exports point to `dist`; source files are not exposed through a custom
+export condition. After a successful rebuild, disconnect and reconnect in Inspector
+to start a fresh Bun server using the updated compiled files. Compilation output
+stays in the dev terminal, separate from MCP stdout. The example dev task only
+watches/builds; Inspector is a separate script.
+
+`build` and `check-types` continue to use `tsc`. Individual workspace `dev` commands
+watch/build only that workspace; root `dev` starts all of them.
 
 Use Bun 1.3.14 and the Node version declared in `package.json`.
 
@@ -117,6 +187,7 @@ bun run test
 bun run build
 bun run --cwd packages/core test:package
 bun run --cwd packages/mcp test:package
+bun run --cwd packages/node test:package
 bun run check:fix
 bun run format
 ```
@@ -126,8 +197,10 @@ applies across apps and packages; installed skills are excluded from checks.
 
 - `packages/core/`: tool execution library.
 - `packages/mcp/`: protocol validation, server dispatch, and transport contract.
-- Both packages compile ESM/declarations with TypeScript and use Vitest.
-- `apps/`: future examples or documentation applications.
+- `packages/node/`: Node stdio transport.
+- `apps/stdio-example/`: runnable server and subprocess integration tests.
+- Packages compile ESM/declarations with TypeScript and use Vitest.
+- `apps/`: examples and future documentation applications.
 - `tsconfig.base.json`: shared strict TypeScript defaults; future workspaces extend
   it and define their own input files, output paths, and runtime-specific options.
 - `turbo.json`: build, test, and type-check orchestration for future workspaces.

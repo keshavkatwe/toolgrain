@@ -105,13 +105,29 @@ This roadmap is a proposal, not a committed implementation plan.
 - Discovery/list results use `ttlMs: 0`, `cacheScope: "private"`. Tool lists are a single page; nonempty cursors are rejected.
 - Cancellation is best effort; handlers receive no context and cannot be interrupted after invocation.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
-- A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio belongs to future `@toolgrain/node`.
+- A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
 - Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
+
+## Confirmed Node stdio decisions
+
+- `@toolgrain/node` exports `stdio({ input?, output?, maxMessageBytes? })`, defaulting to process stdin/stdout and a 1 MiB incoming-message limit.
+- Keep byte framing, writable backpressure, and transport lifecycle in separate modules. The adapter contains no MCP method handling.
+- Newline-delimited UTF-8 JSON; malformed JSON/UTF-8 reports parse errors and permits later messages. Oversized frames terminate the transport.
+- Close detaches listeners and pauses input without ending/destroying supplied streams or calling process.exit. EOF is the normal shutdown signal.
+- `apps/stdio-example` demonstrates a full server, with subprocess tests using compiled packages over actual stdin/stdout. Inspector 2.11.0 was verified in modern protocol mode: discovery, tool listing, and greet execution over stdio pass.
 
 ## Repository state and next step
 
-Core is merged into `main`; MCP server work is on `codex/mcp-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio adapter in the earlier server example remains a proposal for later work.
+Core is merged into `main`; MCP is committed on `codex/mcp-package` at `18ebca6`. Node stdio work is on `codex/node-stdio`, branched from that MCP commit. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio server example is runnable in `apps/stdio-example`.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
-Next, review the MCP package and plan the Node stdio adapter with the user. No commits, publication, or deployment are authorized by implementation alone.
+Next, review the complete stdio flow. The example Inspector launcher pins version 2.11.0 and selects modern protocol mode. No commits, publication, or deployment are authorized by implementation alone.
+
+## Development loop
+
+- Root dev is `turbo run dev` without a filter: run every package/app dev task.
+- Each workspace dev task watches src with tsc and writes JavaScript/declarations to dist. Initial builds complete in dependency order before watch tasks start.
+- All public package exports point to dist. Do not add a development/source export condition.
+- Inspector is a separate example script, launching the compiled server with Bun in modern protocol mode. Reconnect after successful rebuilds to use updated compiled modules.
+- The example has no hot-reload global server state. Keep build output separate from MCP stdout.
