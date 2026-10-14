@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   check:
-    name: Core package checks
+    name: Package checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -51,3 +51,6 @@ jobs:
 
       - name: Verify compiled package and declarations
         run: bun run --cwd packages/core test:package
+
+      - name: Verify compiled MCP package and declarations
+        run: bun run --cwd packages/mcp test:package

@@ -38,7 +38,8 @@ A protocol-independent tool execution core is the proposed architecture. Ease of
 The user accepted this as a starting idea. It is not implemented or finalized.
 
 ```ts
-import { createServer, tool } from "@toolgrain/core";
+import { tool } from "@toolgrain/core";
+import { createServer } from "@toolgrain/mcp";
 import { stdio } from "@toolgrain/node";
 import { z } from "zod";
 
@@ -69,7 +70,7 @@ Proposed semantics:
 - Ordinary strings and JSON values are converted into MCP tool results.
 - Explicit helpers could support images and other rich MCP content.
 - Transport selection is explicit.
-- Zod is illustrative; schema library support is undecided. Independence from the MCP SDK does not mean zero dependencies.
+- Zod 4 is the initial schema library. Independence from the MCP SDK does not mean zero dependencies.
 
 ## Rough roadmap for discussion
 
@@ -92,10 +93,25 @@ This roadmap is a proposal, not a committed implementation plan.
 - No handler context, output validation, MCP messages, transports, or server facade yet.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 
+## Confirmed MCP package decisions
+
+- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
+- Vendor the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
+- `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
+- Requests carry version and client capabilities individually; no initialization handshake or support for older revisions.
+- Tool schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Fail unrepresentable schemas at construction.
+- Strings become text; other JSON values become structured content plus text. Reject unsupported output values as tool errors.
+- Input validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
+- Discovery/list results use `ttlMs: 0`, `cacheScope: "private"`. Tool lists are a single page; nonempty cursors are rejected.
+- Cancellation is best effort; handlers receive no context and cannot be interrupted after invocation.
+- Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
+- A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio belongs to future `@toolgrain/node`.
+- Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
+
 ## Repository state and next step
 
-The first core package is implemented on `codex/core-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The earlier server example remains a proposal for later work.
+Core is merged into `main`; MCP server work is on `codex/mcp-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio adapter in the earlier server example remains a proposal for later work.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
-Next, review the core API with the user before planning MCP support. The protocol target is `2026-07-28`; schema-to-JSON conversion, result conversion, and transport boundaries remain open. No commits, publication, or deployment are authorized by core implementation alone.
+Next, review the MCP package and plan the Node stdio adapter with the user. No commits, publication, or deployment are authorized by implementation alone.
