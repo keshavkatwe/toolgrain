@@ -29,3 +29,10 @@ applies across apps and packages; installed skills are excluded from checks.
 The starter applications, UI/logger packages, ESLint, Prettier, and Jest presets
 have been removed. There are currently no build, test, or type-check workspace
 tasks to execute. A test runner will be chosen with the first implementation.
+
+## Continuous integration
+
+GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
+requests and pushes to `main`. The workflow reads the Bun version from
+`package.json`. Build, type-check, and test steps will be added with the first
+implementation package.
