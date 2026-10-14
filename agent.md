@@ -4,11 +4,13 @@ Updated: 2026-10-14
 
 ## Working agreement
 
+- Never create a commit unless the user explicitly asks. Authorization applies to the requested commit, not future changes.
+
 - We are not using gstack. Use ordinary project files for context and instructions.
 - Work one step at a time with the user. The product and API are still being designed; do not treat the roadmap below as authorization to implement everything.
 - This is the new Toolgrain repository. Build from scratch here, without depending on `@modelcontextprotocol/sdk`.
 - Leave the previous repository at `/Users/shridhar/Documents/ChatGPT/typescript-mcp-framework` untouched. Do not copy or migrate its implementation unless requested.
-- The current request is documentation only. Do not change the starter, install dependencies, implement features, publish packages, or deploy as part of it.
+- Repository cleanup and root-level Biome setup are authorized. MCP implementation, publication, and deployment remain separate steps.
 - Keep confirmed decisions separate from proposals. Update this context as the user makes decisions.
 
 ## Product direction
@@ -75,7 +77,7 @@ This roadmap is a proposal, not a committed implementation plan.
 
 ## Repository state and next step
 
-The user has created this repository and made it the primary project. At the time of this note, it contains the Turborepo kitchen-sink starter with apps and shared packages. The root package declares Bun 1.3.14 and Turbo ^2.11.8; these describe the existing scaffold, not finalized Toolgrain architecture.
+The user has created this repository and made it the primary project. The starter apps and packages have been removed. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and a shared root `tsconfig.base.json`. No Jest presets or test runner are installed. `apps/` and `packages/` are placeholders for future workspaces. The Turborepo skill is installed under `.agents/skills/turborepo`; it is independent of gstack.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation. Do not assume behavior from a different version.
 
@@ -86,4 +88,4 @@ Next, agree with the user on one small implementation or design step. Open decis
 - Tool result conversion and rich content helpers.
 - Supported MCP protocol revision.
 - Initial transport and feature scope.
-- Which starter apps and packages to retain.
+- Test runner and package build tooling when the first package is introduced.
