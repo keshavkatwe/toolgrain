@@ -92,9 +92,16 @@ This roadmap is a proposal, not a committed implementation plan.
 - No handler context, output validation, MCP messages, transports, or server facade yet.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 
+## Confirmed protocol package decisions
+
+- `@toolgrain/protocol` is a private workspace package containing official MCP `2026-07-28` wire definitions and constants, with no runtime dependencies.
+- Vendor the schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, retaining provenance, SHA-256 checksum, and upstream license. Do not format or modify vendor files; updates require explicit review.
+- Export compiled JavaScript and declarations from dist only. The protocol package includes no runtime validators, server implementation, or transports.
+- Runtime validators belong to the future MCP package; other workspaces should import wire definitions directly from protocol.
+
 ## Repository state and next step
 
-The first core package is implemented on `codex/core-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The earlier server example remains a proposal for later work.
+Core is merged into main. The private protocol package is being introduced independently on `codex/protocol-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The earlier server example remains a proposal for later work.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 

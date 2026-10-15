@@ -38,6 +38,20 @@ type; dynamic strings infer the union of registered outputs.
 The package is private and unpublished. Build it before importing its compiled
 entry point in another workspace.
 
+## Internal protocol package
+
+`@toolgrain/protocol` is a private workspace package for the official MCP
+`2026-07-28` wire definitions and constants. It has no runtime dependencies;
+protocol execution and runtime validators belong to a future MCP implementation.
+
+The complete upstream schema is pinned to commit
+`271ecc9accafdd9b83a3c869fa67c22953b2af80`. The unchanged source, provenance,
+SHA-256 checksum, and upstream license are retained in `packages/protocol/src/vendor`
+and included in the compiled package. Updates are explicit and verified offline.
+
+Other workspaces import from the package root, which exports compiled ESM and
+declarations from `dist`. The package is private and is not published to npm.
+
 ## Development
 
 Use Bun 1.3.14 and the Node version declared in `package.json`.
@@ -49,6 +63,7 @@ bun run check-types
 bun run test
 bun run build
 bun run --cwd packages/core test:package
+bun run --cwd packages/protocol test:package
 bun run check:fix
 bun run format
 ```
