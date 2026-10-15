@@ -119,3 +119,7 @@ This roadmap is a proposal, not a committed implementation plan.
 
 Core and protocol are merged into main. MCP is implemented on codex/mcp-package.
 Node stdio and its example are reviewed separately on codex/node-stdio.
+
+## Package verification
+
+Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.

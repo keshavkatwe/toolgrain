@@ -115,8 +115,7 @@ bun run check
 bun run check-types
 bun run test
 bun run build
-bun run --cwd packages/core test:package
-bun run --cwd packages/mcp test:package
+bun run test:package
 bun run check:fix
 bun run format
 ```
