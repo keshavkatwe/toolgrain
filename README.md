@@ -4,8 +4,8 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 `@modelcontextprotocol/sdk`.
 
 The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
-validation, and direct execution. MCP support and transports are not implemented
-yet. See [AGENTS.md](./AGENTS.md) for project decisions.
+validation, and direct execution. `@toolgrain/mcp` adds discovery and tool
+requests for MCP `2026-07-28`. Stdio and HTTP adapters are not implemented yet. See [AGENTS.md](./AGENTS.md) for project decisions.
 
 ## Core package
 
@@ -38,19 +38,74 @@ type; dynamic strings infer the union of registered outputs.
 The package is private and unpublished. Build it before importing its compiled
 entry point in another workspace.
 
-## Internal protocol package
+## MCP server package
 
-`@toolgrain/protocol` is a private workspace package for the official MCP
-`2026-07-28` wire definitions and constants. It has no runtime dependencies;
-protocol execution and runtime validators belong to a future MCP implementation.
+```ts
+import { tool } from "@toolgrain/core";
+import { createServer } from "@toolgrain/mcp";
+import { z } from "zod";
 
-The complete upstream schema is pinned to commit
-`271ecc9accafdd9b83a3c869fa67c22953b2af80`. The unchanged source, provenance,
-SHA-256 checksum, and upstream license are retained in `packages/protocol/src/vendor`
-and included in the compiled package. Updates are explicit and verified offline.
+const server = createServer({
+  name: "hello-server",
+  version: "1.0.0",
+  tools: {
+    greet: tool({
+      input: z.object({ name: z.string() }),
+      execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+    }),
+  },
+});
 
-Other workspaces import from the package root, which exports compiled ESM and
-declarations from `dist`. The package is private and is not published to npm.
+// Supply an adapter implementing Transport; stdio will follow in @toolgrain/node.
+await server.listen(transport);
+await server.close();
+```
+
+Implementation responsibilities are separated:
+
+- `server.ts` composes the server; `dispatcher.ts` routes MCP methods.
+- `handlers.ts` implements discovery, tool listing, and tool calls.
+- `connection.ts` owns transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
+- `protocol/` owns metadata validation, message decoding, and response envelopes.
+- `tool-schema.ts` converts schemas; `tools.ts` adapts core execution.
+- `json-value.ts` checks JSON values; `results.ts` converts them into tool results.
+
+The package supports `server/discover`, `tools/list`, and `tools/call`. Every
+request requires version and client capability metadata; there is no initialization
+handshake. Only revision `2026-07-28` is supported. Discovery and tool lists use
+`ttlMs: 0` and `cacheScope: "private"`; the tool list is a single page.
+
+Tool inputs must convert to JSON Schema with an object root. Conversion uses the
+schema's input shape, preserving transforms/defaults for execution. Invalid
+schemas fail at server construction with `ToolSchemaError`.
+
+Strings become text content; other JSON values become structured content and JSON
+text. Non-JSON values fail as tool errors rather than being silently coerced.
+Input validation and handler failures return `isError: true`; malformed requests
+and unknown tools return protocol errors. Handler error messages are exposed to
+clients, but stack traces are not.
+
+`Transport` provides asynchronous `start(callbacks)`, `send(response)`, and `close()`.
+Callbacks report decoded messages, JSON parse failures, transport errors, and EOF.
+Adapters own byte framing and JSON parsing. Messages run independently; writes
+are serialized. `listen()` resolves after startup. A server permits one transport
+attachment, and `close()` is terminal and idempotent. Transport failures terminate
+the attachment and reach the optional server `onError` callback. Diagnostics do
+not write to stdout.
+
+Each tool adapter creates one core registry and reuses it for all executions.
+Cancellation suppresses pending responses, but does not interrupt validation or
+handler execution once registry execution starts. Cancellation during validation
+can therefore still allow the handler to run. Responses already handed to an
+adapter cannot be recalled.
+
+The complete upstream schema is vendored unchanged at commit
+`271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
+under `packages/protocol/src/vendor`. Builds retain those files. Updates are explicit;
+there is no build-time download or MCP SDK dependency.
+
+Resources, prompts, subscriptions, extensions, rich-content helpers, and production
+transports remain future work. Both packages are private and unpublished.
 
 ## Development
 
@@ -62,8 +117,7 @@ bun run check
 bun run check-types
 bun run test
 bun run build
-bun run --cwd packages/core test:package
-bun run --cwd packages/protocol test:package
+bun run test:package
 bun run check:fix
 bun run format
 ```
@@ -71,7 +125,9 @@ bun run format
 Biome is installed and configured once at the repository root. Its configuration
 applies across apps and packages; installed skills are excluded from checks.
 
-- `packages/core/`: ESM library compiled with TypeScript; tests use Vitest.
+- `packages/core/`: tool execution library.
+- `packages/mcp/`: protocol validation, server dispatch, and transport contract.
+- Both packages compile ESM/declarations with TypeScript and use Vitest.
 - `apps/`: future examples or documentation applications.
 - `tsconfig.base.json`: shared strict TypeScript defaults; future workspaces extend
   it and define their own input files, output paths, and runtime-specific options.

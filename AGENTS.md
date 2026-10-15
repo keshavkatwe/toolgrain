@@ -38,7 +38,8 @@ A protocol-independent tool execution core is the proposed architecture. Ease of
 The user accepted this as a starting idea. It is not implemented or finalized.
 
 ```ts
-import { createServer, tool } from "@toolgrain/core";
+import { tool } from "@toolgrain/core";
+import { createServer } from "@toolgrain/mcp";
 import { stdio } from "@toolgrain/node";
 import { z } from "zod";
 
@@ -69,7 +70,7 @@ Proposed semantics:
 - Ordinary strings and JSON values are converted into MCP tool results.
 - Explicit helpers could support images and other rich MCP content.
 - Transport selection is explicit.
-- Zod is illustrative; schema library support is undecided. Independence from the MCP SDK does not mean zero dependencies.
+- Zod 4 is the initial schema library. Independence from the MCP SDK does not mean zero dependencies.
 
 ## Rough roadmap for discussion
 
@@ -94,15 +95,31 @@ This roadmap is a proposal, not a committed implementation plan.
 
 ## Confirmed protocol package decisions
 
-- `@toolgrain/protocol` is a private workspace package containing official MCP `2026-07-28` wire definitions and constants, with no runtime dependencies.
-- Vendor the schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, retaining provenance, SHA-256 checksum, and upstream license. Do not format or modify vendor files; updates require explicit review.
-- Export compiled JavaScript and declarations from dist only. The protocol package includes no runtime validators, server implementation, or transports.
-- Runtime validators belong to the future MCP package; other workspaces should import wire definitions directly from protocol.
+- `@toolgrain/protocol` is a private workspace package, version `0.0.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
+- Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
+- Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
+
+## Confirmed MCP package decisions
+
+- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
+- The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
+- `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
+- Requests carry version and client capabilities individually; no initialization handshake or support for older revisions.
+- Tool schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Fail unrepresentable schemas at construction.
+- Strings become text; other JSON values become structured content plus text. Reject unsupported output values as tool errors.
+- Input validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
+- Discovery/list results use `ttlMs: 0`, `cacheScope: "private"`. Tool lists are a single page; nonempty cursors are rejected.
+- Each MCP tool adapter reuses one core registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
+- Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
+- A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
+- Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
 
 ## Repository state and next step
 
-Core is merged into main. The private protocol package is being introduced independently on `codex/protocol-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The earlier server example remains a proposal for later work.
+Core and protocol are merged into main. MCP is implemented on codex/mcp-package.
+Node stdio and its example are reviewed separately on codex/node-stdio.
 
-Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
+## Package verification
 
-Next, review the core API with the user before planning MCP support. The protocol target is `2026-07-28`; schema-to-JSON conversion, result conversion, and transport boundaries remain open. No commits, publication, or deployment are authorized by core implementation alone.
+Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.
