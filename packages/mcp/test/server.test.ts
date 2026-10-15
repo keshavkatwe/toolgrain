@@ -303,13 +303,21 @@ describe("transport lifecycle", () => {
     });
   });
 
-  it("cancels during validation before invoking a handler", async () => {
+  it("allows execution after cancellation during validation but suppresses its response", async () => {
     const gate = deferred<boolean>();
+    const validating = deferred();
     const execute = vi.fn(() => "done");
     const { transport } = await setup({
-      slow: tool({ input: z.object({}).refine(() => gate.promise), execute }),
+      slow: tool({
+        input: z.object({}).refine(() => {
+          validating.resolve();
+          return gate.promise;
+        }),
+        execute,
+      }),
     });
     transport.receive(request("tools/call", { name: "slow" }));
+    await validating.promise;
     transport.receive({
       jsonrpc: "2.0",
       method: "notifications/cancelled",
@@ -317,7 +325,7 @@ describe("transport lifecycle", () => {
     });
     gate.resolve(true);
     await settle();
-    expect(execute).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledExactlyOnceWith({});
     expect(transport.messages).toEqual([]);
   });
 
@@ -497,4 +505,20 @@ it("suppresses a cancelled response queued behind a pending write", async () => 
   expect(transport.messages[0]).toMatchObject({ id: 1 });
   expect(transport.messages).toHaveLength(1);
   await server.close();
+});
+
+it("preserves detached server methods", async () => {
+  const { listen, close } = createServer({
+    name: "test",
+    version: "1.0",
+    tools: {},
+  });
+  const transport = new MemoryTransport();
+  await listen(transport);
+  expect(await response(transport, request("tools/list"))).toMatchObject({
+    id: 1,
+    result: { tools: [] },
+  });
+  await Promise.all([close(), close()]);
+  expect(transport.closes).toBe(1);
 });

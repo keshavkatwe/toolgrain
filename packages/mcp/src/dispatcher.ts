@@ -1,6 +1,7 @@
 import {
   type Implementation,
   INVALID_PARAMS,
+  type JSONRPCResultResponse,
   METHOD_NOT_FOUND,
   PROTOCOL_VERSION,
   type Result,
@@ -12,11 +13,16 @@ import { metadata } from "./protocol/metadata.js";
 import { ProtocolError, successResponse } from "./protocol/responses.js";
 import type { createToolAdapter } from "./tools.js";
 
+export type Dispatcher = (
+  request: Request,
+  isActive: () => boolean,
+) => Promise<JSONRPCResultResponse | undefined>;
+
 export function createDispatcher(
   tools: ReturnType<typeof createToolAdapter>,
   identity: Implementation,
   instructions?: string,
-) {
+): Dispatcher {
   return async (request: Request, isActive: () => boolean) => {
     const parsed = metadata.safeParse(request.params?._meta);
     if (!parsed.success)
