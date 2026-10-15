@@ -125,7 +125,7 @@ This roadmap is a proposal, not a committed implementation plan.
 
 ## Repository state and next step
 
-Core is merged into `main`; MCP is committed on `codex/mcp-package` at `18ebca6`. Node stdio work is on `codex/node-stdio`, branched from that MCP commit. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio server example is runnable in `apps/stdio-example`.
+Core and the private protocol package are merged into `main`; MCP is committed on `codex/mcp-package` at `18ebca6`. Node stdio work is on `codex/node-stdio`, branched from that MCP commit. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio server example is runnable in `apps/stdio-example`.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
