@@ -1,4 +1,4 @@
-import type { RequestId } from "./vendor/schema.js";
+import type { RequestId } from "@toolgrain/protocol";
 
 /** Owns duplicate detection and cancellation state for in-flight requests. */
 export function createPendingRequests(isOpen: () => boolean) {

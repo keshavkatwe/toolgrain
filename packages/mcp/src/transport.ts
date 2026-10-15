@@ -1,4 +1,4 @@
-import type { JSONRPCResponse } from "./vendor/schema.js";
+import type { JSONRPCResponse } from "@toolgrain/protocol";
 
 /** Callbacks are synchronous; message processing runs independently. */
 export interface TransportCallbacks {

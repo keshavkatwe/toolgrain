@@ -26,6 +26,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@toolgrain/core": "workspace:*",
+        "@toolgrain/protocol": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "24.10.0",
@@ -35,6 +36,15 @@
       },
       "peerDependencies": {
         "zod": "^4.0.0",
+      },
+    },
+    "packages/protocol": {
+      "name": "@toolgrain/protocol",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/node": "24.10.0",
+        "typescript": "7.0.2",
+        "vitest": "5.0.4",
       },
     },
   },
@@ -100,6 +110,10 @@
     "@toolgrain/core": ["@toolgrain/core@workspace:packages/core"],
 
     "@toolgrain/mcp": ["@toolgrain/mcp@workspace:packages/mcp"],
+
+
+    "@toolgrain/protocol": ["@toolgrain/protocol@workspace:packages/protocol"],
+
 
     "@turbo/darwin-64": ["@turbo/darwin-64@2.11.8", "", { "os": "darwin", "cpu": "x64" }, "sha512-u+6s4C2hskRYx6MkW2uT7BCW6sESCL/+5bjHDDWUfQfQliCSJ7lAHAL6RQaw0an9WU6nJvwYgT786mEWul2kDw=="],
 

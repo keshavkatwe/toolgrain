@@ -99,7 +99,7 @@ API. Responses already handed to an adapter cannot be recalled.
 
 The complete upstream schema is vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
-under `packages/mcp/src/vendor`. Builds retain those files. Updates are explicit;
+under `packages/protocol/src/vendor`. Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, subscriptions, extensions, rich-content helpers, and production

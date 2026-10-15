@@ -1,14 +1,14 @@
-import type { createDispatcher } from "./dispatcher.js";
-import { createPendingRequests } from "./pending-requests.js";
-import { decode } from "./protocol/decode.js";
-import { ProtocolError, protocolError } from "./protocol/responses.js";
-import type { Transport } from "./transport.js";
 import {
   INTERNAL_ERROR,
   INVALID_REQUEST,
   type JSONRPCResponse,
   PARSE_ERROR,
-} from "./vendor/schema.js";
+} from "@toolgrain/protocol";
+import type { createDispatcher } from "./dispatcher.js";
+import { createPendingRequests } from "./pending-requests.js";
+import { decode } from "./protocol/decode.js";
+import { ProtocolError, protocolError } from "./protocol/responses.js";
+import type { Transport } from "./transport.js";
 
 /** Owns transport attachment, serialized writes, and connection shutdown. */
 export function createConnection(

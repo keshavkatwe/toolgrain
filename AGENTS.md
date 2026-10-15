@@ -93,10 +93,17 @@ This roadmap is a proposal, not a committed implementation plan.
 - No handler context, output validation, MCP messages, transports, or server facade yet.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 
+## Confirmed protocol package decisions
+
+- `@toolgrain/protocol` is a private workspace package, version `0.0.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
+- Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
+- Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
+
 ## Confirmed MCP package decisions
 
 - `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
-- Vendor the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
+- The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Requests carry version and client capabilities individually; no initialization handshake or support for older revisions.
 - Tool schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Fail unrepresentable schemas at construction.
@@ -105,13 +112,10 @@ This roadmap is a proposal, not a committed implementation plan.
 - Discovery/list results use `ttlMs: 0`, `cacheScope: "private"`. Tool lists are a single page; nonempty cursors are rejected.
 - Cancellation is best effort; handlers receive no context and cannot be interrupted after invocation.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
-- A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio belongs to future `@toolgrain/node`.
+- A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
 - Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
 
 ## Repository state and next step
 
-Core is merged into `main`; MCP server work is on `codex/mcp-package`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio adapter in the earlier server example remains a proposal for later work.
-
-Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
-
-Next, review the MCP package and plan the Node stdio adapter with the user. No commits, publication, or deployment are authorized by implementation alone.
+Core and protocol are merged into main. MCP is implemented on codex/mcp-package.
+Node stdio and its example are reviewed separately on codex/node-stdio.

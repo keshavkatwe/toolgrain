@@ -1,5 +1,5 @@
+import type { CallToolResult } from "@toolgrain/protocol";
 import { assertJSON } from "./json-value.js";
-import type { CallToolResult } from "./vendor/schema.js";
 
 export function toolResult(value: unknown): CallToolResult {
   assertJSON(value);

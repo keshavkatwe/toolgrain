@@ -4,8 +4,8 @@ import type {
   JSONRPCResultResponse,
   RequestId,
   Result,
-} from "../vendor/schema.js";
-import { JSONRPC_VERSION } from "../vendor/schema.js";
+} from "@toolgrain/protocol";
+import { JSONRPC_VERSION } from "@toolgrain/protocol";
 
 export function protocolError(
   code: number,

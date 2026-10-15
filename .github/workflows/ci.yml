@@ -54,3 +54,6 @@ jobs:
 
       - name: Verify compiled MCP package and declarations
         run: bun run --cwd packages/mcp test:package
+
+      - name: Verify compiled protocol package and declarations
+        run: bun run --cwd packages/protocol test:package
