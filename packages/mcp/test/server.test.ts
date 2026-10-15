@@ -132,6 +132,7 @@ it("lists an empty registry and rejects nonempty cursors", async () => {
 it.each([
   [{ jsonrpc: "1.0", id: 1, method: "tools/list" }, -32600],
   [{ jsonrpc: "2.0", id: null, method: "tools/list" }, -32600],
+  [request("tools/list", {}, 1.5), -32600],
   [[], -32600],
   [request("tools/call", { name: 12 }), -32602],
   [request("tools/call", { name: "missing", arguments: [] }), -32602],

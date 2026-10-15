@@ -3,7 +3,10 @@ import { z } from "zod";
 import { metadata } from "./metadata.js";
 
 const object = z.record(z.string(), z.unknown());
-export const requestId = z.union([z.string(), z.number().finite()]);
+export const requestId = z.union([
+  z.string(),
+  z.number().finite().refine(Number.isInteger, "Request ID must be an integer"),
+]);
 export const envelope = z
   .looseObject({
     jsonrpc: z.literal(JSONRPC_VERSION),
