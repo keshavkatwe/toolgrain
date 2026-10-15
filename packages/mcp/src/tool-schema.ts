@@ -1,6 +1,6 @@
 import type { ToolMap } from "@toolgrain/core";
+import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import { z } from "zod";
-import type { Tool as ProtocolTool } from "./vendor/schema.js";
 
 export class ToolSchemaError extends Error {
   constructor(

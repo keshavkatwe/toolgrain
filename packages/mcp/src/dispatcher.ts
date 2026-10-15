@@ -1,16 +1,16 @@
-import { callTool, discover, listTools } from "./handlers.js";
-import type { Request } from "./protocol/messages.js";
-import { metadata } from "./protocol/metadata.js";
-import { ProtocolError, successResponse } from "./protocol/responses.js";
-import { PROTOCOL_VERSION } from "./protocol.js";
-import type { createToolAdapter } from "./tools.js";
 import {
   type Implementation,
   INVALID_PARAMS,
   METHOD_NOT_FOUND,
+  PROTOCOL_VERSION,
   type Result,
   UNSUPPORTED_PROTOCOL_VERSION,
-} from "./vendor/schema.js";
+} from "@toolgrain/protocol";
+import { callTool, discover, listTools } from "./handlers.js";
+import type { Request } from "./protocol/messages.js";
+import { metadata } from "./protocol/metadata.js";
+import { ProtocolError, successResponse } from "./protocol/responses.js";
+import type { createToolAdapter } from "./tools.js";
 
 export function createDispatcher(
   tools: ReturnType<typeof createToolAdapter>,

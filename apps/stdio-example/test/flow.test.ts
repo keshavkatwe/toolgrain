@@ -1,7 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { type JSONRPCResponse, PROTOCOL_VERSION } from "@toolgrain/mcp";
+import { type JSONRPCResponse, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { expect, it } from "vitest";
 
 const meta = {

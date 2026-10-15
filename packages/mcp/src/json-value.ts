@@ -1,4 +1,4 @@
-import type { JSONValue } from "./vendor/schema.js";
+import type { JSONValue } from "@toolgrain/protocol";
 
 export function assertJSON(
   value: unknown,

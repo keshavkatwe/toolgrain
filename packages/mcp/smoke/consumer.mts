@@ -1,11 +1,10 @@
 import { tool } from "@toolgrain/core";
 import {
   createServer,
-  type DiscoverResult,
-  PROTOCOL_VERSION,
   type Transport,
   type TransportCallbacks,
 } from "@toolgrain/mcp";
+import { type DiscoverResult, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
 
 let callbacks: TransportCallbacks | undefined;

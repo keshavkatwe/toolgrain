@@ -223,3 +223,147 @@ it("can attach a replacement after closing a transport on the same streams", asy
   expect(input.listenerCount("data")).toBe(1);
   await replacement.close();
 });
+
+describe("shutdown with pending writes", () => {
+  function blockedOutput() {
+    let complete: (error?: Error | null) => void = () => {
+      throw new Error("No pending write");
+    };
+    const output = new Writable({
+      highWaterMark: 1,
+      write(_chunk, _encoding, callback) {
+        complete = callback;
+      },
+    });
+    return { output, complete: (error?: Error) => complete(error) };
+  }
+
+  it("rejects active and queued sends on close without ending caller-owned streams", async () => {
+    const input = new PassThrough();
+    const blocked = blockedOutput();
+    const received = callbacks();
+    const transport = stdio({ input, output: blocked.output });
+    await transport.start(received);
+    const sends = Promise.allSettled([
+      transport.send(response(1)),
+      transport.send(response(2)),
+    ]);
+    await vi.waitFor(
+      () => expect(blocked.output.writableLength).toBeGreaterThan(0),
+      { interval: 1 },
+    );
+    await transport.close();
+    const outcomes = await sends;
+    expect(outcomes.map((outcome) => outcome.status)).toEqual([
+      "rejected",
+      "rejected",
+    ]);
+    expect(received.onClose).not.toHaveBeenCalled();
+    expect(received.onError).not.toHaveBeenCalled();
+    expect(input.listenerCount("data")).toBe(0);
+    expect(blocked.output.listenerCount("drain")).toBe(0);
+    expect(blocked.output.destroyed).toBe(false);
+    expect(blocked.output.writableEnded).toBe(false);
+    blocked.complete();
+    await vi.waitFor(
+      () => {
+        expect(blocked.output.listenerCount("error")).toBe(0);
+        expect(blocked.output.listenerCount("close")).toBe(0);
+      },
+      { interval: 1 },
+    );
+  });
+
+  it("consumes late write errors after explicit close and releases their listeners", async () => {
+    const blocked = blockedOutput();
+    const received = callbacks();
+    const transport = stdio({
+      input: new PassThrough(),
+      output: blocked.output,
+    });
+    await transport.start(received);
+    const outcome = Promise.allSettled([transport.send(response(1))]);
+    await vi.waitFor(
+      () => expect(blocked.output.writableLength).toBeGreaterThan(0),
+      { interval: 1 },
+    );
+    await transport.close();
+    expect((await outcome)[0]?.status).toBe("rejected");
+    blocked.complete(new Error("late broken pipe"));
+    await vi.waitFor(
+      () => {
+        expect(blocked.output.listenerCount("error")).toBe(0);
+        expect(blocked.output.listenerCount("close")).toBe(0);
+      },
+      { interval: 1 },
+    );
+    expect(received.onError).not.toHaveBeenCalled();
+  });
+
+  it.each(["eof", "input-error", "output-close"] as const)(
+    "settles sends when shutdown comes from %s",
+    async (event) => {
+      const input = new PassThrough();
+      const blocked = blockedOutput();
+      const received = callbacks();
+      const transport = stdio({ input, output: blocked.output });
+      await transport.start(received);
+      const outcomes = Promise.allSettled([
+        transport.send(response(1)),
+        transport.send(response(2)),
+      ]);
+      await vi.waitFor(
+        () => expect(blocked.output.writableLength).toBeGreaterThan(0),
+        { interval: 1 },
+      );
+      if (event === "eof") input.end();
+      else if (event === "input-error") input.destroy(new Error("read failed"));
+      else blocked.output.destroy();
+      expect((await outcomes).map((outcome) => outcome.status)).toEqual([
+        "rejected",
+        "rejected",
+      ]);
+      expect(
+        event === "input-error" ? received.onError : received.onClose,
+      ).toHaveBeenCalledOnce();
+      expect(input.listenerCount("data")).toBe(0);
+      expect(blocked.output.listenerCount("drain")).toBe(0);
+      if (event !== "output-close") blocked.complete();
+    },
+  );
+});
+
+it("consumes a late failure when close happens inside an accepted write", async () => {
+  let complete: (error: Error) => void = () => {
+    throw new Error("No pending write");
+  };
+  const output = new Writable({
+    write(_chunk, _encoding, callback) {
+      complete = callback;
+      void transport.close();
+    },
+  });
+  const transport = stdio({ input: new PassThrough(), output });
+  await transport.start(callbacks());
+  await expect(transport.send(response(1))).rejects.toThrow("closed");
+  complete(new Error("late failure"));
+  await vi.waitFor(() => expect(output.listenerCount("error")).toBe(0), {
+    interval: 1,
+  });
+});
+
+it("preserves detached calls to the public transport methods", async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const { start, send, close } = stdio({ input, output });
+  const received = callbacks();
+  await start(received);
+  input.write('{"method":"tools/list"}\n');
+  expect(received.onMessage).toHaveBeenCalledExactlyOnceWith({
+    method: "tools/list",
+  });
+  await send(response(1));
+  expect(JSON.parse(output.read().toString())).toEqual(response(1));
+  await close();
+  expect(input.listenerCount("data")).toBe(0);
+});

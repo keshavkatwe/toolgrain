@@ -25,6 +25,7 @@
     "@types/node": "24.10.0"
   },
   "dependencies": {
-    "@toolgrain/mcp": "workspace:*"
+    "@toolgrain/mcp": "workspace:*",
+    "@toolgrain/protocol": "workspace:*"
   }
 }

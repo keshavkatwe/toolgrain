@@ -1,7 +1,7 @@
 import { createRegistry, ToolInputError, type ToolMap } from "@toolgrain/core";
+import type { CallToolResult } from "@toolgrain/protocol";
 import { toolError, toolResult } from "./results.js";
 import { describeTool } from "./tool-schema.js";
-import type { CallToolResult } from "./vendor/schema.js";
 
 export function createToolAdapter(tools: ToolMap) {
   const snapshot = new Map(

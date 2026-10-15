@@ -1,8 +1,5 @@
-import type {
-  JSONRPCResponse,
-  Transport,
-  TransportCallbacks,
-} from "../src/index.js";
+import type { JSONRPCResponse } from "@toolgrain/protocol";
+import type { Transport, TransportCallbacks } from "../src/index.js";
 
 export class MemoryTransport implements Transport {
   callbacks: TransportCallbacks | undefined;

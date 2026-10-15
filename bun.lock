@@ -16,6 +16,7 @@
         "@toolgrain/core": "workspace:*",
         "@toolgrain/mcp": "workspace:*",
         "@toolgrain/node": "workspace:*",
+        "@toolgrain/protocol": "workspace:*",
         "zod": "4.6.7",
       },
       "devDependencies": {
@@ -41,6 +42,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@toolgrain/core": "workspace:*",
+        "@toolgrain/protocol": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "24.10.0",
@@ -57,7 +59,17 @@
       "version": "0.0.0",
       "dependencies": {
         "@toolgrain/mcp": "workspace:*",
+        "@toolgrain/protocol": "workspace:*",
       },
+      "devDependencies": {
+        "@types/node": "24.10.0",
+        "typescript": "7.0.2",
+        "vitest": "5.0.4",
+      },
+    },
+    "packages/protocol": {
+      "name": "@toolgrain/protocol",
+      "version": "0.0.0",
       "devDependencies": {
         "@types/node": "24.10.0",
         "typescript": "7.0.2",
@@ -129,6 +141,8 @@
     "@toolgrain/mcp": ["@toolgrain/mcp@workspace:packages/mcp"],
 
     "@toolgrain/node": ["@toolgrain/node@workspace:packages/node"],
+
+    "@toolgrain/protocol": ["@toolgrain/protocol@workspace:packages/protocol"],
 
     "@toolgrain/stdio-example": ["@toolgrain/stdio-example@workspace:apps/stdio-example"],
 

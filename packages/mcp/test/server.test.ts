@@ -1,16 +1,9 @@
 import { type ToolMap, tool } from "@toolgrain/core";
+import type { JSONRPCResponse, RequestId, Result } from "@toolgrain/protocol";
+import { PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import {
-  createServer,
-  PROTOCOL_VERSION,
-  ToolSchemaError,
-} from "../src/index.js";
-import type {
-  JSONRPCResponse,
-  RequestId,
-  Result,
-} from "../src/vendor/schema.js";
+import { createServer, ToolSchemaError } from "../src/index.js";
 import { deferred, MemoryTransport } from "./memory.js";
 
 const meta = {

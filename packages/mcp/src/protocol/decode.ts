@@ -2,7 +2,7 @@ import {
   INVALID_REQUEST,
   type JSONRPCErrorResponse,
   type RequestId,
-} from "../vendor/schema.js";
+} from "@toolgrain/protocol";
 import { cancellation, envelope, type Request, requestId } from "./messages.js";
 import { protocolError } from "./responses.js";
 

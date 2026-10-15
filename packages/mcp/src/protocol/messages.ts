@@ -1,5 +1,5 @@
+import { JSONRPC_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
-import { JSONRPC_VERSION } from "../vendor/schema.js";
 import { metadata } from "./metadata.js";
 
 const object = z.record(z.string(), z.unknown());

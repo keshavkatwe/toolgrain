@@ -1,54 +1,85 @@
 import type { Writable } from "node:stream";
 
-/** Resolves after the write callback and, when necessary, the drain event. */
-export function writeLine(output: Writable, line: string): Promise<void> {
+/** Resolves after both the write callback and any required drain event. */
+export function writeLine(
+  output: Writable,
+  line: string,
+  signal: AbortSignal,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    let completed = false;
-    let drained = false;
-    let settled = false;
-    function cleanup() {
-      output.off("error", fail);
-      output.off("close", closed);
-      output.off("drain", drain);
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
     }
-    function fail(error: Error) {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(error);
+    let writeCallbackComplete = false;
+    let backpressureCleared = false;
+    let settled = false;
+
+    function cleanup() {
+      output.off("error", onError);
+      output.off("close", onClose);
+      output.off("drain", onDrain);
+      signal.removeEventListener("abort", onAbort);
+    }
+    function rejectWrite(error: unknown) {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
     }
     function finish() {
-      if (!settled && completed && drained) {
+      if (settled) {
+        if (writeCallbackComplete) cleanup();
+        return;
+      }
+      if (writeCallbackComplete && backpressureCleared) {
         settled = true;
         cleanup();
         resolve();
       }
     }
-    function closed() {
-      fail(new Error("Output stream closed during write"));
+    function onError(error: Error) {
+      rejectWrite(error);
+      cleanup();
     }
-    function drain() {
-      drained = true;
+    function onClose() {
+      rejectWrite(new Error("Output stream closed during write"));
+      cleanup();
+    }
+    function onDrain() {
+      backpressureCleared = true;
       finish();
     }
-    output.once("error", fail);
-    output.once("close", closed);
-    output.once("drain", drain);
+    function onAbort() {
+      rejectWrite(signal.reason);
+      output.off("drain", onDrain);
+      signal.removeEventListener("abort", onAbort);
+      // Closing the transport cannot cancel a caller-owned stream's OS write.
+      // Until its callback completes, retain error/close listeners to consume
+      // a late write failure rather than causing an unhandled stream error.
+      if (writeCallbackComplete) cleanup();
+    }
+    output.once("error", onError);
+    output.once("close", onClose);
+    output.once("drain", onDrain);
+    signal.addEventListener("abort", onAbort, { once: true });
     try {
       if (output.destroyed || output.writableEnded)
         throw new Error("Output stream is not writable");
       const accepted = output.write(line, "utf8", (error) => {
-        // Writable emits the error after its callback; retain the error listener until then.
+        // Writable emits callback errors as events afterward. Keep onError
+        // attached until that event, including when shutdown already rejected.
         if (error) return;
-        completed = true;
+        writeCallbackComplete = true;
         finish();
       });
       if (accepted) {
-        drained = true;
+        backpressureCleared = true;
         finish();
       }
     } catch (error) {
-      fail(error instanceof Error ? error : new Error("Output write failed"));
+      rejectWrite(error);
+      cleanup();
     }
   });
 }

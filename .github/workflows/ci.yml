@@ -57,3 +57,6 @@ jobs:
 
       - name: Verify compiled Node package and declarations
         run: bun run --cwd packages/node test:package
+
+      - name: Verify compiled protocol package and declarations
+        run: bun run --cwd packages/protocol test:package

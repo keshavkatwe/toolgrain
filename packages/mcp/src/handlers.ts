@@ -1,12 +1,12 @@
-import { callParams, commonParams, listParams } from "./protocol/messages.js";
-import { ProtocolError } from "./protocol/responses.js";
-import { PROTOCOL_VERSION } from "./protocol.js";
-import type { createToolAdapter } from "./tools.js";
 import {
   type DiscoverResult,
   INVALID_PARAMS,
   type ListToolsResult,
-} from "./vendor/schema.js";
+  PROTOCOL_VERSION,
+} from "@toolgrain/protocol";
+import { callParams, commonParams, listParams } from "./protocol/messages.js";
+import { ProtocolError } from "./protocol/responses.js";
+import type { createToolAdapter } from "./tools.js";
 
 type Tools = ReturnType<typeof createToolAdapter>;
 

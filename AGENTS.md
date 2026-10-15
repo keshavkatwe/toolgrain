@@ -93,10 +93,17 @@ This roadmap is a proposal, not a committed implementation plan.
 - No handler context, output validation, MCP messages, transports, or server facade yet.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 
+## Confirmed protocol package decisions
+
+- `@toolgrain/protocol` is a private workspace package, version `0.0.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
+- Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
+- Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
+
 ## Confirmed MCP package decisions
 
 - `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
-- Vendor the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
+- The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Requests carry version and client capabilities individually; no initialization handshake or support for older revisions.
 - Tool schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Fail unrepresentable schemas at construction.

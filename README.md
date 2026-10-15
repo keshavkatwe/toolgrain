@@ -38,6 +38,17 @@ type; dynamic strings infer the union of registered outputs.
 The package is private and unpublished. Build it before importing its compiled
 entry point in another workspace.
 
+## Internal protocol package
+
+`@toolgrain/protocol` is a private workspace package containing the pinned official
+schema and constants, including `PROTOCOL_VERSION`. Workspace code imports wire
+types such as `JSONRPCResponse` directly from it. Runtime validators stay in MCP;
+MCP exports server/transport interfaces without re-exporting wire definitions.
+
+It has no runtime dependencies and is not published to npm. Generated server and
+transport declarations reference this workspace package. Its compiled exports
+point only to `dist`, like the other packages.
+
 ## MCP server package
 
 ```ts
@@ -99,7 +110,7 @@ API. Responses already handed to an adapter cannot be recalled.
 
 The complete upstream schema is vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
-under `packages/mcp/src/vendor`. Builds retain those files. Updates are explicit;
+under the private `@toolgrain/protocol` workspace (`packages/protocol/src/vendor`). Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, subscriptions, extensions, rich-content helpers, and HTTP
@@ -166,7 +177,7 @@ bun run --cwd apps/stdio-example inspect
 Root `dev` is `turbo run dev`, without a filter. Every workspace runs its own
 TypeScript watch build: changes in `src` emit updated JavaScript and declarations
 to `dist`. Initial builds run in dependency order before watchers start so package
-imports resolve even on a clean checkout. The MCP build also prepares vendor files.
+imports resolve even on a clean checkout. The protocol build also prepares vendor files.
 
 All package exports point to `dist`; source files are not exposed through a custom
 export condition. After a successful rebuild, disconnect and reconnect in Inspector
@@ -185,6 +196,7 @@ bun run check
 bun run check-types
 bun run test
 bun run build
+bun run --cwd packages/protocol test:package
 bun run --cwd packages/core test:package
 bun run --cwd packages/mcp test:package
 bun run --cwd packages/node test:package
@@ -195,6 +207,7 @@ bun run format
 Biome is installed and configured once at the repository root. Its configuration
 applies across apps and packages; installed skills are excluded from checks.
 
+- `packages/protocol/`: private pinned wire schema/constants, provenance, and license.
 - `packages/core/`: tool execution library.
 - `packages/mcp/`: protocol validation, server dispatch, and transport contract.
 - `packages/node/`: Node stdio transport.

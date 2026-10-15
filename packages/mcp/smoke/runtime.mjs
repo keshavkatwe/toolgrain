@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { tool } from "@toolgrain/core";
-import { createServer, PROTOCOL_VERSION } from "@toolgrain/mcp";
+import { createServer } from "@toolgrain/mcp";
+import { PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
 
 let callbacks;
