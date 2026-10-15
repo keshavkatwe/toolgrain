@@ -4,36 +4,19 @@ import { toolError, toolResult } from "./results.js";
 import { describeTool } from "./tool-schema.js";
 
 export function createToolAdapter(tools: ToolMap) {
-  const snapshot = new Map(
-    Object.entries(tools).map(([name, definition]) => [
-      name,
-      Object.freeze({ ...definition }),
-    ]),
-  );
-  const listed = Array.from(snapshot, ([name, definition]) =>
-    describeTool(name, definition),
-  );
+  const registry = createRegistry(tools);
+  const entries = registry.list();
+  const names = new Set(entries.map(({ name }) => name));
+  const listed = entries.map((entry) => describeTool(entry.name, entry));
   return {
-    has: (name: string) => snapshot.has(name),
+    has: (name: string) => names.has(name),
     list: () => structuredClone(listed),
     async execute(
       name: string,
       input: unknown,
       isActive: () => boolean,
     ): Promise<CallToolResult | undefined> {
-      const definition = snapshot.get(name);
-      if (!definition || !isActive()) return;
-      // The wrapper checks cancellation after core's asynchronous validation,
-      // immediately before the handler, without changing the core API.
-      const registry = createRegistry({
-        [name]: {
-          ...definition,
-          execute(value: never) {
-            if (!isActive()) return undefined;
-            return definition.execute(value);
-          },
-        },
-      });
+      if (!names.has(name) || !isActive()) return;
       try {
         const result = await registry.execute(name, input);
         if (!isActive()) return;

@@ -14,7 +14,7 @@ export class ToolSchemaError extends Error {
 
 export function describeTool(
   name: string,
-  definition: ToolMap[string],
+  definition: Pick<ToolMap[string], "input" | "description">,
 ): ProtocolTool {
   try {
     const inputSchema = z.toJSONSchema(definition.input, {

@@ -3,75 +3,135 @@ import {
   INVALID_REQUEST,
   type JSONRPCResponse,
   PARSE_ERROR,
+  type RequestId,
 } from "@toolgrain/protocol";
-import type { createDispatcher } from "./dispatcher.js";
+import type { Dispatcher } from "./dispatcher.js";
 import { createPendingRequests } from "./pending-requests.js";
 import { decode } from "./protocol/decode.js";
+import type { Request } from "./protocol/messages.js";
 import { ProtocolError, protocolError } from "./protocol/responses.js";
-import type { Transport } from "./transport.js";
+import type { Server } from "./server.js";
+import type { Transport, TransportCallbacks } from "./transport.js";
+
+export function createConnection(
+  dispatch: Dispatcher,
+  onError?: (error: unknown) => void,
+): Server {
+  return new Connection(dispatch, onError);
+}
 
 /** Owns transport attachment, serialized writes, and connection shutdown. */
-export function createConnection(
-  dispatch: ReturnType<typeof createDispatcher>,
-  onError?: (error: unknown) => void,
-) {
-  let state: "idle" | "starting" | "listening" | "closed" = "idle";
-  let transport: Transport | undefined;
-  let closePromise: Promise<void> | undefined;
-  let writes = Promise.resolve();
-  const isOpen = () => state === "starting" || state === "listening";
-  const requests = createPendingRequests(isOpen);
+class Connection implements Server {
+  private state: "idle" | "starting" | "listening" | "closed" = "idle";
+  private transport: Transport | undefined;
+  private closePromise: Promise<void> | undefined;
+  private writes = Promise.resolve();
+  private readonly requests = createPendingRequests(() => this.isOpen());
 
-  function report(error: unknown) {
+  constructor(
+    private readonly dispatch: Dispatcher,
+    private readonly onError?: (error: unknown) => void,
+  ) {}
+
+  // Public methods remain safe to call detached from the returned server.
+  readonly listen = async (transport: Transport): Promise<void> => {
+    if (this.state !== "idle")
+      throw new Error(
+        "Server can only attach one transport and cannot restart after closing",
+      );
+    this.state = "starting";
+    this.transport = transport;
     try {
-      onError?.(error);
+      await transport.start(this.transportCallbacks);
+      if (!this.isOpen()) throw new Error("Transport closed during startup");
+      this.state = "listening";
+    } catch (error) {
+      await this.terminate(error);
+      throw error;
+    }
+  };
+
+  readonly close = (): Promise<void> => {
+    if (this.closePromise) return this.closePromise;
+    this.state = "closed";
+    this.requests.clear();
+    this.closePromise = Promise.resolve().then(async () => {
+      const transport = this.transport;
+      this.transport = undefined;
+      await transport?.close();
+    });
+    return this.closePromise;
+  };
+
+  private readonly transportCallbacks: TransportCallbacks = {
+    onMessage: (message) => {
+      void this.receive(message).catch((error) => this.terminate(error));
+    },
+    onParseError: () => {
+      if (this.isOpen())
+        void this.send(protocolError(PARSE_ERROR, "Parse error"));
+    },
+    onError: (error) => {
+      void this.terminate(error);
+    },
+    onClose: () => {
+      void this.close().catch((error) => this.report(error));
+    },
+  };
+
+  private isOpen(): boolean {
+    return this.state === "starting" || this.state === "listening";
+  }
+
+  private report(error: unknown): void {
+    try {
+      this.onError?.(error);
     } catch {
       /* Diagnostics must not break cleanup. */
     }
   }
-  function close(): Promise<void> {
-    if (closePromise) return closePromise;
-    state = "closed";
-    requests.clear();
-    closePromise = Promise.resolve().then(async () => {
-      const attached = transport;
-      transport = undefined;
-      await attached?.close();
-    });
-    return closePromise;
-  }
-  async function terminate(error: unknown) {
-    report(error);
-    try {
-      await close();
-    } catch (failure) {
-      report(failure);
-    }
-  }
-  function send(message: JSONRPCResponse, isActive = isOpen): Promise<void> {
-    const write = writes.then(async () => {
-      if (isOpen() && isActive()) await transport?.send(message);
-    });
-    writes = write.catch(terminate);
-    return writes;
-  }
-  async function receive(message: unknown) {
-    if (!isOpen()) return;
-    const incoming = decode(message);
-    if (incoming.kind === "ignore") return;
-    if (incoming.kind === "cancel") {
-      requests.cancel(incoming.id);
-      return;
-    }
-    if (incoming.kind === "error") {
-      await send(incoming.response);
-      return;
-    }
 
-    const request = incoming.request;
-    const pending = requests.begin(request.id);
+  private async terminate(error: unknown): Promise<void> {
+    this.report(error);
+    try {
+      await this.close();
+    } catch (failure) {
+      this.report(failure);
+    }
+  }
+
+  private send(
+    message: JSONRPCResponse,
+    isActive: () => boolean = () => this.isOpen(),
+  ): Promise<void> {
+    const write = this.writes.then(async () => {
+      if (this.isOpen() && isActive()) await this.transport?.send(message);
+    });
+    this.writes = write.catch((error) => this.terminate(error));
+    return this.writes;
+  }
+
+  private async receive(message: unknown): Promise<void> {
+    if (!this.isOpen()) return;
+    const incoming = decode(message);
+    switch (incoming.kind) {
+      case "ignore":
+        return;
+      case "cancel":
+        this.requests.cancel(incoming.id);
+        return;
+      case "error":
+        await this.send(incoming.response);
+        return;
+      case "request":
+        await this.handleRequest(incoming.request);
+    }
+  }
+
+  private async handleRequest(request: Request): Promise<void> {
+    const pending = this.requests.begin(request.id);
     if (!pending) {
-      await send(
+      await this.send(
         protocolError(
           INVALID_REQUEST,
           "Request ID is already in use",
@@ -81,55 +141,19 @@ export function createConnection(
       return;
     }
     try {
-      const response = await dispatch(request, pending.isActive);
-      if (response) await send(response, pending.isActive);
+      const response = await this.dispatch(request, pending.isActive);
+      if (response) await this.send(response, pending.isActive);
     } catch (error) {
-      if (error instanceof ProtocolError) {
-        await send(
-          protocolError(error.code, error.message, request.id, error.data),
-          pending.isActive,
-        );
-      } else {
-        report(error);
-        await send(
-          protocolError(INTERNAL_ERROR, "Internal error", request.id),
-          pending.isActive,
-        );
-      }
+      await this.send(this.requestError(error, request.id), pending.isActive);
     } finally {
       pending.finish();
     }
   }
-  return {
-    async listen(attached: Transport) {
-      if (state !== "idle")
-        throw new Error(
-          "Server can only attach one transport and cannot restart after closing",
-        );
-      state = "starting";
-      transport = attached;
-      try {
-        await attached.start({
-          onMessage(message) {
-            void receive(message).catch(terminate);
-          },
-          onParseError() {
-            if (isOpen()) void send(protocolError(PARSE_ERROR, "Parse error"));
-          },
-          onError(error) {
-            void terminate(error);
-          },
-          onClose() {
-            void close().catch(report);
-          },
-        });
-        if (!isOpen()) throw new Error("Transport closed during startup");
-        state = "listening";
-      } catch (error) {
-        await terminate(error);
-        throw error;
-      }
-    },
-    close,
-  };
+
+  private requestError(error: unknown, id: RequestId): JSONRPCResponse {
+    if (error instanceof ProtocolError)
+      return protocolError(error.code, error.message, id, error.data);
+    this.report(error);
+    return protocolError(INTERNAL_ERROR, "Internal error", id);
+  }
 }

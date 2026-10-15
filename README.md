@@ -104,9 +104,11 @@ attachment, and `close()` is terminal and idempotent. Transport failures termina
 the attachment and reach the optional server `onError` callback. Diagnostics do
 not write to stdout.
 
-Cancellation discards pending responses and prevents invocation after asynchronous
-validation. Already-running handlers cannot be interrupted with the current core
-API. Responses already handed to an adapter cannot be recalled.
+Each tool adapter creates one core registry and reuses it for all executions.
+Cancellation suppresses pending responses, but does not interrupt validation or
+handler execution once registry execution starts. Cancellation during validation
+can therefore still allow the handler to run. Responses already handed to an
+adapter cannot be recalled.
 
 The complete upstream schema is vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
@@ -196,10 +198,7 @@ bun run check
 bun run check-types
 bun run test
 bun run build
-bun run --cwd packages/protocol test:package
-bun run --cwd packages/core test:package
-bun run --cwd packages/mcp test:package
-bun run --cwd packages/node test:package
+bun run test:package
 bun run check:fix
 bun run format
 ```

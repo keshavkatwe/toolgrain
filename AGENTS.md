@@ -110,7 +110,7 @@ This roadmap is a proposal, not a committed implementation plan.
 - Strings become text; other JSON values become structured content plus text. Reject unsupported output values as tool errors.
 - Input validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
 - Discovery/list results use `ttlMs: 0`, `cacheScope: "private"`. Tool lists are a single page; nonempty cursors are rejected.
-- Cancellation is best effort; handlers receive no context and cannot be interrupted after invocation.
+- Each MCP tool adapter reuses one core registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
 - Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
@@ -138,3 +138,7 @@ Next, review the complete stdio flow. The example Inspector launcher pins versio
 - All public package exports point to dist. Do not add a development/source export condition.
 - Inspector is a separate example script, launching the compiled server with Bun in modern protocol mode. Reconnect after successful rebuilds to use updated compiled modules.
 - The example has no hot-reload global server state. Keep build output separate from MCP stdout.
+
+## Package verification
+
+Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.
