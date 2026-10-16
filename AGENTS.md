@@ -145,6 +145,19 @@ HTTP support and independent framework examples were merged in PR #6
 pinned Turbo, root-level Biome, and shared strict TypeScript defaults.
 All packages remain private and unpublished.
 
+Compatibility verification on 2026-10-16 passed the existing tools flow over
+stdio and plain Node HTTP with Inspector 2.11.0 CLI and Codex CLI/app-server
+0.163.0-alpha.10.2, using Node 24.20.0. Inspector requires modern mode (automatic
+discovery also passes). The tested Codex alpha requires
+`features.mcp_2026_07_28 = true`; stdio additionally needs
+`CODEX_MCP_PROTOCOL_VERSION = "2026-07-28"` in that server's configured environment.
+These are client settings. Legacy connections fail as expected. See
+`docs/compatibility.md` for the exact evidence, settings, limits, and manual
+`node scripts/verify-inspector.mjs` check. No implementation features, older
+revision support, publication, or release automation were added by verification.
+Default client compatibility remains unresolved; proposed work is listed in
+`ROADMAP.md` without timelines or implementation commitments.
+
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
 HTTP implementation and framework example review is complete. The merged scope

@@ -7,6 +7,9 @@ The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
 validation, and direct execution. `@toolgrain/mcp` adds discovery and tool
 requests for MCP `2026-07-28`. The Node stdio adapter and Web/Node HTTP handlers provide complete server flows. See [AGENTS.md](./AGENTS.md) for project decisions.
 
+See [client compatibility verification](./docs/compatibility.md) for tested
+Inspector/Codex versions, required client settings, and repeatable stdio/HTTP checks.
+
 ## Core package
 
 ```ts
