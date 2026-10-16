@@ -1,6 +1,9 @@
 import { tool } from "@toolgrain/core";
 import { createServer } from "@toolgrain/mcp";
-import { PROTOCOL_VERSION } from "@toolgrain/protocol";
+import {
+  PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@toolgrain/protocol";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createHttpHandler } from "../src/index.js";
@@ -184,9 +187,9 @@ describe("HTTP", () => {
       ),
     );
     expect(response.status).toBe(400);
-    expect((await response.json()).error.data.supported).toEqual([
-      PROTOCOL_VERSION,
-    ]);
+    expect((await response.json()).error.data.supported).toEqual(
+      SUPPORTED_PROTOCOL_VERSIONS,
+    );
   });
   it("rejects notifications without cancelling other requests and reports unavailable servers", async () => {
     const { server, handle } = setup();

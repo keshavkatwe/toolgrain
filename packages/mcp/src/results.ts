@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@toolgrain/protocol";
+import type { CallToolResult as LegacyCallToolResult } from "@toolgrain/protocol/2025-06-18";
 import { assertJSON } from "./json-value.js";
 
 export function toolResult(value: unknown): CallToolResult {
@@ -19,5 +20,18 @@ export function toolError(message: string): CallToolResult {
     resultType: "complete",
     isError: true,
     content: [{ type: "text", text: message }],
+  };
+}
+
+/** The older wire format permits structured content only at an object root. */
+export function legacyToolResult(result: CallToolResult): LegacyCallToolResult {
+  const { resultType: _, structuredContent, ...content } = result;
+  return {
+    ...content,
+    ...(structuredContent !== null &&
+    typeof structuredContent === "object" &&
+    !Array.isArray(structuredContent)
+      ? { structuredContent: structuredContent as Record<string, unknown> }
+      : {}),
   };
 }

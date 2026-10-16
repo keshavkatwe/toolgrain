@@ -12,6 +12,7 @@ import { parseArgs } from "node:util";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const version = "2.11.0";
 const protocolVersion = "2026-07-28";
+const legacyProtocolVersion = "2025-06-18";
 const { values } = parseArgs({
   options: { "inspector-cli": { type: "string" } },
 });
@@ -201,128 +202,124 @@ try {
     }),
   );
   for (const transport of ["stdio", "http"]) {
-    async function check(name, args, verify, era = "modern") {
-      const result = await run(inspector[0], [
-        ...inspector[1],
-        "--cli",
-        "--config",
-        config,
-        "--server",
-        transport,
-        "--protocol-era",
-        era,
-        "--connect-timeout",
-        "5000",
-        "--stored-auth-only",
-        "--format",
-        "json",
-        ...args,
-      ]);
-      const entry = {
-        transport,
-        check: name,
-        era,
-        status: "failed",
-        ...result,
-      };
-      results.push(entry);
-      verify(result);
-      entry.status = "passed";
-      console.log(`PASS ${transport}: ${name}`);
-    }
-    function discovery(result) {
-      assert.equal(result.code, 0, result.stderr);
-      const discovered = JSON.parse(result.stdout).result;
-      assert.equal(discovered.protocolVersion, protocolVersion);
-      assert.deepEqual(discovered.capabilities, { tools: {} });
-      assert.equal(
-        discovered.serverInfo.name,
-        transport === "stdio" ? "toolgrain-stdio-example" : "hello-http",
-      );
-    }
-    await check("discovery", ["--method", "initialize"], discovery);
-    await check("tool schema", ["--method", "tools/list", "--strict"], (r) => {
-      assert.equal(r.code, 0, r.stderr);
-      const { tools } = JSON.parse(r.stdout).result;
-      assert.equal(tools.length, 1);
-      assert.equal(tools[0].name, "greet");
-      assert.equal(tools[0].inputSchema.type, "object");
-      assert.deepEqual(tools[0].inputSchema.required, ["name"]);
-    });
-    for (const name of ["Ada", "Zoë 世界"]) {
+    for (const era of ["modern", "legacy"]) {
+      async function check(name, args, verify, mode = era) {
+        const result = await run(inspector[0], [
+          ...inspector[1],
+          "--cli",
+          "--config",
+          config,
+          "--server",
+          transport,
+          "--protocol-era",
+          mode,
+          "--connect-timeout",
+          "5000",
+          "--stored-auth-only",
+          "--format",
+          "json",
+          ...args,
+        ]);
+        const entry = {
+          transport,
+          check: name,
+          era: mode,
+          status: "failed",
+          ...result,
+        };
+        results.push(entry);
+        verify(result);
+        entry.status = "passed";
+        console.log(`PASS ${transport} ${mode}: ${name}`);
+      }
+      function discovery(result) {
+        assert.equal(result.code, 0, result.stderr);
+        const discovered = JSON.parse(result.stdout).result;
+        assert.equal(
+          discovered.protocolVersion,
+          era === "modern" ? protocolVersion : legacyProtocolVersion,
+        );
+        assert.deepEqual(discovered.capabilities, { tools: {} });
+        assert.equal(
+          discovered.serverInfo.name,
+          transport === "stdio" ? "toolgrain-stdio-example" : "hello-http",
+        );
+      }
+      await check("discovery", ["--method", "initialize"], discovery);
       await check(
-        `greet ${name}`,
-        [
-          "--method",
-          "tools/call",
-          "--tool-name",
-          "greet",
-          "--tool-args-json",
-          JSON.stringify({ name }),
-        ],
+        "tool schema",
+        ["--method", "tools/list", "--strict"],
         (r) => {
           assert.equal(r.code, 0, r.stderr);
-          const result = JSON.parse(r.stdout).result;
-          assert.equal(result.isError, undefined);
-          assert.deepEqual(result.structuredContent, {
-            message: `Hello, ${name}!`,
-          });
-          assert.deepEqual(
-            JSON.parse(result.content[0].text),
-            result.structuredContent,
-          );
+          const { tools } = JSON.parse(r.stdout).result;
+          assert.equal(tools.length, 1);
+          assert.equal(tools[0].name, "greet");
+          assert.equal(tools[0].inputSchema.type, "object");
+          assert.deepEqual(tools[0].inputSchema.required, ["name"]);
         },
       );
-    }
-    for (const name of ["", 42]) {
-      await check(
-        `invalid input ${JSON.stringify(name)}`,
-        [
-          "--method",
-          "tools/call",
-          "--tool-name",
-          "greet",
-          "--tool-args-json",
-          JSON.stringify({ name }),
-        ],
-        (r) => {
-          assert.equal(r.code, 5, r.stderr);
-          const result = JSON.parse(r.stdout).result;
-          assert.equal(result.isError, true);
-          assert.match(result.content[0].text, /name:/);
-        },
-      );
-    }
-    await check(
-      "client rejects an unlisted tool",
-      ["--method", "tools/call", "--tool-name", "missing"],
-      (r) => {
-        assert.notEqual(r.code, 0);
-        assert.match(r.stderr, /"code":"tool_not_found"/);
-        assert.match(r.stderr, /Tool 'missing' not found on server/);
-        assert.equal(r.stdout.trim(), "");
-      },
-    );
-    await check(
-      "automatic discovery",
-      ["--method", "initialize"],
-      discovery,
-      "auto",
-    );
-    await check(
-      "legacy connection rejected",
-      ["--method", "initialize"],
-      (r) => {
-        assert.notEqual(r.code, 0);
-        assert.match(
-          r.stderr,
-          transport === "stdio"
-            ? /Invalid request metadata/
-            : /Missing or mismatched protocol version or method header/,
+      for (const name of ["Ada", "Zoë 世界"]) {
+        await check(
+          `greet ${name}`,
+          [
+            "--method",
+            "tools/call",
+            "--tool-name",
+            "greet",
+            "--tool-args-json",
+            JSON.stringify({ name }),
+          ],
+          (r) => {
+            assert.equal(r.code, 0, r.stderr);
+            const result = JSON.parse(r.stdout).result;
+            assert.equal(result.isError, undefined);
+            assert.deepEqual(result.structuredContent, {
+              message: `Hello, ${name}!`,
+            });
+            assert.deepEqual(
+              JSON.parse(result.content[0].text),
+              result.structuredContent,
+            );
+          },
         );
-      },
-      "legacy",
-    );
+      }
+      for (const name of ["", 42]) {
+        await check(
+          `invalid input ${JSON.stringify(name)}`,
+          [
+            "--method",
+            "tools/call",
+            "--tool-name",
+            "greet",
+            "--tool-args-json",
+            JSON.stringify({ name }),
+          ],
+          (r) => {
+            assert.equal(r.code, 5, r.stderr);
+            const result = JSON.parse(r.stdout).result;
+            assert.equal(result.isError, true);
+            assert.match(result.content[0].text, /name:/);
+          },
+        );
+      }
+      await check(
+        "client rejects an unlisted tool",
+        ["--method", "tools/call", "--tool-name", "missing"],
+        (r) => {
+          assert.notEqual(r.code, 0);
+          assert.match(r.stderr, /"code":"tool_not_found"/);
+          assert.match(r.stderr, /Tool 'missing' not found on server/);
+          assert.equal(r.stdout.trim(), "");
+        },
+      );
+      if (era === "modern")
+        await check(
+          "automatic discovery",
+          ["--method", "initialize"],
+          discovery,
+          "auto",
+        );
+    }
   }
 } catch (error) {
   failure = error;
@@ -344,7 +341,7 @@ try {
           revision,
           node: process.version,
           inspector: version,
-          protocolVersion,
+          protocolVersions: [protocolVersion, legacyProtocolVersion],
           results,
         },
         null,

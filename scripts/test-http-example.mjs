@@ -89,7 +89,64 @@ export async function testHttpExample(workspace) {
         assert.equal(message.result.structuredContent.message, "Hello, Ada!");
       else if (method === "tools/list")
         assert.equal(message.result.tools[0].name, "greet");
-      else assert.deepEqual(message.result.supportedVersions, ["2026-07-28"]);
+      else
+        assert.deepEqual(message.result.supportedVersions, [
+          "2026-07-28",
+          "2025-06-18",
+        ]);
+    }
+    const legacy = async (message, initialized = true) =>
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+          ...(initialized ? { "MCP-Protocol-Version": "2025-06-18" } : {}),
+        },
+        body: JSON.stringify(message),
+        signal: AbortSignal.timeout(10000),
+      });
+    const init = await legacy(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "example-smoke", version: "1" },
+        },
+      },
+      false,
+    );
+    assert.equal(init.status, 200, output);
+    assert.equal((await init.json()).result.protocolVersion, "2025-06-18");
+    assert.equal(init.headers.has("Mcp-Session-Id"), false);
+    const ready = await legacy({
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+    });
+    assert.equal(ready.status, 202, output);
+    assert.equal(await ready.text(), "");
+    for (const method of ["tools/list", "tools/call"]) {
+      const response = await legacy({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params:
+          method === "tools/call"
+            ? { name: "greet", arguments: { name: "Legacy" } }
+            : {},
+      });
+      assert.equal(response.status, 200, output);
+      const message = await response.json();
+      assert.equal(message.result.resultType, undefined);
+      if (method === "tools/call")
+        assert.equal(
+          message.result.structuredContent.message,
+          "Hello, Legacy!",
+        );
+      else assert.equal(message.result.tools[0].name, "greet");
     }
   } finally {
     // CLI commands can start child processes; terminate the entire test-owned group.

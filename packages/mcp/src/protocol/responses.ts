@@ -2,6 +2,8 @@ import type {
   Implementation,
   JSONRPCErrorResponse,
   JSONRPCResultResponse,
+  LegacyJSONRPCErrorResponse,
+  ProtocolResponse,
   RequestId,
   Result,
 } from "@toolgrain/protocol";
@@ -12,12 +14,20 @@ export function protocolError(
   message: string,
   id?: RequestId,
   data?: unknown,
-): JSONRPCErrorResponse {
+  legacy?: boolean,
+): JSONRPCErrorResponse | LegacyJSONRPCErrorResponse {
   return {
     jsonrpc: JSONRPC_VERSION,
-    ...(id === undefined ? {} : { id }),
+    ...(id === undefined ? (legacy ? { id: null } : {}) : { id }),
     error: { code, message, ...(data === undefined ? {} : { data }) },
   };
+}
+
+export function legacyResponse(
+  id: RequestId,
+  result: Record<string, unknown>,
+): ProtocolResponse {
+  return { jsonrpc: JSONRPC_VERSION, id, result };
 }
 
 export function successResponse(

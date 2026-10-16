@@ -1,6 +1,10 @@
 import { type ToolMap, tool } from "@toolgrain/core";
-import type { JSONRPCResponse, RequestId, Result } from "@toolgrain/protocol";
-import { PROTOCOL_VERSION } from "@toolgrain/protocol";
+import type { ProtocolResponse, RequestId } from "@toolgrain/protocol";
+import {
+  PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@toolgrain/protocol";
+import type { Result } from "@toolgrain/protocol/2025-06-18";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createServer, ToolSchemaError } from "../src/index.js";
@@ -31,7 +35,7 @@ async function setup(tools: ToolMap = {}) {
 async function response(
   transport: MemoryTransport,
   message: unknown,
-): Promise<JSONRPCResponse> {
+): Promise<ProtocolResponse> {
   const index = transport.messages.length;
   transport.receive(message);
   await vi.waitFor(
@@ -42,7 +46,7 @@ async function response(
   if (!result) throw new Error("Expected response");
   return result;
 }
-function result(message: JSONRPCResponse): Result {
+function result(message: ProtocolResponse): Result {
   if (!("result" in message)) throw new Error(JSON.stringify(message));
   return message.result;
 }
@@ -55,7 +59,7 @@ it("discovers the modern protocol, static tools, identity, and cache hints", asy
   expect(result(await response(transport, request("server/discover")))).toEqual(
     {
       resultType: "complete",
-      supportedVersions: [PROTOCOL_VERSION],
+      supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
       capabilities: { tools: {} },
       ttlMs: 0,
       cacheScope: "private",
@@ -176,7 +180,10 @@ it("rejects older versions and never inherits prior request metadata", async () 
   ).toMatchObject({
     error: {
       code: -32022,
-      data: { supported: [PROTOCOL_VERSION], requested: "2025-11-25" },
+      data: {
+        supported: [...SUPPORTED_PROTOCOL_VERSIONS],
+        requested: "2025-11-25",
+      },
     },
   });
   await response(transport, request("server/discover"));

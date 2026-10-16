@@ -1,29 +1,67 @@
 import {
   type Implementation,
   INVALID_PARAMS,
-  type JSONRPCResultResponse,
+  LEGACY_PROTOCOL_VERSION,
   METHOD_NOT_FOUND,
   PROTOCOL_VERSION,
+  type ProtocolResponse,
   type Result,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  type SupportedProtocolVersion,
   UNSUPPORTED_PROTOCOL_VERSION,
 } from "@toolgrain/protocol";
 import { callTool, discover, listTools } from "./handlers.js";
+import { initialize, listLegacyTools, ping } from "./legacy-handlers.js";
+import { requestVersion } from "./protocol/era.js";
 import type { Request } from "./protocol/messages.js";
 import { metadata } from "./protocol/metadata.js";
-import { ProtocolError, successResponse } from "./protocol/responses.js";
+import {
+  legacyResponse,
+  ProtocolError,
+  successResponse,
+} from "./protocol/responses.js";
+import { legacyToolResult } from "./results.js";
 import type { createToolAdapter } from "./tools.js";
 
 export type Dispatcher = (
   request: Request,
   isActive: () => boolean,
-) => Promise<JSONRPCResultResponse | undefined>;
+  protocolVersion?: SupportedProtocolVersion,
+) => Promise<ProtocolResponse | undefined>;
 
 export function createDispatcher(
   tools: ReturnType<typeof createToolAdapter>,
   identity: Implementation,
   instructions?: string,
 ): Dispatcher {
-  return async (request: Request, isActive: () => boolean) => {
+  return async (
+    request: Request,
+    isActive: () => boolean,
+    protocolVersion?: SupportedProtocolVersion,
+  ) => {
+    if (requestVersion(request, protocolVersion) === LEGACY_PROTOCOL_VERSION) {
+      let result: Record<string, unknown> | undefined;
+      switch (request.method) {
+        case "initialize":
+          result = initialize(request.params, identity, instructions);
+          break;
+        case "ping":
+          result = ping(request.params);
+          break;
+        case "tools/list":
+          result = listLegacyTools(request.params, tools);
+          break;
+        case "tools/call": {
+          const modern = await callTool(request.params, tools, isActive, true);
+          if (!modern) return;
+          result = legacyToolResult(modern);
+          break;
+        }
+        default:
+          throw new ProtocolError(METHOD_NOT_FOUND, "Method not found");
+      }
+      return legacyResponse(request.id, result);
+    }
     const parsed = metadata.safeParse(request.params?._meta);
     if (!parsed.success)
       throw new ProtocolError(INVALID_PARAMS, "Invalid request metadata");
@@ -32,7 +70,7 @@ export function createDispatcher(
       throw new ProtocolError(
         UNSUPPORTED_PROTOCOL_VERSION,
         "Unsupported protocol version",
-        { supported: [PROTOCOL_VERSION], requested: revision },
+        { supported: [...SUPPORTED_PROTOCOL_VERSIONS], requested: revision },
       );
 
     let result: Result | undefined;

@@ -1,12 +1,14 @@
 import {
   INVALID_REQUEST,
-  type JSONRPCResponse,
+  LEGACY_PROTOCOL_VERSION,
   PARSE_ERROR,
+  type ProtocolResponse,
 } from "@toolgrain/protocol";
 import type { Dispatcher } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { createPendingRequests } from "./pending-requests.js";
 import { decode } from "./protocol/decode.js";
+import { hasModernMetadata, metadataMatchesVersion } from "./protocol/era.js";
 import type { Request } from "./protocol/messages.js";
 import { protocolError } from "./protocol/responses.js";
 import type { Server } from "./server.js";
@@ -27,6 +29,12 @@ class Connection implements Pick<Server, "listen" | "close"> {
   private closePromise: Promise<void> | undefined;
   private writes = Promise.resolve();
   private readonly requests = createPendingRequests(() => this.isOpen());
+  private legacyState:
+    | "initializing"
+    | "awaiting-initialized"
+    | "ready"
+    | undefined;
+  private initializeId: Request["id"] | undefined;
 
   constructor(
     private readonly dispatch: Dispatcher,
@@ -71,7 +79,15 @@ class Connection implements Pick<Server, "listen" | "close"> {
     },
     onParseError: () => {
       if (this.isOpen())
-        void this.send(protocolError(PARSE_ERROR, "Parse error"));
+        void this.send(
+          protocolError(
+            PARSE_ERROR,
+            "Parse error",
+            undefined,
+            undefined,
+            this.legacyState !== undefined,
+          ),
+        );
     },
     onError: (error) => {
       void this.terminate(error);
@@ -103,7 +119,7 @@ class Connection implements Pick<Server, "listen" | "close"> {
   }
 
   private send(
-    message: JSONRPCResponse,
+    message: ProtocolResponse,
     isActive: () => boolean = () => this.isOpen(),
   ): Promise<void> {
     const write = this.writes.then(async () => {
@@ -120,10 +136,22 @@ class Connection implements Pick<Server, "listen" | "close"> {
       case "ignore":
         return;
       case "cancel":
-        this.requests.cancel(incoming.id);
+        if (incoming.id !== this.initializeId)
+          this.requests.cancel(incoming.id);
+        return;
+      case "initialized":
+        if (this.legacyState === "awaiting-initialized")
+          this.legacyState = "ready";
         return;
       case "error":
-        await this.send(incoming.response);
+        await this.send(
+          this.legacyState === undefined
+            ? incoming.response
+            : {
+                ...incoming.response,
+                id: incoming.response.id ?? null,
+              },
+        );
         return;
       case "request":
         await this.handleRequest(incoming.request);
@@ -131,6 +159,31 @@ class Connection implements Pick<Server, "listen" | "close"> {
   }
 
   private async handleRequest(request: Request): Promise<void> {
+    const legacy =
+      (this.legacyState !== undefined &&
+        metadataMatchesVersion(request, LEGACY_PROTOCOL_VERSION)) ||
+      (!hasModernMetadata(request) &&
+        (this.legacyState !== undefined ||
+          request.method === "initialize" ||
+          request.method === "ping"));
+    const initialize = legacy && request.method === "initialize";
+    if (
+      legacy &&
+      (initialize
+        ? this.legacyState !== undefined
+        : this.legacyState !== "ready" && request.method !== "ping")
+    ) {
+      await this.send(
+        protocolError(
+          INVALID_REQUEST,
+          initialize
+            ? "Server is already initialized"
+            : "Server is not initialized",
+          request.id,
+        ),
+      );
+      return;
+    }
     const pending = this.requests.begin(request.id);
     if (!pending) {
       await this.send(
@@ -142,15 +195,24 @@ class Connection implements Pick<Server, "listen" | "close"> {
       );
       return;
     }
+    if (initialize) {
+      this.legacyState = "initializing";
+      this.initializeId = request.id;
+    }
     try {
       const response = await executeRequest(
         this.dispatch,
         request,
         pending.isActive,
         (error) => this.report(error),
+        legacy ? LEGACY_PROTOCOL_VERSION : undefined,
       );
+      if (initialize)
+        this.legacyState =
+          response && "result" in response ? "awaiting-initialized" : undefined;
       if (response) await this.send(response, pending.isActive);
     } finally {
+      if (initialize) this.initializeId = undefined;
       pending.finish();
     }
   }

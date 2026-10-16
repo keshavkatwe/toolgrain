@@ -13,7 +13,7 @@ const transport: Transport = {
     callbacks = value;
   },
   async send(message) {
-    if ("result" in message) {
+    if ("result" in message && typeof message.result.resultType === "string") {
       const revision: string = PROTOCOL_VERSION;
       const resultType: string = message.result.resultType;
       void revision;

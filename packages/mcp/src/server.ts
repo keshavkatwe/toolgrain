@@ -1,8 +1,10 @@
 import type { ToolMap } from "@toolgrain/core";
 import type {
-  JSONRPCResponse,
+  ProtocolResponse,
   Tool as ProtocolTool,
+  SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import { LEGACY_PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { createConnection } from "./connection.js";
 import { createDispatcher } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
@@ -20,13 +22,14 @@ export interface ServerOptions<Tools extends ToolMap = ToolMap> {
 
 export interface HandleOptions {
   signal?: AbortSignal;
+  protocolVersion?: SupportedProtocolVersion;
 }
 
 export interface Server {
   handle(
     message: unknown,
     options?: HandleOptions,
-  ): Promise<JSONRPCResponse | undefined>;
+  ): Promise<ProtocolResponse | undefined>;
   getToolDefinitions(): ProtocolTool[];
   listen(transport: Transport): Promise<void>;
   close(): Promise<void>;
@@ -49,18 +52,22 @@ export function createServer<const Tools extends ToolMap>(
   return {
     listen: connection.listen,
     getToolDefinitions: () => tools.list(),
-    async handle(message, { signal } = {}) {
+    async handle(message, { signal, protocolVersion } = {}) {
       if (closed) throw new Error("Server is closed");
       const active = () => !closed && !signal?.aborted;
       if (!active()) return;
       const incoming = decode(message);
-      if (incoming.kind === "error") return incoming.response;
+      if (incoming.kind === "error")
+        return protocolVersion === LEGACY_PROTOCOL_VERSION
+          ? { ...incoming.response, id: incoming.response.id ?? null }
+          : incoming.response;
       if (incoming.kind !== "request") return;
       return executeRequest(
         dispatch,
         incoming.request,
         active,
         options.onError,
+        protocolVersion,
       );
     },
     close() {

@@ -1,7 +1,12 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { type JSONRPCResponse, PROTOCOL_VERSION } from "@toolgrain/protocol";
+import {
+  LEGACY_PROTOCOL_VERSION,
+  PROTOCOL_VERSION,
+  type ProtocolResponse,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@toolgrain/protocol";
 import { expect, it } from "vitest";
 
 const meta = {
@@ -20,16 +25,16 @@ function launch() {
     [fileURLToPath(new URL("../dist/index.js", import.meta.url))],
     { stdio: "pipe" },
   );
-  const messages: JSONRPCResponse[] = [];
+  const messages: ProtocolResponse[] = [];
   const pending: {
-    resolve: (message: JSONRPCResponse) => void;
+    resolve: (message: ProtocolResponse) => void;
     reject: (error: Error) => void;
   }[] = [];
   let stderr = "";
   const lines = createInterface({ input: child.stdout });
   lines.on("line", (line) => {
     try {
-      const message: JSONRPCResponse = JSON.parse(line);
+      const message: ProtocolResponse = JSON.parse(line);
       const waiter = pending.shift();
       if (waiter) waiter.resolve(message);
       else messages.push(message);
@@ -58,7 +63,7 @@ function launch() {
     next() {
       const message = messages.shift();
       if (message) return Promise.resolve(message);
-      return new Promise<JSONRPCResponse>((resolve, reject) => {
+      return new Promise<ProtocolResponse>((resolve, reject) => {
         pending.push({ resolve, reject });
       });
     },
@@ -79,7 +84,7 @@ it("runs discovery → listing → execution through compiled packages and real 
     expect(await client.next()).toMatchObject({
       id: 1,
       result: {
-        supportedVersions: [PROTOCOL_VERSION],
+        supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
         capabilities: { tools: {} },
         resultType: "complete",
       },
@@ -112,6 +117,87 @@ it("runs discovery → listing → execution through compiled packages and real 
         structuredContent: { message: "Hello, Ada 🌍!" },
         content: [{ type: "text", text: '{"message":"Hello, Ada 🌍!"}' }],
       },
+    });
+    client.child.stdin.end();
+    expect(await client.exited).toBe(0);
+    expect(client.stderr()).toBe("");
+  } finally {
+    await client.dispose();
+  }
+});
+
+it("runs legacy initialization and calls alongside modern requests through real stdio", async () => {
+  const client = launch();
+  const send = (message: unknown) =>
+    client.child.stdin.write(`${JSON.stringify(message)}\n`);
+  try {
+    send({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: LEGACY_PROTOCOL_VERSION,
+        capabilities: {},
+        clientInfo: { name: "legacy-example-test", version: "1" },
+      },
+    });
+    expect(await client.next()).toEqual({
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        protocolVersion: LEGACY_PROTOCOL_VERSION,
+        capabilities: { tools: {} },
+        serverInfo: { name: "toolgrain-stdio-example", version: "1.0.0" },
+      },
+    });
+    send({ jsonrpc: "2.0", method: "notifications/initialized" });
+    send({ jsonrpc: "2.0", id: 2, method: "tools/list" });
+    const listed = await client.next();
+    expect(listed).toMatchObject({
+      id: 2,
+      result: { tools: [{ name: "greet" }] },
+    });
+    expect("result" in listed && listed.result).not.toHaveProperty(
+      "resultType",
+    );
+    send({
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: { name: "greet", arguments: { name: "Zoë 世界" } },
+    });
+    expect(await client.next()).toEqual({
+      jsonrpc: "2.0",
+      id: 3,
+      result: {
+        content: [{ type: "text", text: '{"message":"Hello, Zoë 世界!"}' }],
+        structuredContent: { message: "Hello, Zoë 世界!" },
+      },
+    });
+    send(request(4, "server/discover"));
+    expect(await client.next()).toMatchObject({
+      id: 4,
+      result: {
+        resultType: "complete",
+        supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+      },
+    });
+    send({ jsonrpc: "2.0", id: 5, method: "ping" });
+    expect(await client.next()).toEqual({ jsonrpc: "2.0", id: 5, result: {} });
+    client.child.stdin.write("bad-json\n");
+    expect(await client.next()).toMatchObject({
+      id: null,
+      error: { code: -32700 },
+    });
+    send({
+      jsonrpc: "2.0",
+      id: 6,
+      method: "tools/call",
+      params: { name: "greet", arguments: { name: "" } },
+    });
+    expect(await client.next()).toMatchObject({
+      id: 6,
+      result: { isError: true },
     });
     client.child.stdin.end();
     expect(await client.exited).toBe(0);

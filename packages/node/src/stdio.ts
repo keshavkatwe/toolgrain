@@ -1,7 +1,7 @@
 import { stdin, stdout } from "node:process";
 import type { Readable, Writable } from "node:stream";
 import type { Transport, TransportCallbacks } from "@toolgrain/mcp";
-import type { JSONRPCResponse } from "@toolgrain/protocol";
+import type { ProtocolResponse } from "@toolgrain/protocol";
 import { createMessageDecoder } from "./framing.js";
 import { writeLine } from "./write.js";
 
@@ -73,7 +73,7 @@ class StdioTransport implements Transport {
     this.input.resume();
   };
 
-  readonly send = (message: JSONRPCResponse): Promise<void> => {
+  readonly send = (message: ProtocolResponse): Promise<void> => {
     const write = this.writes.then(async () => {
       if (this.state !== "open") throw new Error("Stdio transport is not open");
       await writeLine(
