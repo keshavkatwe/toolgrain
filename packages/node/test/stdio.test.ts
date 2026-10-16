@@ -367,3 +367,59 @@ it("preserves detached calls to the public transport methods", async () => {
   await close();
   expect(input.listenerCount("data")).toBe(0);
 });
+
+it.each(["message", "parse-error"] as const)(
+  "suppresses remaining frames when a %s callback closes the transport",
+  async (kind) => {
+    const input = new PassThrough();
+    const transport = stdio({ input, output: new PassThrough() });
+    const received = callbacks();
+    if (kind === "message")
+      received.onMessage.mockImplementation(() => {
+        void transport.close();
+      });
+    else
+      received.onParseError.mockImplementation(() => {
+        void transport.close();
+      });
+    await transport.start(received);
+    input.write(
+      kind === "message" ? "1\n2\ninvalid\n" : "invalid\ninvalid\n1\n",
+    );
+    expect(received.onMessage).toHaveBeenCalledTimes(
+      kind === "message" ? 1 : 0,
+    );
+    expect(received.onParseError).toHaveBeenCalledTimes(
+      kind === "message" ? 0 : 1,
+    );
+    expect(input.listenerCount("data")).toBe(0);
+  },
+);
+
+it("reports a callback failure during EOF processing", async () => {
+  const input = new PassThrough();
+  const transport = stdio({ input, output: new PassThrough() });
+  const received = callbacks();
+  const failure = new Error("parse callback failed");
+  received.onParseError.mockImplementation(() => {
+    throw failure;
+  });
+  await transport.start(received);
+  input.end("{");
+  await vi.waitFor(() =>
+    expect(received.onError).toHaveBeenCalledWith(failure),
+  );
+  expect(received.onClose).not.toHaveBeenCalled();
+  expect(input.listenerCount("data")).toBe(0);
+});
+
+it("accepts string chunks from a decoded input stream", async () => {
+  const input = new PassThrough();
+  input.setEncoding("utf8");
+  const transport = stdio({ input, output: new PassThrough() });
+  const received = callbacks();
+  await transport.start(received);
+  input.write('{"name":"🌍"}\n');
+  expect(received.onMessage).toHaveBeenCalledExactlyOnceWith({ name: "🌍" });
+  await transport.close();
+});

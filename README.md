@@ -197,6 +197,7 @@ bun install --frozen-lockfile
 bun run check
 bun run check-types
 bun run test
+bun run test:coverage
 bun run build
 bun run test:package
 bun run check:fix
@@ -226,3 +227,31 @@ GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
 requests and pushes to `main`. The workflow reads the Bun version from
 `package.json`. It also runs type checks, Vitest, builds, and a compiled-package import and
 declaration smoke check using Node 24.20.0.
+
+### Coverage checks
+
+`bun run test:coverage` runs through Turborepo, building each workspace before
+its tests. Core, MCP, and Node use Vitest V8 coverage over every `src/**/*.ts`
+file, including files not imported by tests. Thresholds apply separately to
+statements, branches, functions, and lines in each package: 100% for core and 95% for MCP and Node. A test failure or missed threshold fails CI.
+
+Protocol runs its vendored-schema integrity test without instrumenting upstream
+code. The stdio example runs its subprocess integration tests; child-process
+execution is not included in the library coverage measurements. Type-only and
+re-export-only modules have no executable statements to measure.
+
+Reports are written to each measured package's `coverage/` directory: terminal
+summary, HTML (`coverage/index.html`), LCOV, and JSON summary. Turbo caches and
+restores these reports using `outputs: ["coverage/**"]`. CI uploads available
+reports as the `test-and-coverage-reports` artifact, including after test failures, for
+14 days. Ordinary `bun run test` remains available without instrumentation.
+Reports are generated even when tests fail (`reportOnFailure: true`).
+The 95% floors leave room for defensive paths without requiring contrived tests.
+Coverage measures executed code, not assertion quality or complete behavior.
+
+CI also writes JSON test results for every workspace and a combined Actions
+summary showing check outcomes, failed tests, and coverage against thresholds.
+Independent test suites continue after another suite fails. The same report is
+posted as a PR comment for branches in this repository by a separate job with
+PR write permission; test execution retains read-only permissions. Fork PRs use
+the Actions summary and downloadable artifact. Reports link to the run logs.

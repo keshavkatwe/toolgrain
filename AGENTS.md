@@ -4,6 +4,8 @@ Updated: 2026-10-14
 
 ## Working agreement
 
+- Always create a branch before making changes. Never make changes directly on `main`; continue related work on its existing PR branch.
+
 - Never create a commit unless the user explicitly asks. Authorization applies to the requested commit, not future changes.
 
 - We are not using gstack. Use ordinary project files for context and instructions.
@@ -145,3 +147,16 @@ Next, review the complete stdio flow. The example Inspector launcher pins versio
 ## Package verification
 
 Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.
+
+## Coverage verification
+
+Root `bun run test:coverage` uses Turbo with each workspace's own build as a
+prerequisite and caches `coverage/**` for measured packages. CI runs this instead
+of plain tests. Vitest V8 includes all library source files and enforces each of
+statements, branches, functions, and lines: 100% for core and 95% per package for MCP and Node.
+Protocol integrity and example subprocess tests run in the same pipeline without
+coverage instrumentation. CI retains coverage reports for 14 days.
+
+CI produces workspace JSON test reports under `reports/`, restores them from
+Turbo cache, and publishes a combined Actions summary and same-repository PR
+comment. The comment job has no checkout and does not execute repository code.
