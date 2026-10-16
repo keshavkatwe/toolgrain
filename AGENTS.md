@@ -4,6 +4,8 @@ Updated: 2026-10-14
 
 ## Working agreement
 
+- Always create a branch before making changes. Never make changes directly on `main`; continue related work on its existing PR branch.
+
 - Never create a commit unless the user explicitly asks. Authorization applies to the requested commit, not future changes.
 
 - We are not using gstack. Use ordinary project files for context and instructions.
