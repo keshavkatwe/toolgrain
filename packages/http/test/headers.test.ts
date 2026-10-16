@@ -125,3 +125,21 @@ it("does not extract inherited argument properties", () => {
     ),
   ).not.toThrow();
 });
+
+it("preserves a leading BOM when comparing encoded names", () => {
+  const headers = new Headers({
+    "MCP-Protocol-Version": "v",
+    "Mcp-Method": "tools/call",
+    "Mcp-Name": "=?base64?77u/dGVzdA==?=",
+  });
+  const body = {
+    method: "tools/call",
+    params: {
+      name: "test",
+      _meta: { "io.modelcontextprotocol/protocolVersion": "v" },
+    },
+  };
+  expect(() => validateHeaders(headers, body, new Map())).toThrow();
+  body.params.name = "\uFEFFtest";
+  expect(() => validateHeaders(headers, body, new Map())).not.toThrow();
+});

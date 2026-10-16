@@ -27,7 +27,7 @@ The start command defaults to port 3000; set `PORT` to override it.
 | `build` | `tsc -p tsconfig.build.json` |
 | `start` | `node dist/index.js` |
 
-`src/index.ts` mounts the Node handler at `/mcp`; `src/server.ts` defines the tools. This app has no framework dependencies.
+`src/index.ts` mounts the Node handler at `/mcp`; The tool and MCP server definitions are inline in `src/index.ts`. This app has no framework dependencies.
 
 The app imports Toolgrain's compiled workspace packages. Root `bun run dev` watches
 those packages and runs every example's own development command; HTTP development
@@ -51,3 +51,21 @@ protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
 SSE and Clerk/OAuth are separate work. Toolgrain packages are private workspace
 packages, so this example currently runs from this repository.
+
+## MCP Inspector
+
+Start this app with `bun run dev`, then open another terminal in this directory:
+
+```sh
+bun run inspect
+```
+
+This launches Inspector 2.11.0 in modern protocol mode against this app's development
+endpoint. Connect, list tools, and call `greet` with `{ "name": "Ada" }`.
+The Inspector script connects to an already running app; it does not start it.
+
+For a different port or production URL, override the endpoint:
+
+```sh
+bun run inspect http://127.0.0.1:4000/mcp
+```

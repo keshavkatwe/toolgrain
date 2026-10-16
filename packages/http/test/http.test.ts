@@ -383,3 +383,38 @@ it("cancels only the disconnected request while another client uses the same ID"
   await expect(slow).rejects.toThrow("aborted");
   await server.close();
 });
+
+it("settles a stalled body read when the request is aborted", async () => {
+  const controller = new AbortController();
+  const base = request();
+  const pending = setup().handle(
+    new Request(base.url, {
+      method: "POST",
+      headers: base.headers,
+      signal: controller.signal,
+      body: new ReadableStream(),
+      duplex: "half",
+    } as RequestInit),
+  );
+  controller.abort();
+  await expect(pending).rejects.toThrow();
+});
+it("returns a size error without waiting for upstream cancellation", async () => {
+  const base = request();
+  const response = await setup({ maxMessageBytes: 1 }).handle(
+    new Request(base.url, {
+      method: "POST",
+      headers: base.headers,
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2]));
+        },
+        cancel() {
+          return new Promise(() => {});
+        },
+      }),
+      duplex: "half",
+    } as RequestInit),
+  );
+  expect(response.status).toBe(413);
+});

@@ -135,7 +135,7 @@ This roadmap is a proposal, not a committed implementation plan.
 - Validate protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Invalid annotations fail HTTP-handler construction. No client-to-server HTTP notifications are currently accepted.
 - MCP exposes `handle(message, { signal? })` for independent requests and `getToolDefinitions()` for copied metadata. Shared dispatch/error conversion serves stdio and HTTP; HTTP request IDs are isolated per invocation.
 - Cancellation suppresses delivery without interrupting running core execution. Closing the server is terminal across HTTP and stdio; closing the attached transport also closes independent processing.
-- Examples are separate workspaces: `http-example` (plain Node), `express-example`, `hono-example`, `elysia-example`, `fastify-example`, and `nextjs-example`. Each owns its dependencies, native dev/build/start commands, and real-process HTTP smoke test. They do not import sibling application code. Next uses the Next CLI, Fastify uses fastify-cli, Elysia uses Bun, and Express/Hono use their normal Node workflows. NestJS is not separately verified.
+- Examples are separate workspaces: `http-example` (plain Node), `express-example`, `hono-example`, `elysia-example`, and `nextjs-example`. Each owns its dependencies, native dev/build/start commands, and real-process HTTP smoke test. They do not import sibling application code. Next uses the Next CLI, Elysia uses Bun, and Express/Hono use their normal Node workflows. NestJS is not separately verified.
 
 ## Repository state and next step
 
@@ -152,7 +152,8 @@ Review the HTTP implementation and framework examples next. No commits, publicat
 - Root dev is `turbo run dev --concurrency=16` without a filter: run every package/app dev task. The concurrency limit accommodates all persistent watchers and native example servers.
 - Library and stdio dev tasks watch src with tsc and write JavaScript/declarations to dist. Framework/HTTP examples use native development commands after dependency builds; each HTTP dev server has a distinct port. Next build output is `.next`, not `dist`.
 - All public package exports point to dist. Do not add a development/source export condition.
-- Inspector is a separate example script, launching the compiled server with Bun in modern protocol mode. Reconnect after successful rebuilds to use updated compiled modules.
+- Stdio Inspector is a separate example script, launching the compiled server with Bun in modern protocol mode. Reconnect after successful rebuilds to use updated compiled modules.
+- Each HTTP example has an `inspect` script connecting to its running development endpoint through the shared `scripts/inspect-http.mjs` launcher. The HTTP launcher uses Bunx outside the workspace, pins Inspector to 2.11.0 in modern HTTP mode, and accepts an optional URL argument to override the endpoint. Start the application separately.
 - The example has no hot-reload global server state. Keep build output separate from MCP stdout.
 
 ## Package verification

@@ -21,7 +21,7 @@ export async function testHttpExample(workspace) {
   const port = await availablePort();
   const child = spawn("bun", ["run", "start"], {
     cwd: workspace,
-    env: { ...process.env, PORT: String(port), FASTIFY_PORT: String(port) },
+    env: { ...process.env, PORT: String(port) },
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });

@@ -11,5 +11,7 @@ export function decodeHeaderValue(value: string): string {
   )
     throw new Error("Invalid Base64 header");
   const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
-  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+    bytes,
+  );
 }

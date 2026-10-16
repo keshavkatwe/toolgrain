@@ -51,3 +51,23 @@ protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
 SSE and Clerk/OAuth are separate work. Toolgrain packages are private workspace
 packages, so this example currently runs from this repository.
+
+## MCP Inspector
+
+Start this app with `bun run dev`, then open another terminal in this directory:
+
+```sh
+bun run inspect
+```
+
+This launches Inspector 2.11.0 in modern protocol mode against this app's development
+endpoint. Connect, list tools, and call `greet` with `{ "name": "Ada" }`.
+The Inspector script connects to an already running app; it does not start it.
+
+For a different port or production URL, override the endpoint:
+
+```sh
+bun run inspect http://127.0.0.1:4000/mcp
+```
+
+For the default `next start` port, use `bun run inspect http://127.0.0.1:3000/mcp`.

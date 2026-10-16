@@ -10,7 +10,6 @@ code from sibling examples.
 | [Express](./express-example/README.md) | tsx watcher + Express | 3001 |
 | [Hono](./hono-example/README.md) | tsx watcher + Hono Node adapter | 3002 |
 | [Elysia](./elysia-example/README.md) | Bun watch + Elysia | 3003 |
-| [Fastify](./fastify-example/README.md) | fastify-cli watch + Node native TypeScript | 3004 |
 | [Next.js](./nextjs-example/README.md) | next dev / next build / next start | 3005 |
 | [Stdio](./stdio-example/) | TypeScript watch build; separate Inspector launch | — |
 
@@ -22,3 +21,8 @@ runs the library watch builds and each app's native development command.
 is tested through its own start command; stdio uses its existing subprocess tests.
 `bun run test:coverage` measures library coverage and verifies protocol integrity.
 CI runs both tasks and publishes test results for every workspace.
+
+Every HTTP example also has `bun run inspect`. Start its dev server first, then
+run Inspector in a second terminal in the same example directory. The launcher
+pins Inspector 2.11.0 and modern protocol mode. Override the URL with
+`bun run inspect http://127.0.0.1:4000/mcp` when using a different port.

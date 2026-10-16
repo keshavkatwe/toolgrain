@@ -27,7 +27,7 @@ The start command defaults to port 3003; set `PORT` to override it.
 | `build` | `bun build --target=bun --outdir=dist src/index.ts` |
 | `start` | `bun run dist/index.js` |
 
-`src/app.ts` uses Elysia's `.mount("/mcp", handler)` so its body parser does not consume MCP input. `src/index.ts` calls `.listen()` on Bun; `src/server.ts` defines the tools. Both development and production run on Bun.
+`src/app.ts` uses Elysia's `.mount("/mcp", handler)` so its body parser does not consume MCP input. `src/index.ts` calls `.listen()` on Bun; The tool and MCP server definitions are inline in `src/app.ts`. Both development and production run on Bun.
 
 The app imports Toolgrain's compiled workspace packages. Root `bun run dev` watches
 those packages and runs every example's own development command; HTTP development
@@ -51,3 +51,21 @@ protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
 SSE and Clerk/OAuth are separate work. Toolgrain packages are private workspace
 packages, so this example currently runs from this repository.
+
+## MCP Inspector
+
+Start this app with `bun run dev`, then open another terminal in this directory:
+
+```sh
+bun run inspect
+```
+
+This launches Inspector 2.11.0 in modern protocol mode against this app's development
+endpoint. Connect, list tools, and call `greet` with `{ "name": "Ada" }`.
+The Inspector script connects to an already running app; it does not start it.
+
+For a different port or production URL, override the endpoint:
+
+```sh
+bun run inspect http://127.0.0.1:4000/mcp
+```

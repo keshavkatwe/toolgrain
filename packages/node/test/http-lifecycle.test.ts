@@ -18,6 +18,12 @@ function fixture() {
     destroy: vi.fn(),
   });
   output.writeHead.mockReturnValue(output);
+  output.end.mockImplementation(() => {
+    queueMicrotask(() => {
+      output.writableFinished = true;
+      output.emit("finish");
+    });
+  });
   const server = createServer({ name: "test", version: "1", tools: {} });
   return { input, output, handler: createNodeHttpHandler(server) };
 }
@@ -71,4 +77,33 @@ it("handles abort while waiting for writable backpressure", async () => {
   });
   await handler(input, output as unknown as ServerResponse);
   expect(output.end).not.toHaveBeenCalled();
+});
+
+it("keeps connection error handling until the response finishes", async () => {
+  const { input, output, handler } = fixture();
+  output.end.mockImplementation(() => {
+    queueMicrotask(() => output.emit("error", new Error("flush failed")));
+  });
+  await handler(input, output as unknown as ServerResponse);
+  expect(output.listenerCount("error")).toBe(0);
+  expect(output.listenerCount("finish")).toBe(0);
+});
+it("cleans up when ending a response throws", async () => {
+  const { input, output, handler } = fixture();
+  output.end.mockImplementation(() => {
+    throw new Error("end failed");
+  });
+  await handler(input, output as unknown as ServerResponse);
+  expect(output.destroy).toHaveBeenCalled();
+  expect(output.listenerCount("finish")).toBe(0);
+});
+it("handles a failed error-response flush", async () => {
+  const { input, output, handler } = fixture();
+  input.setEncoding("utf8");
+  output.end.mockImplementation(() => {
+    queueMicrotask(() => output.emit("error", new Error("flush failed")));
+  });
+  await handler(input, output as unknown as ServerResponse);
+  expect(output.destroy).toHaveBeenCalled();
+  expect(output.listenerCount("error")).toBe(0);
 });

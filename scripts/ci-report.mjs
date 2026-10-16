@@ -18,7 +18,6 @@ const workspaces = [
   "apps/express-example",
   "apps/hono-example",
   "apps/elysia-example",
-  "apps/fastify-example",
   "apps/nextjs-example",
 ];
 const escapeMarkdown = (value) =>

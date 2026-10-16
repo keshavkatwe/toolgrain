@@ -26,7 +26,7 @@ export function createNodeHttpHandler(server: Server, options?: HttpOptions) {
         input.complete,
       );
     } catch (error) {
-      writeHttpFailure(output, connection.signal, error);
+      await writeHttpFailure(output, connection.signal, error);
     } finally {
       connection.dispose();
     }

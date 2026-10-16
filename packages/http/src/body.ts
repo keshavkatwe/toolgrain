@@ -15,12 +15,18 @@ export async function readBody(
   if (request.bodyUsed || request.body.locked)
     throw new BodyError(400, "Request body has already been consumed");
   const reader = request.body.getReader();
+  const abort = () => {
+    void reader.cancel(request.signal.reason).catch(() => {});
+  };
+  request.signal.addEventListener("abort", abort, { once: true });
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let text = "";
   let size = 0;
   try {
+    request.signal.throwIfAborted();
     for (;;) {
       const { value, done } = await reader.read();
+      request.signal.throwIfAborted();
       if (done) break;
       size += value.byteLength;
       if (size > limit) throw new BodyError(413, "Message too large");
@@ -29,10 +35,12 @@ export async function readBody(
     text += decoder.decode();
     return JSON.parse(text);
   } catch (error) {
-    await reader.cancel().catch(() => {});
+    void reader.cancel().catch(() => {});
+    request.signal.throwIfAborted();
     if (error instanceof BodyError) throw error;
     throw new BodyError(400, "Parse error");
   } finally {
+    request.signal.removeEventListener("abort", abort);
     reader.releaseLock();
   }
 }

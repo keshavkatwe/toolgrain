@@ -243,9 +243,8 @@ bun run --cwd apps/http-example start
 
 The endpoint is `http://127.0.0.1:3000/mcp`. See
 [independent framework examples](./apps/README.md) for verified Express,
-Hono, Elysia, Fastify, and Next.js integrations. Framework dependencies live only
-in their respective example workspaces. NestJS can integrate through its Express or Fastify
-adapter, but is not separately verified.
+Hono, Elysia, and Next.js integrations. Framework dependencies live only
+in their respective example workspaces. NestJS is not separately verified.
 
 ## Development
 
@@ -265,7 +264,7 @@ TypeScript watch build: changes in `src` emit updated JavaScript and declaration
 to `dist`. Initial library builds run in dependency order before watchers and app
 development servers start so package imports resolve even on a clean checkout.
 Framework examples use their native development commands; Next.js uses the Next
-CLI, Fastify uses fastify-cli, and Elysia runs on Bun. See [examples](./apps/README.md). The protocol build also prepares vendor files.
+CLI, and Elysia runs on Bun. See [examples](./apps/README.md). The protocol build also prepares vendor files.
 
 All package exports point to `dist`; source files are not exposed through a custom
 export condition. After a successful rebuild, disconnect and reconnect in Inspector
@@ -302,7 +301,7 @@ applies across apps and packages; installed skills are excluded from checks.
 - `packages/node/`: Node stdio transport and HTTP adapter.
 - `apps/stdio-example/`: runnable server and subprocess integration tests.
 - `apps/http-example/`: plain Node HTTP server.
-- Other `apps/*-example/` workspaces: independent Express, Hono, Elysia, Fastify, and Next.js applications.
+- Other `apps/*-example/` workspaces: independent Express, Hono, Elysia, and Next.js applications.
 - Packages compile ESM/declarations with TypeScript and use Vitest.
 - `apps/`: examples and future documentation applications.
 - `tsconfig.base.json`: shared strict TypeScript defaults; future workspaces extend

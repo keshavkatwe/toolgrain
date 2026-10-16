@@ -31,10 +31,36 @@ export async function writeHttpResponse(
   if (!inputComplete) response.headers.set("Connection", "close");
   output.writeHead(response.status, Object.fromEntries(response.headers));
   if (response.body) await writeBody(output, response.body, signal);
-  output.end();
+  if (signal.aborted) return;
+  await finishResponse(output, signal);
 }
 
-export function writeHttpFailure(
+async function finishResponse(output: ServerResponse, signal: AbortSignal) {
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      output.off("finish", finish);
+      signal.removeEventListener("abort", abort);
+    };
+    const finish = () => {
+      cleanup();
+      resolve();
+    };
+    const abort = () => {
+      cleanup();
+      reject(signal.reason);
+    };
+    output.once("finish", finish);
+    signal.addEventListener("abort", abort, { once: true });
+    try {
+      output.end();
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
+export async function writeHttpFailure(
   output: ServerResponse,
   signal: AbortSignal,
   error: unknown,
@@ -44,5 +70,8 @@ export function writeHttpFailure(
     output.destroy();
     return;
   }
-  output.writeHead(error instanceof ConsumedRequestError ? 400 : 500).end();
+  output.writeHead(error instanceof ConsumedRequestError ? 400 : 500);
+  await finishResponse(output, signal).catch(() => {
+    output.destroy();
+  });
 }
