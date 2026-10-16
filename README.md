@@ -5,7 +5,7 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 
 The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
 validation, and direct execution. `@toolgrain/mcp` adds discovery and tool
-requests for MCP `2026-07-28`. The Node stdio adapter provides a complete server flow; HTTP remains future work. See [AGENTS.md](./AGENTS.md) for project decisions.
+requests for MCP `2026-07-28`. The Node stdio adapter and Web/Node HTTP handlers provide complete server flows. See [AGENTS.md](./AGENTS.md) for project decisions.
 
 ## Core package
 
@@ -115,7 +115,7 @@ The complete upstream schema is vendored unchanged at commit
 under the private `@toolgrain/protocol` workspace (`packages/protocol/src/vendor`). Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
-Resources, prompts, subscriptions, extensions, rich-content helpers, and HTTP
+Resources, prompts, subscriptions, extensions, and rich-content helpers
 remain future work. All packages are private and unpublished.
 
 ## Node stdio and complete flow
@@ -164,6 +164,89 @@ example and check discovery, tool listing/execution, malformed-input recovery,
 error responses, and EOF shutdown. These use a small test client; Inspector 2.11.0 has also been verified for discovery, listing, and greeting
 execution in modern protocol mode.
 
+## Streamable HTTP
+
+`@toolgrain/http` provides `createHttpHandler(server, options?)`, a Web
+`Request` → `Promise<Response>` handler. `@toolgrain/node` provides
+`createNodeHttpHandler(server, options?)` for Node `IncomingMessage` and
+`ServerResponse`. Both share the same HTTP implementation; neither depends on a
+web framework. HTTP handlers are mounted directly, without `server.listen()`.
+
+```ts
+import { createHttpHandler } from "@toolgrain/http";
+
+const handler = createHttpHandler(server, {
+  allowedOrigins: ["https://example.com"],
+  maxMessageBytes: 1024 * 1024,
+});
+
+// Next.js App Router: app/mcp/route.ts
+export const POST = handler;
+export const GET = handler;
+export const DELETE = handler;
+```
+
+```ts
+import { createNodeHttpHandler } from "@toolgrain/node";
+
+// Express: mount before express.json() or other body-consuming middleware.
+app.all("/mcp", createNodeHttpHandler(server));
+```
+
+The public factories compose focused internal modules. HTTP separates option
+normalization, endpoint checks, bounded body decoding, request/header validation,
+parameter-header schema extraction, execution, and response serialization. The
+Node adapter separates request conversion, connection abort tracking, and response
+writing with backpressure. HTTP protocol behavior stays in `@toolgrain/http`;
+Node modules only adapt the runtime interfaces. No generic utility package is
+needed for these responsibilities.
+
+HTTP supports only revision `2026-07-28`: independent POST requests and JSON
+responses. There is no initialization handshake, session, GET event stream, or
+resumption. SSE, progress, subscriptions, OAuth/Clerk, and request identity context
+are separate work. Normal requests must advertise both `application/json` and
+`text/event-stream` in Accept even though this implementation returns JSON.
+
+Every POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
+`Mcp-Name`. Header values must match the JSON-RPC body. Encoded names and declared
+`x-mcp-header` parameter annotations are validated before tool execution; invalid
+annotations fail HTTP-handler construction. Missing or mismatched headers return
+HTTP 400 / `HeaderMismatch`; unsupported versions return HTTP 400 with supported
+versions; unsupported RPC methods return HTTP 404. GET and DELETE return 405.
+No client-to-server notifications are currently accepted over HTTP.
+
+`maxMessageBytes` defaults to 1 MiB and limits incoming bytes, not output size.
+Bodies use strict UTF-8 decoding. Invalid JSON returns 400; oversized bodies return
+413. Already consumed bodies are rejected. Each HTTP request has its own execution
+scope, so concurrent callers can use the same JSON-RPC ID safely. Disconnects
+suppress the corresponding result; running validation and handlers continue under
+the existing core execution semantics.
+
+An absent Origin is allowed. A present Origin must exactly match an entry in
+`allowedOrigins`, which defaults to an empty list. This is independent of CORS and
+authentication: applications own browser preflight handling, access checks,
+routing, TLS, binding addresses, and HTTP-server shutdown. Set explicit origins
+when using a browser client. The plain Node example binds to `127.0.0.1`.
+
+The MCP server now exposes `handle(message, { signal? })` for independent decoded
+messages and `getToolDefinitions()` for fresh copies of advertised metadata.
+Request processing shares dispatch/error conversion with stdio. `close()` is
+terminal and suppresses pending results across both paths; attached-transport EOF
+also closes the server. The HTTP listener remains application-owned.
+
+Run the plain Node example after building:
+
+```sh
+bun run build
+bun run --cwd apps/http-example start
+```
+
+The endpoint is `http://127.0.0.1:3000/mcp`. See
+[independent framework examples](./apps/README.md) for verified Express,
+Hono, Elysia, Fastify, and Next.js integrations. Framework dependencies live only
+in their respective example workspaces. NestJS can integrate through its Express or Fastify
+adapter, but is not separately verified.
+
 ## Development
 
 Use two terminals from the repository root:
@@ -176,10 +259,13 @@ bun run dev
 bun run --cwd apps/stdio-example inspect
 ```
 
-Root `dev` is `turbo run dev`, without a filter. Every workspace runs its own
+Root `dev` runs `turbo run dev --concurrency=16`, without a filter. The limit
+allows all library watchers and example servers to stay running. Library workspaces run their own
 TypeScript watch build: changes in `src` emit updated JavaScript and declarations
-to `dist`. Initial builds run in dependency order before watchers start so package
-imports resolve even on a clean checkout. The protocol build also prepares vendor files.
+to `dist`. Initial library builds run in dependency order before watchers and app
+development servers start so package imports resolve even on a clean checkout.
+Framework examples use their native development commands; Next.js uses the Next
+CLI, Fastify uses fastify-cli, and Elysia runs on Bun. See [examples](./apps/README.md). The protocol build also prepares vendor files.
 
 All package exports point to `dist`; source files are not exposed through a custom
 export condition. After a successful rebuild, disconnect and reconnect in Inspector
@@ -187,8 +273,9 @@ to start a fresh Bun server using the updated compiled files. Compilation output
 stays in the dev terminal, separate from MCP stdout. The example dev task only
 watches/builds; Inspector is a separate script.
 
-`build` and `check-types` continue to use `tsc`. Individual workspace `dev` commands
-watch/build only that workspace; root `dev` starts all of them.
+Libraries use `tsc` for builds and type checks; examples use their framework
+build commands and TypeScript checks. Individual workspace `dev` commands
+run only that workspace; root `dev` starts all of them.
 
 Use Bun 1.3.14 and the Node version declared in `package.json`.
 
@@ -198,6 +285,7 @@ bun run check
 bun run check-types
 bun run test
 bun run test:coverage
+bun run test:examples
 bun run build
 bun run test:package
 bun run check:fix
@@ -210,8 +298,11 @@ applies across apps and packages; installed skills are excluded from checks.
 - `packages/protocol/`: private pinned wire schema/constants, provenance, and license.
 - `packages/core/`: tool execution library.
 - `packages/mcp/`: protocol validation, server dispatch, and transport contract.
-- `packages/node/`: Node stdio transport.
+- `packages/http/`: runtime-independent Streamable HTTP and Web handler.
+- `packages/node/`: Node stdio transport and HTTP adapter.
 - `apps/stdio-example/`: runnable server and subprocess integration tests.
+- `apps/http-example/`: plain Node HTTP server.
+- Other `apps/*-example/` workspaces: independent Express, Hono, Elysia, Fastify, and Next.js applications.
 - Packages compile ESM/declarations with TypeScript and use Vitest.
 - `apps/`: examples and future documentation applications.
 - `tsconfig.base.json`: shared strict TypeScript defaults; future workspaces extend
@@ -225,19 +316,19 @@ have been removed. Core build, test, and type-check tasks run through Turbo.
 
 GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
 requests and pushes to `main`. The workflow reads the Bun version from
-`package.json`. It also runs type checks, Vitest, builds, and a compiled-package import and
+`package.json`. It also runs type checks, library coverage, uninstrumented example smoke tests, builds, and a compiled-package import and
 declaration smoke check using Node 24.20.0.
 
 ### Coverage checks
 
 `bun run test:coverage` runs through Turborepo, building each workspace before
-its tests. Core, MCP, and Node use Vitest V8 coverage over every `src/**/*.ts`
+its tests. Core, MCP, Node, and HTTP use Vitest V8 coverage over every `src/**/*.ts`
 file, including files not imported by tests. Thresholds apply separately to
-statements, branches, functions, and lines in each package: 100% for core and 95% for MCP and Node. A test failure or missed threshold fails CI.
+statements, branches, functions, and lines in each package: 100% for core and 95% for MCP, Node, and HTTP. A test failure or missed threshold fails CI.
 
 Protocol runs its vendored-schema integrity test without instrumenting upstream
-code. The stdio example runs its subprocess integration tests; child-process
-execution is not included in the library coverage measurements. Type-only and
+code. Examples run their real-process integration tests through `bun run test:examples`,
+separately from library coverage. They have no coverage instrumentation or floors. Type-only and
 re-export-only modules have no executable statements to measure.
 
 Reports are written to each measured package's `coverage/` directory: terminal

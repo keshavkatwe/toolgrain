@@ -7,7 +7,11 @@
       "outputs": ["dist/**"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/test-http-example.mjs"
+      ]
     },
     "check-types": {
       "dependsOn": ["^build", "^check-types"]
@@ -28,9 +32,13 @@
       "outputs": ["reports/**"],
       "dependsOn": ["build"]
     },
-    "@toolgrain/stdio-example#test:coverage": {
+    "test:examples": {
+      "dependsOn": ["^build"],
       "outputs": ["reports/**"],
-      "dependsOn": ["build"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/test-http-example.mjs"
+      ]
     }
   }
 }

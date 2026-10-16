@@ -12,7 +12,14 @@ const workspaces = [
   "packages/protocol",
   "packages/mcp",
   "packages/node",
+  "packages/http",
   "apps/stdio-example",
+  "apps/http-example",
+  "apps/express-example",
+  "apps/hono-example",
+  "apps/elysia-example",
+  "apps/fastify-example",
+  "apps/nextjs-example",
 ];
 const escapeMarkdown = (value) =>
   String(value)
@@ -85,7 +92,12 @@ lines.push(
   "| Workspace | Statements | Branches | Functions | Lines | Floor | Result |",
   "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
 );
-for (const workspace of ["packages/core", "packages/mcp", "packages/node"]) {
+for (const workspace of [
+  "packages/core",
+  "packages/mcp",
+  "packages/node",
+  "packages/http",
+]) {
   const total = read(`${workspace}/coverage/coverage-summary.json`)?.total;
   // Read the same thresholds Vitest enforces, rather than maintaining a second policy.
   const config = readFileSync(`${workspace}/vitest.config.ts`, "utf8");
@@ -112,7 +124,7 @@ for (const workspace of ["packages/core", "packages/mcp", "packages/node"]) {
 if (failures.length) lines.push("", "### Failed tests", "", ...failures);
 lines.push(
   "",
-  "Protocol uses schema integrity checks; the example uses subprocess tests. Neither has a coverage floor.",
+  "Protocol uses schema integrity checks; examples use real-process integration tests. Neither has a coverage floor.",
   "",
   "A failed check prevents this CI job from passing. Coverage does not establish assertion quality.",
 );

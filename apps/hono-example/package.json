@@ -1,0 +1,28 @@
+{
+  "name": "@toolgrain/hono-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check-types": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:examples": "vitest run"
+  },
+  "dependencies": {
+    "@toolgrain/core": "workspace:*",
+    "@toolgrain/mcp": "workspace:*",
+    "zod": "4.6.7",
+    "@toolgrain/http": "workspace:*",
+    "hono": "4.13.13",
+    "@hono/node-server": "1.19.11"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/node": "24.10.0",
+    "vitest": "5.0.4",
+    "tsx": "4.21.0"
+  }
+}

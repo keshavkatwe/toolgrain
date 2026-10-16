@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-14
+Updated: 2026-10-16
 
 ## Working agreement
 
@@ -125,21 +125,32 @@ This roadmap is a proposal, not a committed implementation plan.
 - Close detaches listeners and pauses input without ending/destroying supplied streams or calling process.exit. EOF is the normal shutdown signal.
 - `apps/stdio-example` demonstrates a full server, with subprocess tests using compiled packages over actual stdin/stdout. Inspector 2.11.0 was verified in modern protocol mode: discovery, tool listing, and greet execution over stdio pass.
 
+## Confirmed HTTP decisions
+
+- `@toolgrain/http` owns shared Streamable HTTP behavior and `createHttpHandler(server, options?)`, accepting Web Request and returning Promise<Response>.
+- `@toolgrain/node` retains stdio and adds `createNodeHttpHandler(server, options?)`; applications own routing, ports, TLS, authentication middleware, CORS, and listener shutdown. Mount before body parsing.
+- Keep the HTTP factories as composition only: split options, endpoint checks, body decoding, request/header validation, parameter-header schema extraction, execution, and response serialization. Node separates request conversion, abort lifecycle, and response writing/backpressure. Share protocol behavior through HTTP rather than duplicating it in Node; do not add a generic utility package without concrete reusable responsibilities.
+- Both factories accept `allowedOrigins` and `maxMessageBytes` (default 1 MiB). Absent Origin is allowed; a present Origin must match the explicit allowlist, empty by default.
+- Only `2026-07-28`, independent POSTs and JSON responses initially. GET/DELETE return 405. Sessions, resumability, SSE/progress/subscriptions, OAuth/Clerk, and identity context remain separate work.
+- Validate protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Invalid annotations fail HTTP-handler construction. No client-to-server HTTP notifications are currently accepted.
+- MCP exposes `handle(message, { signal? })` for independent requests and `getToolDefinitions()` for copied metadata. Shared dispatch/error conversion serves stdio and HTTP; HTTP request IDs are isolated per invocation.
+- Cancellation suppresses delivery without interrupting running core execution. Closing the server is terminal across HTTP and stdio; closing the attached transport also closes independent processing.
+- Examples are separate workspaces: `http-example` (plain Node), `express-example`, `hono-example`, `elysia-example`, `fastify-example`, and `nextjs-example`. Each owns its dependencies, native dev/build/start commands, and real-process HTTP smoke test. They do not import sibling application code. Next uses the Next CLI, Fastify uses fastify-cli, Elysia uses Bun, and Express/Hono use their normal Node workflows. NestJS is not separately verified.
+
 ## Repository state and next step
 
-Core, protocol, and MCP are merged into `main`. Node stdio work is on
-`codex/node-stdio`, synced with main, and reviewed in PR #3. Keep Bun 1.3.14,
-pinned Turbo, root-level Biome, and shared strict TypeScript defaults. The stdio
-server example is runnable in `apps/stdio-example`.
+Core, protocol, MCP, and Node stdio are on `main`. Streamable HTTP work is on
+`codex/streamable-http`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared
+strict TypeScript defaults. All packages remain private and unpublished.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
-Next, review the complete stdio flow. The example Inspector launcher pins version 2.11.0 and selects modern protocol mode. No commits, publication, or deployment are authorized by implementation alone.
+Review the HTTP implementation and framework examples next. No commits, publication, or deployment are authorized by implementation alone.
 
 ## Development loop
 
-- Root dev is `turbo run dev` without a filter: run every package/app dev task.
-- Each workspace dev task watches src with tsc and writes JavaScript/declarations to dist. Initial builds complete in dependency order before watch tasks start.
+- Root dev is `turbo run dev --concurrency=16` without a filter: run every package/app dev task. The concurrency limit accommodates all persistent watchers and native example servers.
+- Library and stdio dev tasks watch src with tsc and write JavaScript/declarations to dist. Framework/HTTP examples use native development commands after dependency builds; each HTTP dev server has a distinct port. Next build output is `.next`, not `dist`.
 - All public package exports point to dist. Do not add a development/source export condition.
 - Inspector is a separate example script, launching the compiled server with Bun in modern protocol mode. Reconnect after successful rebuilds to use updated compiled modules.
 - The example has no hot-reload global server state. Keep build output separate from MCP stdout.
@@ -153,9 +164,10 @@ Root `bun run test:package` uses Turbo to run every workspace package verificati
 Root `bun run test:coverage` uses Turbo with each workspace's own build as a
 prerequisite and caches `coverage/**` for measured packages. CI runs this instead
 of plain tests. Vitest V8 includes all library source files and enforces each of
-statements, branches, functions, and lines: 100% for core and 95% per package for MCP and Node.
-Protocol integrity and example subprocess tests run in the same pipeline without
-coverage instrumentation. CI retains coverage reports for 14 days.
+statements, branches, functions, and lines: 100% for core and 95% per package for MCP, Node, and HTTP.
+Protocol integrity runs without coverage instrumentation. Example tests run separately through
+root `bun run test:examples`, without coverage instrumentation or coverage floors. CI runs
+`test:coverage` and `test:examples` together and retains example reports. CI retains coverage reports for 14 days.
 
 CI produces workspace JSON test reports under `reports/`, restores them from
 Turbo cache, and publishes a combined Actions summary and same-repository PR

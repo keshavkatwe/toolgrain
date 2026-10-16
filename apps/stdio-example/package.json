@@ -10,7 +10,7 @@
     "test": "vitest run",
     "inspect": "bun scripts/inspect.mjs",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "test:coverage": "vitest run"
+    "test:examples": "vitest run"
   },
   "dependencies": {
     "@toolgrain/core": "workspace:*",
