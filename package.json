@@ -10,10 +10,12 @@
     "format": "biome format --write .",
     "test": "turbo run test",
     "check-types": "turbo run check-types",
-    "test:package": "turbo run test:package"
+    "test:package": "turbo run test:package",
+    "test:coverage": "turbo run test:coverage"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@vitest/coverage-v8": "5.0.4",
     "turbo": "2.11.8"
   },
   "engines": {

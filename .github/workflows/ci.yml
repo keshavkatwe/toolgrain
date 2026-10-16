@@ -35,19 +35,75 @@ jobs:
           node-version: "24.20.0"
 
       - name: Install dependencies
+        id: install
         run: bun install --frozen-lockfile
 
       - name: Check formatting, lint, and imports
+        id: style
         run: bun run check
 
       - name: Check types
+        id: types
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: bun run check-types
 
-      - name: Run tests
-        run: bun run test
+      - name: Run tests with coverage thresholds
+        id: tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run test:coverage --continue=dependencies-successful
 
       - name: Build packages
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: bun run build
 
       - name: Verify compiled packages and declarations
+        id: packages
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: bun run test:package
+
+      - name: Test CI report generation
+        id: reporting
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node --test scripts/ci-report.test.mjs
+
+      - name: Write test and coverage summary
+        if: ${{ !cancelled() }}
+        env:
+          CI_STEPS: ${{ toJSON(steps) }}
+        run: node scripts/ci-report.mjs
+
+      - name: Upload test and coverage reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-and-coverage-reports
+          path: |
+            reports/pr-report.md
+            packages/*/reports/
+            apps/*/reports/
+            packages/*/coverage/
+          retention-days: 14
+          if-no-files-found: error
+
+  publish-report:
+    name: Publish PR report
+    needs: check
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Download report
+        uses: actions/download-artifact@v4
+        with:
+          name: test-and-coverage-reports
+          path: ci-reports
+
+      - name: Comment on pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR_NUMBER" --body-file ci-reports/reports/pr-report.md

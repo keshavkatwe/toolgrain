@@ -19,6 +19,18 @@
     },
     "test:package": {
       "dependsOn": ["build"]
+    },
+    "test:coverage": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**", "reports/**"]
+    },
+    "@toolgrain/protocol#test:coverage": {
+      "outputs": ["reports/**"],
+      "dependsOn": ["build"]
+    },
+    "@toolgrain/stdio-example#test:coverage": {
+      "outputs": ["reports/**"],
+      "dependsOn": ["build"]
     }
   }
 }
