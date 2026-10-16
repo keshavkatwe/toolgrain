@@ -139,13 +139,20 @@ This roadmap is a proposal, not a committed implementation plan.
 
 ## Repository state and next step
 
-Core, protocol, MCP, and Node stdio are on `main`. Streamable HTTP work is on
-`codex/streamable-http`. Keep Bun 1.3.14, pinned Turbo, root-level Biome, and shared
-strict TypeScript defaults. All packages remain private and unpublished.
+Core, protocol, MCP, Node stdio, and Streamable HTTP support are on `main`.
+HTTP support and independent framework examples were merged in PR #6
+(`e8e2895`) on 2026-10-16 after review and passing CI. Keep Bun 1.3.14,
+pinned Turbo, root-level Biome, and shared strict TypeScript defaults.
+All packages remain private and unpublished.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
-Review the HTTP implementation and framework examples next. No commits, publication, or deployment are authorized by implementation alone.
+HTTP implementation and framework example review is complete. The merged scope
+is independent POST requests with JSON responses, with plain Node, Express,
+Hono, Elysia, and Next.js examples. Fastify support is deferred. Agree on the
+next feature with the user before implementing it; sessions, SSE, resumability,
+OAuth/Clerk, and identity context remain separate work. No commits, publication,
+or deployment are authorized by implementation alone.
 
 ## Development loop
 
