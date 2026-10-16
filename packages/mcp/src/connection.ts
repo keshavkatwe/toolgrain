@@ -1,27 +1,27 @@
 import {
-  INTERNAL_ERROR,
   INVALID_REQUEST,
   type JSONRPCResponse,
   PARSE_ERROR,
-  type RequestId,
 } from "@toolgrain/protocol";
 import type { Dispatcher } from "./dispatcher.js";
+import { executeRequest } from "./execute-request.js";
 import { createPendingRequests } from "./pending-requests.js";
 import { decode } from "./protocol/decode.js";
 import type { Request } from "./protocol/messages.js";
-import { ProtocolError, protocolError } from "./protocol/responses.js";
+import { protocolError } from "./protocol/responses.js";
 import type { Server } from "./server.js";
 import type { Transport, TransportCallbacks } from "./transport.js";
 
 export function createConnection(
   dispatch: Dispatcher,
   onError?: (error: unknown) => void,
-): Server {
-  return new Connection(dispatch, onError);
+  onClose?: () => void,
+): Pick<Server, "listen" | "close"> {
+  return new Connection(dispatch, onError, onClose);
 }
 
 /** Owns transport attachment, serialized writes, and connection shutdown. */
-class Connection implements Server {
+class Connection implements Pick<Server, "listen" | "close"> {
   private state: "idle" | "starting" | "listening" | "closed" = "idle";
   private transport: Transport | undefined;
   private closePromise: Promise<void> | undefined;
@@ -31,6 +31,7 @@ class Connection implements Server {
   constructor(
     private readonly dispatch: Dispatcher,
     private readonly onError?: (error: unknown) => void,
+    private readonly onClose?: () => void,
   ) {}
 
   // Public methods remain safe to call detached from the returned server.
@@ -54,6 +55,7 @@ class Connection implements Server {
   readonly close = (): Promise<void> => {
     if (this.closePromise) return this.closePromise;
     this.state = "closed";
+    this.onClose?.();
     this.requests.clear();
     this.closePromise = Promise.resolve().then(async () => {
       const transport = this.transport;
@@ -141,19 +143,15 @@ class Connection implements Server {
       return;
     }
     try {
-      const response = await this.dispatch(request, pending.isActive);
+      const response = await executeRequest(
+        this.dispatch,
+        request,
+        pending.isActive,
+        (error) => this.report(error),
+      );
       if (response) await this.send(response, pending.isActive);
-    } catch (error) {
-      await this.send(this.requestError(error, request.id), pending.isActive);
     } finally {
       pending.finish();
     }
-  }
-
-  private requestError(error: unknown, id: RequestId): JSONRPCResponse {
-    if (error instanceof ProtocolError)
-      return protocolError(error.code, error.message, id, error.data);
-    this.report(error);
-    return protocolError(INTERNAL_ERROR, "Internal error", id);
   }
 }

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
-import { stdio } from "@toolgrain/node";
+import { createServer } from "@toolgrain/mcp";
+import { createNodeHttpHandler, stdio } from "@toolgrain/node";
+
+assert.equal(
+  typeof createNodeHttpHandler(
+    createServer({ name: "smoke", version: "1", tools: {} }),
+  ),
+  "function",
+);
 
 const input = new PassThrough();
 const output = new PassThrough();

@@ -47,10 +47,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: bun run check-types
 
-      - name: Run tests with coverage thresholds
+      - name: Test libraries with coverage and run example smoke tests
         id: tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: bun run test:coverage --continue=dependencies-successful
+        run: bun run test:coverage test:examples --continue=dependencies-successful
 
       - name: Build packages
         id: build

@@ -10,3 +10,6 @@ coverage/
 !.env.example
 .idea/
 reports/
+
+.next/
+apps/nextjs-example/next-env.d.ts

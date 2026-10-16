@@ -1,0 +1,16 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["reports/**"]
+    },
+    "test:examples": {
+      "dependsOn": ["build"],
+      "outputs": ["reports/**"]
+    }
+  }
+}
