@@ -4,9 +4,8 @@ import type {
   Tool as ProtocolTool,
   SupportedProtocolVersion,
 } from "@toolgrain/protocol";
-import { LEGACY_PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { createConnection } from "./connection.js";
-import { createDispatcher } from "./dispatcher.js";
+import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
 import { createToolAdapter } from "./tools.js";
@@ -58,9 +57,7 @@ export function createServer<const Tools extends ToolMap>(
       if (!active()) return;
       const incoming = decode(message);
       if (incoming.kind === "error")
-        return protocolVersion === LEGACY_PROTOCOL_VERSION
-          ? { ...incoming.response, id: incoming.response.id ?? null }
-          : incoming.response;
+        return formatErrorResponse(incoming.response, protocolVersion);
       if (incoming.kind !== "request") return;
       return executeRequest(
         dispatch,

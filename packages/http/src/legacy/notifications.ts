@@ -1,7 +1,7 @@
-import { type ObjectValue, object } from "./object.js";
+import { type ObjectValue, object } from "../object.js";
 
-/** Only these client notifications apply to the supported stateless tools flow. */
-export function isLegacyNotification(body: ObjectValue): boolean {
+/** Cancellation is advisory: independent POSTs have no shared client identity. */
+export function acceptsNotification(body: ObjectValue): boolean {
   if (Object.hasOwn(body, "result") || Object.hasOwn(body, "error"))
     return false;
   const params = body.params === undefined ? {} : object(body.params);

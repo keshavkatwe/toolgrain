@@ -7,13 +7,18 @@ import type {
   InitializeResult,
   ListToolsResult,
 } from "@toolgrain/protocol/2025-06-18";
+import { callTool as executeToolCall } from "../call-tool.js";
+import { ProtocolError } from "../protocol/responses.js";
+import type { createToolAdapter } from "../tools.js";
 import {
+  callParams,
+  commonParams,
   initializeParams,
-  legacyCommonParams,
-  legacyListParams,
-} from "./protocol/messages.js";
-import { ProtocolError } from "./protocol/responses.js";
-import type { createToolAdapter } from "./tools.js";
+  listParams,
+} from "./messages.js";
+import { toolResult } from "./results.js";
+
+type Tools = ReturnType<typeof createToolAdapter>;
 
 /** Initialization can only negotiate the initialization-based revision. */
 export function initialize(
@@ -35,16 +40,13 @@ export function initialize(
 }
 
 export function ping(params: unknown): Record<string, never> {
-  if (!legacyCommonParams.safeParse(params ?? {}).success)
+  if (!commonParams.safeParse(params ?? {}).success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid ping parameters");
   return {};
 }
 
-export function listLegacyTools(
-  params: unknown,
-  tools: ReturnType<typeof createToolAdapter>,
-): ListToolsResult {
-  const parsed = legacyListParams.safeParse(params ?? {});
+export function listTools(params: unknown, tools: Tools): ListToolsResult {
+  const parsed = listParams.safeParse(params ?? {});
   if (!parsed.success || parsed.data.cursor)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool list parameters");
   return {
@@ -54,4 +56,16 @@ export function listLegacyTools(
       ...(description === undefined ? {} : { description }),
     })),
   };
+}
+
+export async function callTool(
+  params: unknown,
+  tools: Tools,
+  isActive: () => boolean,
+) {
+  const parsed = callParams.safeParse(params);
+  if (!parsed.success)
+    throw new ProtocolError(INVALID_PARAMS, "Invalid tool call parameters");
+  const result = await executeToolCall(parsed.data, tools, isActive);
+  return result ? toolResult(result) : undefined;
 }

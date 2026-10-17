@@ -1,6 +1,6 @@
 import type { Tool } from "@toolgrain/protocol";
 import { expect, it } from "vitest";
-import { validateHeaders } from "../src/headers.js";
+import { validateHeaders } from "../src/modern/headers.js";
 import { object } from "../src/object.js";
 import { parameterHeaders } from "../src/parameter-headers.js";
 

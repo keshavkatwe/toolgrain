@@ -1,12 +1,4 @@
-import type {
-  Implementation,
-  JSONRPCErrorResponse,
-  JSONRPCResultResponse,
-  LegacyJSONRPCErrorResponse,
-  ProtocolResponse,
-  RequestId,
-  Result,
-} from "@toolgrain/protocol";
+import type { JSONRPCErrorResponse, RequestId } from "@toolgrain/protocol";
 import { JSONRPC_VERSION } from "@toolgrain/protocol";
 
 export function protocolError(
@@ -14,37 +6,11 @@ export function protocolError(
   message: string,
   id?: RequestId,
   data?: unknown,
-  legacy?: boolean,
-): JSONRPCErrorResponse | LegacyJSONRPCErrorResponse {
+): JSONRPCErrorResponse {
   return {
     jsonrpc: JSONRPC_VERSION,
-    ...(id === undefined ? (legacy ? { id: null } : {}) : { id }),
+    ...(id === undefined ? {} : { id }),
     error: { code, message, ...(data === undefined ? {} : { data }) },
-  };
-}
-
-export function legacyResponse(
-  id: RequestId,
-  result: Record<string, unknown>,
-): ProtocolResponse {
-  return { jsonrpc: JSONRPC_VERSION, id, result };
-}
-
-export function successResponse(
-  id: RequestId,
-  result: Result,
-  identity: Implementation,
-): JSONRPCResultResponse {
-  return {
-    jsonrpc: JSONRPC_VERSION,
-    id,
-    result: {
-      ...result,
-      _meta: {
-        ...result._meta,
-        "io.modelcontextprotocol/serverInfo": identity,
-      },
-    },
   };
 }
 

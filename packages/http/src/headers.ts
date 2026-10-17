@@ -2,39 +2,7 @@ import { decodeHeaderValue } from "./header-value.js";
 import { type ObjectValue, object } from "./object.js";
 import type { ParameterHeaders } from "./parameter-headers.js";
 
-export function validateHeaders(
-  headers: Headers,
-  body: ObjectValue,
-  parameters: ParameterHeaders,
-) {
-  const params = object(body.params);
-  const meta = object(params?._meta);
-  if (
-    headers.get("MCP-Protocol-Version") !==
-      meta?.["io.modelcontextprotocol/protocolVersion"] ||
-    !headers.has("MCP-Protocol-Version")
-  )
-    throw new Error("Missing or mismatched protocol version header");
-  validateRoutingHeaders(headers, body, parameters, true);
-}
-
-export function validateLegacyHeaders(
-  headers: Headers,
-  body: ObjectValue,
-  parameters: ParameterHeaders,
-) {
-  const meta = object(object(body.params)?._meta);
-  if (
-    meta &&
-    Object.hasOwn(meta, "io.modelcontextprotocol/protocolVersion") &&
-    meta["io.modelcontextprotocol/protocolVersion"] !==
-      headers.get("MCP-Protocol-Version")
-  )
-    throw new Error("Mismatched protocol version metadata");
-  validateRoutingHeaders(headers, body, parameters, false);
-}
-
-function validateRoutingHeaders(
+export function validateRoutingHeaders(
   headers: Headers,
   body: ObjectValue,
   parameters: ParameterHeaders,

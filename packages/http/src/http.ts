@@ -21,7 +21,7 @@ export function createHttpHandler(
       server,
       parsed.message,
       request.signal,
-      parsed.protocolVersion,
+      parsed.protocol,
     );
   };
 }

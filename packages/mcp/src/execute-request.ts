@@ -1,11 +1,9 @@
 import {
   INTERNAL_ERROR,
-  LEGACY_PROTOCOL_VERSION,
   type ProtocolResponse,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 import type { Dispatcher } from "./dispatcher.js";
-import { requestVersion } from "./protocol/era.js";
 import type { Request } from "./protocol/messages.js";
 import { ProtocolError, protocolError } from "./protocol/responses.js";
 
@@ -17,22 +15,13 @@ export async function executeRequest(
   onError?: (error: unknown) => void,
   protocolVersion?: SupportedProtocolVersion,
 ): Promise<ProtocolResponse | undefined> {
-  let legacy = protocolVersion === LEGACY_PROTOCOL_VERSION;
   try {
-    legacy =
-      requestVersion(request, protocolVersion) === LEGACY_PROTOCOL_VERSION;
     const response = await dispatch(request, isActive, protocolVersion);
     return isActive() ? response : undefined;
   } catch (error) {
     if (!isActive()) return;
     if (error instanceof ProtocolError)
-      return protocolError(
-        error.code,
-        error.message,
-        request.id,
-        error.data,
-        legacy,
-      );
+      return protocolError(error.code, error.message, request.id, error.data);
     try {
       onError?.(error);
     } catch {
@@ -43,7 +32,6 @@ export async function executeRequest(
       "Internal error",
       request.id,
       undefined,
-      legacy,
     );
   }
 }

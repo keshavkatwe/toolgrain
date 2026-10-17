@@ -1,66 +1,49 @@
 import {
   INTERNAL_ERROR,
-  INVALID_PARAMS,
-  INVALID_REQUEST,
-  LEGACY_PROTOCOL_VERSION,
-  METHOD_NOT_FOUND,
-  MISSING_REQUIRED_CLIENT_CAPABILITY,
   type ProtocolResponse,
-  type SupportedProtocolVersion,
-  UNSUPPORTED_PROTOCOL_VERSION,
+  type RequestId,
 } from "@toolgrain/protocol";
+import type { ErrorId, HttpProtocol } from "./http-protocol.js";
+import type { ObjectValue } from "./object.js";
+
+/** A valid request ID can be echoed in either era. */
+export function responseId(body?: ObjectValue): RequestId | undefined {
+  const id = body?.id;
+  if (
+    typeof id === "string" ||
+    (typeof id === "number" && Number.isFinite(id) && Number.isInteger(id))
+  )
+    return id;
+}
+
 export const errorResponse = (
   status: number,
   code: number,
   message: string,
-  body?: Record<string, unknown>,
+  id: ErrorId = {},
   data?: unknown,
-  protocolVersion?: SupportedProtocolVersion,
 ) =>
   Response.json(
     {
       jsonrpc: "2.0",
-      ...(typeof body?.id === "string" ||
-      (typeof body?.id === "number" &&
-        Number.isFinite(body.id) &&
-        Number.isInteger(body.id))
-        ? { id: body.id }
-        : protocolVersion === LEGACY_PROTOCOL_VERSION
-          ? { id: null }
-          : {}),
+      ...id,
       error: { code, message, ...(data === undefined ? {} : { data }) },
     },
     { status },
   );
 
-export function unavailableResponse(
-  body: Record<string, unknown>,
-  protocolVersion: SupportedProtocolVersion,
-) {
+export function unavailableResponse(body: ObjectValue, protocol: HttpProtocol) {
   return errorResponse(
     503,
     INTERNAL_ERROR,
     "Server unavailable",
-    body,
-    undefined,
-    protocolVersion,
+    protocol.errorId(body),
   );
 }
 
 export function protocolResponse(
   response: ProtocolResponse,
-  protocolVersion: SupportedProtocolVersion,
+  protocol: HttpProtocol,
 ): Response {
-  if (protocolVersion === LEGACY_PROTOCOL_VERSION)
-    return Response.json(response);
-  if (!("error" in response)) return Response.json(response);
-  const code = response.error.code;
-  const badRequest = [
-    UNSUPPORTED_PROTOCOL_VERSION,
-    MISSING_REQUIRED_CLIENT_CAPABILITY,
-    INVALID_REQUEST,
-    INVALID_PARAMS,
-  ].includes(code);
-  const status = code === METHOD_NOT_FOUND ? 404 : badRequest ? 400 : 200;
-  return Response.json(response, { status });
+  return Response.json(response, { status: protocol.responseStatus(response) });
 }

@@ -4,14 +4,11 @@ import {
   type ListToolsResult,
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "@toolgrain/protocol";
-import {
-  callParams,
-  commonParams,
-  legacyCallParams,
-  listParams,
-} from "./protocol/messages.js";
-import { ProtocolError } from "./protocol/responses.js";
-import type { createToolAdapter } from "./tools.js";
+import { callTool as executeToolCall } from "../call-tool.js";
+import { ProtocolError } from "../protocol/responses.js";
+import type { createToolAdapter } from "../tools.js";
+import { callParams, commonParams, listParams } from "./messages.js";
+import { toolResult } from "./results.js";
 
 type Tools = ReturnType<typeof createToolAdapter>;
 
@@ -47,13 +44,10 @@ export async function callTool(
   params: unknown,
   tools: Tools,
   isActive: () => boolean,
-  legacy = false,
 ) {
-  const parsed = (legacy ? legacyCallParams : callParams).safeParse(params);
+  const parsed = callParams.safeParse(params);
   if (!parsed.success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool call parameters");
-  const { name, arguments: input = {} } = parsed.data;
-  if (!tools.has(name))
-    throw new ProtocolError(INVALID_PARAMS, `Unknown tool: ${name}`);
-  return tools.execute(name, input, isActive);
+  const result = await executeToolCall(parsed.data, tools, isActive);
+  return result ? toolResult(result) : undefined;
 }

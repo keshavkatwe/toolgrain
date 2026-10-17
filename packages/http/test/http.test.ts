@@ -217,6 +217,25 @@ describe("HTTP", () => {
     const responses = await Promise.all([handle(request()), handle(request())]);
     expect(responses.map((r) => r.status)).toEqual([200, 200]);
   });
+  it("rejects modern notifications even when their routing metadata is valid", async () => {
+    const response = await setup().handle(
+      request(
+        "notifications/cancelled",
+        {},
+        {},
+        JSON.stringify({
+          jsonrpc: "2.0",
+          method: "notifications/cancelled",
+          params: { _meta: meta, requestId: 1 },
+        }),
+      ),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      jsonrpc: "2.0",
+      error: { code: -32600, message: "Unsupported or malformed notification" },
+    });
+  });
 });
 it("validates resources and prompts names before reporting method not found", async () => {
   const { handle } = setup();

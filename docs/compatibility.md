@@ -1,10 +1,9 @@
 # Client compatibility verification
 
-Verified on 2026-10-16 using Node 24.20.0 on macOS arm64. This report covers the
+Verified on 2026-10-17 using Node 24.20.0 on macOS arm64. This report covers the
 dual-era working tree: MCP `2025-06-18` and `2026-07-28` tools over stdio and
-independent HTTP POSTs with JSON responses. Initial client verification ran
-against the implementation working tree before its commit; local reports record
-the base Git revision for that run.
+independent HTTP POSTs with JSON responses. Local reports record the checked-out
+base Git revision; verification can include uncommitted working-tree changes.
 
 ## Results
 
@@ -30,6 +29,14 @@ metadata, and matching HTTP routing headers. Legacy wire results omit modern
 `resultType` and cache fields; modern wire results retain them. CLI clients can
 normalize these fields before printing, so envelope assertions use raw captures
 and integration tests.
+
+After separating the modern and legacy modules on 2026-10-17, all client checks
+above pass again. A frozen build of `a235d7e` and the refactored build also produce
+identical results across 147 observations covering both eras, HTTP statuses and
+headers, malformed requests, stdio initialization, cancellation, and shutdown.
+Public server, transport, and HTTP declarations remain byte-identical. Modern
+modules have no direct or transitive dependency on legacy modules within MCP or
+HTTP; execution and transport behavior stay shared.
 
 ## Normal Codex setup
 

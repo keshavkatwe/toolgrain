@@ -3,12 +3,10 @@ import { toolResult } from "../src/results.js";
 
 it("converts strings to text and JSON values to structured content and text", () => {
   expect(toolResult("hello")).toEqual({
-    resultType: "complete",
     content: [{ type: "text", text: "hello" }],
   });
   for (const value of [null, true, 1, [], [1, null], { a: "value" }]) {
     expect(toolResult(value)).toEqual({
-      resultType: "complete",
       structuredContent: value,
       content: [{ type: "text", text: JSON.stringify(value) }],
     });

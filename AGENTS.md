@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-16
+Updated: 2026-10-17
 
 ## Working agreement
 
@@ -115,6 +115,7 @@ This roadmap is a proposal, not a committed implementation plan.
 - Modern discovery/list results use `ttlMs: 0`, `cacheScope: "private"`; discovery advertises both supported revisions. Legacy result envelopes omit modern result/cache/server-info metadata. Tool lists are a single page; nonempty cursors are rejected.
 - Each MCP tool adapter reuses one core registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
+- Keep revision-specific validation, dispatch, response shaping, and legacy negotiation in separate `modern/` and `legacy/` modules. Share tool execution, JSON normalization, schema conversion, envelope decoding, and transport lifecycle; era selection stays in thin composition modules. Modern modules must not depend on legacy modules. This separation preserves the public API and wire behavior while keeping legacy support removable.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
 - Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
 
@@ -131,6 +132,7 @@ This roadmap is a proposal, not a committed implementation plan.
 - `@toolgrain/http` owns shared Streamable HTTP behavior and `createHttpHandler(server, options?)`, accepting Web Request and returning Promise<Response>.
 - `@toolgrain/node` retains stdio and adds `createNodeHttpHandler(server, options?)`; applications own routing, ports, TLS, authentication middleware, CORS, and listener shutdown. Mount before body parsing.
 - Keep the HTTP factories as composition only: split options, endpoint checks, body decoding, request/header validation, parameter-header schema extraction, execution, and response serialization. Node separates request conversion, abort lifecycle, and response writing/backpressure. Share protocol behavior through HTTP rather than duplicating it in Node; do not add a generic utility package without concrete reusable responsibilities.
+- HTTP `modern/` and `legacy/` modules own each era's header, notification, status, and error-ID policies. Share endpoint/body/envelope handling, routing and parameter-header comparison, execution, and JSON serialization; choose one of the two internal adapters per request without a plugin framework.
 - Both factories accept `allowedOrigins` and `maxMessageBytes` (default 1 MiB). Absent Origin is allowed; a present Origin must match the explicit allowlist, empty by default.
 - Support `2026-07-28` and `2025-06-18` with independent POSTs and JSON responses. GET/DELETE return 405. No session IDs or global per-client negotiation state. Persistent sessions, resumability, SSE/progress/subscriptions, OAuth/Clerk, and identity context remain separate work.
 - Validate modern protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Legacy initialization may omit the version header; subsequent legacy POSTs carry `2025-06-18`. Optional legacy routing/parameter headers are validated when present. Invalid annotations fail HTTP-handler construction. Valid legacy initialized/cancelled notifications return 202 empty; cancellation is advisory no-op because independent requests have no session/client identity. Modern HTTP notifications remain unsupported.

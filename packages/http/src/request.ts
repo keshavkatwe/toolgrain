@@ -1,21 +1,16 @@
-import {
-  INVALID_REQUEST,
-  LEGACY_PROTOCOL_VERSION,
-  PARSE_ERROR,
-  type SupportedProtocolVersion,
-} from "@toolgrain/protocol";
+import { INVALID_REQUEST, PARSE_ERROR } from "@toolgrain/protocol";
 import { type BodyError, readBody } from "./body.js";
-import { isLegacyNotification } from "./legacy-notification.js";
+import type { HttpProtocol } from "./http-protocol.js";
 import { type ObjectValue, object } from "./object.js";
 import type { ParameterHeaders } from "./parameter-headers.js";
-import { selectProtocol } from "./protocol-version.js";
+import { protocolForErrors, selectProtocol } from "./protocol-version.js";
 import { errorResponse } from "./responses.js";
 
 type RequestResult =
   | {
       ok: true;
       message: ObjectValue;
-      protocolVersion: SupportedProtocolVersion;
+      protocol: HttpProtocol;
     }
   | { ok: false; response: Response };
 const reject = (...args: Parameters<typeof errorResponse>): RequestResult => ({
@@ -28,10 +23,6 @@ export async function readRequest(
   maxMessageBytes: number,
   parameters: ParameterHeaders,
 ): Promise<RequestResult> {
-  const errorVersion =
-    request.headers.get("MCP-Protocol-Version") === LEGACY_PROTOCOL_VERSION
-      ? LEGACY_PROTOCOL_VERSION
-      : undefined;
   let incoming: unknown;
   try {
     incoming = await readBody(request, maxMessageBytes);
@@ -42,9 +33,7 @@ export async function readRequest(
       value.status,
       value.status === 413 ? INVALID_REQUEST : PARSE_ERROR,
       value.message,
-      undefined,
-      undefined,
-      errorVersion,
+      protocolForErrors(request.headers).errorId(),
     );
   }
   const body = object(incoming);
@@ -64,24 +53,19 @@ export async function readRequest(
       400,
       INVALID_REQUEST,
       "Invalid request",
-      body,
-      undefined,
-      errorVersion,
+      protocolForErrors(request.headers).errorId(body),
     );
   const selected = selectProtocol(request.headers, body, parameters);
   if (!selected.ok) return selected;
   if (
     !Object.hasOwn(body, "id") &&
-    (selected.protocolVersion !== LEGACY_PROTOCOL_VERSION ||
-      !isLegacyNotification(body))
+    !selected.protocol.acceptsNotification(body)
   )
     return reject(
       400,
       INVALID_REQUEST,
       "Unsupported or malformed notification",
-      body,
-      undefined,
-      selected.protocolVersion,
+      selected.protocol.errorId(body),
     );
-  return { ok: true, message: body, protocolVersion: selected.protocolVersion };
+  return { ok: true, message: body, protocol: selected.protocol };
 }

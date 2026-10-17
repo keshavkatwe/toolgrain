@@ -1,6 +1,6 @@
 import { PROTOCOL_VERSION, type RequestMetaObject } from "@toolgrain/protocol";
 import { expect, it } from "vitest";
-import { metadata } from "../src/protocol/metadata.js";
+import { metadata } from "../src/modern/metadata.js";
 
 it("preserves extension metadata and agrees with official request metadata", () => {
   const parsed = metadata.parse({

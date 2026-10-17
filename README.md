@@ -79,12 +79,17 @@ await server.listen(stdio());
 
 Implementation responsibilities are separated:
 
-- `server.ts` composes the server; `dispatcher.ts` routes MCP methods.
-- `handlers.ts` implements discovery, tool listing, and tool calls.
-- `connection.ts` owns transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
-- `protocol/` owns metadata validation, message decoding, and response envelopes.
+- `server.ts` composes the server; `dispatcher.ts` selects the protocol era.
+- `modern/` and `legacy/` own their request validation, method handling, and response shapes.
+- `legacy/connection.ts` owns initialization/readiness and initialization cancellation rules.
+- `connection.ts` owns shared transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
+- `protocol/` owns shared envelopes, decoding, and protocol errors.
 - `tool-schema.ts` converts schemas; `tools.ts` adapts core execution.
-- `json-value.ts` checks JSON values; `results.ts` converts them into tool results.
+- `json-value.ts` checks JSON values; `results.ts` normalizes outputs before either era shapes its wire result.
+
+Modern modules do not depend on legacy modules. Removing legacy support would
+remove its modules, schema, tests, and routing/export entries; tool definitions
+and shared execution would remain the same.
 
 The package supports `server/discover`, `tools/list`, and `tools/call` for modern
 `2026-07-28` requests carrying version and client capability metadata. Legacy
@@ -218,6 +223,11 @@ Node adapter separates request conversion, connection abort tracking, and respon
 writing with backpressure. HTTP protocol behavior stays in `@toolgrain/http`;
 Node modules only adapt the runtime interfaces. No generic utility package is
 needed for these responsibilities.
+
+Within HTTP, `modern/` and `legacy/` contain each era's version/header validation,
+notification rules, and response policies. `protocol-version.ts` selects one
+adapter per POST; body decoding, routing/parameter-header comparison, execution,
+and JSON serialization are shared.
 
 HTTP supports revisions `2026-07-28` and `2025-06-18`: independent POST requests
 and JSON responses. Legacy initialization is supported without issuing session
