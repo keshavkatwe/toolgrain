@@ -1,6 +1,5 @@
 import { createRegistry, ToolInputError, type ToolMap } from "@toolgrain/core";
-import type { CallToolResult } from "@toolgrain/protocol";
-import { toolError, toolResult } from "./results.js";
+import { type ToolExecutionResult, toolError, toolResult } from "./results.js";
 import { describeTool } from "./tool-schema.js";
 
 export function createToolAdapter(tools: ToolMap) {
@@ -15,7 +14,7 @@ export function createToolAdapter(tools: ToolMap) {
       name: string,
       input: unknown,
       isActive: () => boolean,
-    ): Promise<CallToolResult | undefined> {
+    ): Promise<ToolExecutionResult | undefined> {
       if (!names.has(name) || !isActive()) return;
       try {
         const result = await registry.execute(name, input);

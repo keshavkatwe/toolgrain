@@ -3,14 +3,24 @@ import {
   type JSONRPCErrorResponse,
   type RequestId,
 } from "@toolgrain/protocol";
-import { cancellation, envelope, type Request, requestId } from "./messages.js";
+import {
+  cancellation,
+  envelope,
+  type Notification,
+  type Request,
+  requestId,
+} from "./messages.js";
 import { protocolError } from "./responses.js";
 
 type Incoming =
   | { kind: "request"; request: Request }
   | { kind: "cancel"; id: RequestId }
+  | { kind: "notification"; notification: Notification }
   | { kind: "ignore" }
-  | { kind: "error"; response: JSONRPCErrorResponse };
+  | {
+      kind: "error";
+      response: JSONRPCErrorResponse;
+    };
 
 /** Decode the envelope; method parameters are validated by the dispatcher. */
 export function decode(message: unknown): Incoming {
@@ -42,6 +52,7 @@ export function decode(message: unknown): Incoming {
   if (parsed.data.method === "notifications/cancelled") {
     const params = cancellation.safeParse(parsed.data.params);
     if (params.success) return { kind: "cancel", id: params.data.requestId };
+    return { kind: "ignore" };
   }
-  return { kind: "ignore" };
+  return { kind: "notification", notification: parsed.data };
 }

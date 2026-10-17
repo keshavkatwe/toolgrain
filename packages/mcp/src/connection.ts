@@ -1,10 +1,11 @@
 import {
   INVALID_REQUEST,
-  type JSONRPCResponse,
   PARSE_ERROR,
+  type ProtocolResponse,
 } from "@toolgrain/protocol";
 import type { Dispatcher } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
+import { createLegacyConnection } from "./legacy/connection.js";
 import { createPendingRequests } from "./pending-requests.js";
 import { decode } from "./protocol/decode.js";
 import type { Request } from "./protocol/messages.js";
@@ -27,6 +28,7 @@ class Connection implements Pick<Server, "listen" | "close"> {
   private closePromise: Promise<void> | undefined;
   private writes = Promise.resolve();
   private readonly requests = createPendingRequests(() => this.isOpen());
+  private readonly legacy = createLegacyConnection();
 
   constructor(
     private readonly dispatch: Dispatcher,
@@ -71,7 +73,9 @@ class Connection implements Pick<Server, "listen" | "close"> {
     },
     onParseError: () => {
       if (this.isOpen())
-        void this.send(protocolError(PARSE_ERROR, "Parse error"));
+        void this.send(
+          this.legacy.errorResponse(protocolError(PARSE_ERROR, "Parse error")),
+        );
     },
     onError: (error) => {
       void this.terminate(error);
@@ -103,7 +107,7 @@ class Connection implements Pick<Server, "listen" | "close"> {
   }
 
   private send(
-    message: JSONRPCResponse,
+    message: ProtocolResponse,
     isActive: () => boolean = () => this.isOpen(),
   ): Promise<void> {
     const write = this.writes.then(async () => {
@@ -120,10 +124,14 @@ class Connection implements Pick<Server, "listen" | "close"> {
       case "ignore":
         return;
       case "cancel":
-        this.requests.cancel(incoming.id);
+        if (this.legacy.canCancel(incoming.id))
+          this.requests.cancel(incoming.id);
+        return;
+      case "notification":
+        this.legacy.notification(incoming.notification);
         return;
       case "error":
-        await this.send(incoming.response);
+        await this.send(this.legacy.errorResponse(incoming.response));
         return;
       case "request":
         await this.handleRequest(incoming.request);
@@ -131,6 +139,11 @@ class Connection implements Pick<Server, "listen" | "close"> {
   }
 
   private async handleRequest(request: Request): Promise<void> {
+    const prepared = this.legacy.prepare(request);
+    if (prepared.error) {
+      await this.send(prepared.error);
+      return;
+    }
     const pending = this.requests.begin(request.id);
     if (!pending) {
       await this.send(
@@ -142,15 +155,19 @@ class Connection implements Pick<Server, "listen" | "close"> {
       );
       return;
     }
+    const initialization = this.legacy.begin(request, prepared.protocolVersion);
     try {
       const response = await executeRequest(
         this.dispatch,
         request,
         pending.isActive,
         (error) => this.report(error),
+        prepared.protocolVersion,
       );
+      initialization?.respond(response);
       if (response) await this.send(response, pending.isActive);
     } finally {
+      initialization?.finish();
       pending.finish();
     }
   }

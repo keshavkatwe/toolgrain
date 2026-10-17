@@ -2,21 +2,16 @@ import { decodeHeaderValue } from "./header-value.js";
 import { type ObjectValue, object } from "./object.js";
 import type { ParameterHeaders } from "./parameter-headers.js";
 
-export function validateHeaders(
+export function validateRoutingHeaders(
   headers: Headers,
   body: ObjectValue,
   parameters: ParameterHeaders,
+  required: boolean,
 ) {
   const params = object(body.params);
-  const meta = object(params?._meta);
-  if (
-    headers.get("MCP-Protocol-Version") !==
-      meta?.["io.modelcontextprotocol/protocolVersion"] ||
-    !headers.has("MCP-Protocol-Version") ||
-    headers.get("Mcp-Method") !== body.method ||
-    !headers.has("Mcp-Method")
-  )
-    throw new Error("Missing or mismatched protocol version or method header");
+  const method = headers.get("Mcp-Method");
+  if ((required || method !== null) && method !== body.method)
+    throw new Error("Missing or mismatched method header");
   const source = body.method === "resources/read" ? params?.uri : params?.name;
   if (
     ["tools/call", "resources/read", "prompts/get"].includes(
@@ -25,9 +20,10 @@ export function validateHeaders(
   ) {
     const name = headers.get("Mcp-Name");
     if (
-      name === null ||
-      typeof source !== "string" ||
-      decodeHeaderValue(name) !== source
+      (required || name !== null) &&
+      (name === null ||
+        typeof source !== "string" ||
+        decodeHeaderValue(name) !== source)
     )
       throw new Error("Missing or mismatched Mcp-Name header");
   }
@@ -43,7 +39,10 @@ export function validateHeaders(
       if (header !== null) throw new Error(`Unexpected ${entry.name} header`);
       continue;
     }
-    if (header === null) throw new Error(`Missing ${entry.name} header`);
+    if (header === null) {
+      if (required) throw new Error(`Missing ${entry.name} header`);
+      continue;
+    }
     const actual = decodeHeaderValue(header);
     if (
       entry.integer

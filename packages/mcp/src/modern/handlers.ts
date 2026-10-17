@@ -2,11 +2,13 @@ import {
   type DiscoverResult,
   INVALID_PARAMS,
   type ListToolsResult,
-  PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
 } from "@toolgrain/protocol";
-import { callParams, commonParams, listParams } from "./protocol/messages.js";
-import { ProtocolError } from "./protocol/responses.js";
-import type { createToolAdapter } from "./tools.js";
+import { callTool as executeToolCall } from "../call-tool.js";
+import { ProtocolError } from "../protocol/responses.js";
+import type { createToolAdapter } from "../tools.js";
+import { callParams, commonParams, listParams } from "./messages.js";
+import { toolResult } from "./results.js";
 
 type Tools = ReturnType<typeof createToolAdapter>;
 
@@ -20,7 +22,7 @@ export function discover(
     resultType: "complete",
     ttlMs: 0,
     cacheScope: "private",
-    supportedVersions: [PROTOCOL_VERSION],
+    supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
     capabilities: { tools: {} },
     ...(instructions === undefined ? {} : { instructions }),
   };
@@ -46,8 +48,6 @@ export async function callTool(
   const parsed = callParams.safeParse(params);
   if (!parsed.success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool call parameters");
-  const { name, arguments: input = {} } = parsed.data;
-  if (!tools.has(name))
-    throw new ProtocolError(INVALID_PARAMS, `Unknown tool: ${name}`);
-  return tools.execute(name, input, isActive);
+  const result = await executeToolCall(parsed.data, tools, isActive);
+  return result ? toolResult(result) : undefined;
 }

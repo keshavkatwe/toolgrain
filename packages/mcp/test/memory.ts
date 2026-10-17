@@ -1,14 +1,14 @@
-import type { JSONRPCResponse } from "@toolgrain/protocol";
+import type { ProtocolResponse } from "@toolgrain/protocol";
 import type { Transport, TransportCallbacks } from "../src/index.js";
 
 export class MemoryTransport implements Transport {
   callbacks: TransportCallbacks | undefined;
-  messages: JSONRPCResponse[] = [];
+  messages: ProtocolResponse[] = [];
   closes = 0;
   async start(callbacks: TransportCallbacks) {
     this.callbacks = callbacks;
   }
-  async send(message: JSONRPCResponse) {
+  async send(message: ProtocolResponse) {
     this.messages.push(message);
   }
   async close() {

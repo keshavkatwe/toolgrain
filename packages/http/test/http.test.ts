@@ -1,6 +1,9 @@
 import { tool } from "@toolgrain/core";
 import { createServer } from "@toolgrain/mcp";
-import { PROTOCOL_VERSION } from "@toolgrain/protocol";
+import {
+  PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@toolgrain/protocol";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createHttpHandler } from "../src/index.js";
@@ -184,9 +187,9 @@ describe("HTTP", () => {
       ),
     );
     expect(response.status).toBe(400);
-    expect((await response.json()).error.data.supported).toEqual([
-      PROTOCOL_VERSION,
-    ]);
+    expect((await response.json()).error.data.supported).toEqual(
+      SUPPORTED_PROTOCOL_VERSIONS,
+    );
   });
   it("rejects notifications without cancelling other requests and reports unavailable servers", async () => {
     const { server, handle } = setup();
@@ -213,6 +216,25 @@ describe("HTTP", () => {
     const { handle } = setup();
     const responses = await Promise.all([handle(request()), handle(request())]);
     expect(responses.map((r) => r.status)).toEqual([200, 200]);
+  });
+  it("rejects modern notifications even when their routing metadata is valid", async () => {
+    const response = await setup().handle(
+      request(
+        "notifications/cancelled",
+        {},
+        {},
+        JSON.stringify({
+          jsonrpc: "2.0",
+          method: "notifications/cancelled",
+          params: { _meta: meta, requestId: 1 },
+        }),
+      ),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      jsonrpc: "2.0",
+      error: { code: -32600, message: "Unsupported or malformed notification" },
+    });
   });
 });
 it("validates resources and prompts names before reporting method not found", async () => {

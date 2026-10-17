@@ -5,7 +5,10 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 
 The first `@toolgrain/core` package provides typed tool definitions, Zod 4 input
 validation, and direct execution. `@toolgrain/mcp` adds discovery and tool
-requests for MCP `2026-07-28`. The Node stdio adapter and Web/Node HTTP handlers provide complete server flows. See [AGENTS.md](./AGENTS.md) for project decisions.
+requests for MCP `2026-07-28` and `2025-06-18`. The Node stdio adapter and Web/Node HTTP handlers support both eras with the same tool API. See [AGENTS.md](./AGENTS.md) for project decisions.
+
+See [client compatibility verification](./docs/compatibility.md) for tested
+Inspector/Codex versions, required client settings, and repeatable stdio/HTTP checks.
 
 ## Core package
 
@@ -41,9 +44,12 @@ entry point in another workspace.
 ## Internal protocol package
 
 `@toolgrain/protocol` is a private workspace package containing the pinned official
-schema and constants, including `PROTOCOL_VERSION`. Workspace code imports wire
+schemas and constants, including `PROTOCOL_VERSION`, `LEGACY_PROTOCOL_VERSION`,
+and `SUPPORTED_PROTOCOL_VERSIONS`. Workspace code imports modern wire
 types such as `JSONRPCResponse` directly from it. Runtime validators stay in MCP;
 MCP exports server/transport interfaces without re-exporting wire definitions.
+Legacy wire types are available from `@toolgrain/protocol/2025-06-18`.
+The root `ProtocolResponse` type covers responses from both eras.
 
 It has no runtime dependencies and is not published to npm. Generated server and
 transport declarations reference this workspace package. Its compiled exports
@@ -69,34 +75,47 @@ const server = createServer({
 });
 
 await server.listen(stdio());
-await server.close();
 ```
 
 Implementation responsibilities are separated:
 
-- `server.ts` composes the server; `dispatcher.ts` routes MCP methods.
-- `handlers.ts` implements discovery, tool listing, and tool calls.
-- `connection.ts` owns transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
-- `protocol/` owns metadata validation, message decoding, and response envelopes.
+- `server.ts` composes the server; `dispatcher.ts` selects the protocol era.
+- `modern/` and `legacy/` own their request validation, method handling, and response shapes.
+- `legacy/connection.ts` owns initialization/readiness and initialization cancellation rules.
+- `connection.ts` owns shared transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
+- `protocol/` owns shared envelopes, decoding, and protocol errors.
 - `tool-schema.ts` converts schemas; `tools.ts` adapts core execution.
-- `json-value.ts` checks JSON values; `results.ts` converts them into tool results.
+- `json-value.ts` checks JSON values; `results.ts` normalizes outputs before either era shapes its wire result.
 
-The package supports `server/discover`, `tools/list`, and `tools/call`. Every
-request requires version and client capability metadata; there is no initialization
-handshake. Only revision `2026-07-28` is supported. Discovery and tool lists use
-`ttlMs: 0` and `cacheScope: "private"`; the tool list is a single page.
+Modern modules do not depend on legacy modules. Removing legacy support would
+remove its modules, schema, tests, and routing/export entries; tool definitions
+and shared execution would remain the same.
+
+The package supports `server/discover`, `tools/list`, and `tools/call` for modern
+`2026-07-28` requests carrying version and client capability metadata. Legacy
+clients use `initialize`, `notifications/initialized`, `ping`, `tools/list`, and
+`tools/call` under `2025-06-18`. Initialization negotiates the supported legacy
+revision, including when the client proposes another revision. Only these two
+wire revisions are implemented. The connection handles each client era without
+changing tool definitions or requiring a server mode setting.
+
+Modern discovery lists both supported versions. Modern discovery and tool lists
+use `ttlMs: 0` and `cacheScope: "private"`; legacy listings omit modern result and
+cache fields. Tool lists are a single page in either era.
 
 Tool inputs must convert to JSON Schema with an object root. Conversion uses the
 schema's input shape, preserving transforms/defaults for execution. Invalid
 schemas fail at server construction with `ToolSchemaError`.
 
 Strings become text content; other JSON values become structured content and JSON
-text. Non-JSON values fail as tool errors rather than being silently coerced.
+text in modern mode. Legacy structured content is limited to objects; arrays,
+null, numbers, and booleans return JSON text only. Non-JSON values fail as tool errors rather than being silently coerced.
 Input validation and handler failures return `isError: true`; malformed requests
 and unknown tools return protocol errors. Handler error messages are exposed to
 clients, but stack traces are not.
 
 `Transport` provides asynchronous `start(callbacks)`, `send(response)`, and `close()`.
+Its responses use `ProtocolResponse`, covering both protocol eras.
 Callbacks report decoded messages, JSON parse failures, transport errors, and EOF.
 Adapters own byte framing and JSON parsing. Messages run independently; writes
 are serialized. `listen()` resolves after startup. A server permits one transport
@@ -110,9 +129,11 @@ handler execution once registry execution starts. Cancellation during validation
 can therefore still allow the handler to run. Responses already handed to an
 adapter cannot be recalled.
 
-The complete upstream schema is vendored unchanged at commit
+Both complete upstream schemas are vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
-under the private `@toolgrain/protocol` workspace (`packages/protocol/src/vendor`). Builds retain those files. Updates are explicit;
+under the private `@toolgrain/protocol` workspace, in sibling revision folders
+`packages/protocol/src/vendor/2026-07-28/` and `packages/protocol/src/vendor/2025-06-18/`.
+Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, subscriptions, extensions, and rich-content helpers
@@ -161,8 +182,10 @@ inspect the server. Closing stdin ends the example naturally.
 
 `bun run test` includes subprocess integration tests that launch the compiled
 example and check discovery, tool listing/execution, malformed-input recovery,
-error responses, and EOF shutdown. These use a small test client; Inspector 2.11.0 has also been verified for discovery, listing, and greeting
-execution in modern protocol mode.
+error responses, and EOF shutdown in both eras. These use a small test client;
+Inspector 2.11.0 and the installed Codex client are also verified over stdio and
+HTTP. Codex's normal initialization-based connection requires no modern flags;
+see the [compatibility report](./docs/compatibility.md) for exact tested versions.
 
 ## Streamable HTTP
 
@@ -201,19 +224,34 @@ writing with backpressure. HTTP protocol behavior stays in `@toolgrain/http`;
 Node modules only adapt the runtime interfaces. No generic utility package is
 needed for these responsibilities.
 
-HTTP supports only revision `2026-07-28`: independent POST requests and JSON
-responses. There is no initialization handshake, session, GET event stream, or
+Within HTTP, `modern/` and `legacy/` contain each era's version/header validation,
+notification rules, and response policies. `protocol-version.ts` selects one
+adapter per POST; body decoding, routing/parameter-header comparison, execution,
+and JSON serialization are shared.
+
+HTTP supports revisions `2026-07-28` and `2025-06-18`: independent POST requests
+and JSON responses. Legacy initialization is supported without issuing session
+IDs or keeping global client negotiation state. There is no GET event stream or
 resumption. SSE, progress, subscriptions, OAuth/Clerk, and request identity context
-are separate work. Normal requests must advertise both `application/json` and
+are separate work. Requests must advertise both `application/json` and
 `text/event-stream` in Accept even though this implementation returns JSON.
 
-Every POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
+Every modern POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
 `Mcp-Name`. Header values must match the JSON-RPC body. Encoded names and declared
 `x-mcp-header` parameter annotations are validated before tool execution; invalid
 annotations fail HTTP-handler construction. Missing or mismatched headers return
 HTTP 400 / `HeaderMismatch`; unsupported versions return HTTP 400 with supported
 versions; unsupported RPC methods return HTTP 404. GET and DELETE return 405.
-No client-to-server notifications are currently accepted over HTTP.
+Legacy `initialize` can omit the version header and declares its requested version
+in `params.protocolVersion`. Subsequent legacy POSTs carry
+`MCP-Protocol-Version: 2025-06-18`; modern routing headers are optional but checked
+against the body when present. Contradictory header/body versions are rejected.
+Legacy JSON-RPC method/argument errors use HTTP 200, while malformed transport
+messages still fail with HTTP errors. Legacy `notifications/initialized` and
+valid `notifications/cancelled` return HTTP 202 with no body. Cancellation is
+advisory: without a session or client identity, an independent notification
+cannot safely target another HTTP request, so it does not cancel shared work.
+Modern HTTP notifications remain unsupported.
 
 `maxMessageBytes` defaults to 1 MiB and limits incoming bytes, not output size.
 Bodies use strict UTF-8 decoding. Invalid JSON returns 400; oversized bodies return
@@ -228,8 +266,10 @@ authentication: applications own browser preflight handling, access checks,
 routing, TLS, binding addresses, and HTTP-server shutdown. Set explicit origins
 when using a browser client. The plain Node example binds to `127.0.0.1`.
 
-The MCP server now exposes `handle(message, { signal? })` for independent decoded
+The MCP server exposes `handle(message, { signal?, protocolVersion? })` for independent decoded
 messages and `getToolDefinitions()` for fresh copies of advertised metadata.
+The HTTP adapter passes the validated revision per request; direct legacy
+callers supply `protocolVersion: LEGACY_PROTOCOL_VERSION` after initialization.
 Request processing shares dispatch/error conversion with stdio. `close()` is
 terminal and suppresses pending results across both paths; attached-transport EOF
 also closes the server. The HTTP listener remains application-owned.

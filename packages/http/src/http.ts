@@ -17,6 +17,11 @@ export function createHttpHandler(
     if (rejection) return rejection;
     const parsed = await readRequest(request, maxMessageBytes, parameters);
     if (!parsed.ok) return parsed.response;
-    return executeHttpRequest(server, parsed.message, request.signal);
+    return executeHttpRequest(
+      server,
+      parsed.message,
+      request.signal,
+      parsed.protocol,
+    );
   };
 }

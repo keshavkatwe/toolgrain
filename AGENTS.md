@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-16
+Updated: 2026-10-17
 
 ## Working agreement
 
@@ -17,14 +17,14 @@ Updated: 2026-10-16
 
 ## Product direction
 
-Toolgrain is a TypeScript toolkit for building MCP servers with a simple, typed developer API. Implement MCP support directly against protocol revision `2026-07-28`. Older specification revisions are unsupported for now. Owning that implementation means owning compatibility, interoperability testing, and protocol maintenance.
+Toolgrain is a TypeScript toolkit for building MCP servers with a simple, typed developer API. Implement MCP support directly against protocol revisions `2026-07-28` and `2025-06-18`. Owning that implementation means owning compatibility, interoperability testing, and protocol maintenance.
 
 A protocol-independent tool execution core is the proposed architecture. Ease of defining and composing tools is the intended product value; SDK independence gives us control over the implementation.
 
 ## Confirmed MCP protocol target
 
-- Implement MCP revision `2026-07-28` first.
-- Do not add compatibility with older specification revisions for now.
+- Support modern MCP `2026-07-28` and initialization-based MCP `2025-06-18` over stdio and HTTP, with the same tool API.
+- Other protocol revisions remain unsupported; legacy initialization can negotiate down to the supported `2025-06-18` revision.
 - Reference: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro
 
 ## Naming and hosting
@@ -101,19 +101,21 @@ This roadmap is a proposal, not a committed implementation plan.
 - Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
 - Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
 - Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
+- Modern wire exports remain at the package root; legacy wire types use `@toolgrain/protocol/2025-06-18`. Root exports `LEGACY_PROTOCOL_VERSION`, `SUPPORTED_PROTOCOL_VERSIONS`, `SupportedProtocolVersion`, and shared `ProtocolResponse` envelopes. Both schemas are pinned to the same upstream commit, with separate integrity/provenance/license artifacts in sibling `src/vendor/2026-07-28/` and `src/vendor/2025-06-18/` folders.
 
 ## Confirmed MCP package decisions
 
 - `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
 - The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
-- Requests carry version and client capabilities individually; no initialization handshake or support for older revisions.
+- Modern requests carry version and client capabilities individually. Legacy stdio uses connection-scoped `initialize` / `notifications/initialized` negotiation and supports `ping`; modern requests remain independent and can interleave. Legacy initialization negotiates `2025-06-18` and never claims modern semantics through `initialize`.
 - Tool schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Fail unrepresentable schemas at construction.
-- Strings become text; other JSON values become structured content plus text. Reject unsupported output values as tool errors.
+- Strings become text; modern JSON values become structured content plus text. Legacy structured content contains only objects; other JSON values are text only. Reject unsupported output values as tool errors.
 - Input validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
-- Discovery/list results use `ttlMs: 0`, `cacheScope: "private"`. Tool lists are a single page; nonempty cursors are rejected.
+- Modern discovery/list results use `ttlMs: 0`, `cacheScope: "private"`; discovery advertises both supported revisions. Legacy result envelopes omit modern result/cache/server-info metadata. Tool lists are a single page; nonempty cursors are rejected.
 - Each MCP tool adapter reuses one core registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
+- Keep revision-specific validation, dispatch, response shaping, and legacy negotiation in separate `modern/` and `legacy/` modules. Share tool execution, JSON normalization, schema conversion, envelope decoding, and transport lifecycle; era selection stays in thin composition modules. Modern modules must not depend on legacy modules. This separation preserves the public API and wire behavior while keeping legacy support removable.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
 - Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
 
@@ -130,10 +132,11 @@ This roadmap is a proposal, not a committed implementation plan.
 - `@toolgrain/http` owns shared Streamable HTTP behavior and `createHttpHandler(server, options?)`, accepting Web Request and returning Promise<Response>.
 - `@toolgrain/node` retains stdio and adds `createNodeHttpHandler(server, options?)`; applications own routing, ports, TLS, authentication middleware, CORS, and listener shutdown. Mount before body parsing.
 - Keep the HTTP factories as composition only: split options, endpoint checks, body decoding, request/header validation, parameter-header schema extraction, execution, and response serialization. Node separates request conversion, abort lifecycle, and response writing/backpressure. Share protocol behavior through HTTP rather than duplicating it in Node; do not add a generic utility package without concrete reusable responsibilities.
+- HTTP `modern/` and `legacy/` modules own each era's header, notification, status, and error-ID policies. Share endpoint/body/envelope handling, routing and parameter-header comparison, execution, and JSON serialization; choose one of the two internal adapters per request without a plugin framework.
 - Both factories accept `allowedOrigins` and `maxMessageBytes` (default 1 MiB). Absent Origin is allowed; a present Origin must match the explicit allowlist, empty by default.
-- Only `2026-07-28`, independent POSTs and JSON responses initially. GET/DELETE return 405. Sessions, resumability, SSE/progress/subscriptions, OAuth/Clerk, and identity context remain separate work.
-- Validate protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Invalid annotations fail HTTP-handler construction. No client-to-server HTTP notifications are currently accepted.
-- MCP exposes `handle(message, { signal? })` for independent requests and `getToolDefinitions()` for copied metadata. Shared dispatch/error conversion serves stdio and HTTP; HTTP request IDs are isolated per invocation.
+- Support `2026-07-28` and `2025-06-18` with independent POSTs and JSON responses. GET/DELETE return 405. No session IDs or global per-client negotiation state. Persistent sessions, resumability, SSE/progress/subscriptions, OAuth/Clerk, and identity context remain separate work.
+- Validate modern protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Legacy initialization may omit the version header; subsequent legacy POSTs carry `2025-06-18`. Optional legacy routing/parameter headers are validated when present. Invalid annotations fail HTTP-handler construction. Valid legacy initialized/cancelled notifications return 202 empty; cancellation is advisory no-op because independent requests have no session/client identity. Modern HTTP notifications remain unsupported.
+- MCP exposes `handle(message, { signal?, protocolVersion? })` for independent requests and `getToolDefinitions()` for copied metadata. HTTP passes the validated revision per invocation; shared dispatch/error conversion serves stdio and HTTP. HTTP request IDs are isolated per invocation. Legacy JSON-RPC errors use HTTP 200; modern errors retain modern status rules.
 - Cancellation suppresses delivery without interrupting running core execution. Closing the server is terminal across HTTP and stdio; closing the attached transport also closes independent processing.
 - Examples are separate workspaces: `http-example` (plain Node), `express-example`, `hono-example`, `elysia-example`, and `nextjs-example`. Each owns its dependencies, native dev/build/start commands, and real-process HTTP smoke test. They do not import sibling application code. Next uses the Next CLI, Elysia uses Bun, and Express/Hono use their normal Node workflows. NestJS is not separately verified.
 
@@ -144,6 +147,16 @@ HTTP support and independent framework examples were merged in PR #6
 (`e8e2895`) on 2026-10-16 after review and passing CI. Keep Bun 1.3.14,
 pinned Turbo, root-level Biome, and shared strict TypeScript defaults.
 All packages remain private and unpublished.
+
+Dual-era compatibility verification on 2026-10-16 passes the existing tools flow
+over stdio and plain Node HTTP with Inspector 2.11.0 CLI and Codex CLI/app-server
+0.163.0-alpha.10.2, using Node 24.20.0. Codex works with no modern feature flag or
+stdio marker by negotiating `2025-06-18`; explicit modern and mixed-client cases
+also pass. Inspector checks both eras and automatic discovery. See
+`docs/compatibility.md` and the manual `node scripts/verify-inspector.mjs` check.
+User configuration was not changed. No commits, publication, or other roadmap
+features are authorized by this implementation. Remaining roadmap items are
+proposals in `ROADMAP.md` without timelines or implementation commitments.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 

@@ -1,10 +1,4 @@
-import type {
-  Implementation,
-  JSONRPCErrorResponse,
-  JSONRPCResultResponse,
-  RequestId,
-  Result,
-} from "@toolgrain/protocol";
+import type { JSONRPCErrorResponse, RequestId } from "@toolgrain/protocol";
 import { JSONRPC_VERSION } from "@toolgrain/protocol";
 
 export function protocolError(
@@ -17,24 +11,6 @@ export function protocolError(
     jsonrpc: JSONRPC_VERSION,
     ...(id === undefined ? {} : { id }),
     error: { code, message, ...(data === undefined ? {} : { data }) },
-  };
-}
-
-export function successResponse(
-  id: RequestId,
-  result: Result,
-  identity: Implementation,
-): JSONRPCResultResponse {
-  return {
-    jsonrpc: JSONRPC_VERSION,
-    id,
-    result: {
-      ...result,
-      _meta: {
-        ...result._meta,
-        "io.modelcontextprotocol/serverInfo": identity,
-      },
-    },
   };
 }
 

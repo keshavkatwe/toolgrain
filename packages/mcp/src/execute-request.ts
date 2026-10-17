@@ -1,4 +1,8 @@
-import { INTERNAL_ERROR, type JSONRPCResponse } from "@toolgrain/protocol";
+import {
+  INTERNAL_ERROR,
+  type ProtocolResponse,
+  type SupportedProtocolVersion,
+} from "@toolgrain/protocol";
 import type { Dispatcher } from "./dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { ProtocolError, protocolError } from "./protocol/responses.js";
@@ -9,9 +13,10 @@ export async function executeRequest(
   request: Request,
   isActive: () => boolean,
   onError?: (error: unknown) => void,
-): Promise<JSONRPCResponse | undefined> {
+  protocolVersion?: SupportedProtocolVersion,
+): Promise<ProtocolResponse | undefined> {
   try {
-    const response = await dispatch(request, isActive);
+    const response = await dispatch(request, isActive, protocolVersion);
     return isActive() ? response : undefined;
   } catch (error) {
     if (!isActive()) return;
@@ -22,6 +27,11 @@ export async function executeRequest(
     } catch {
       /* Diagnostics cannot break delivery. */
     }
-    return protocolError(INTERNAL_ERROR, "Internal error", request.id);
+    return protocolError(
+      INTERNAL_ERROR,
+      "Internal error",
+      request.id,
+      undefined,
+    );
   }
 }

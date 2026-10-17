@@ -3,7 +3,7 @@ import { INTERNAL_ERROR, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createConnection } from "../src/connection.js";
-import { discover } from "../src/handlers.js";
+import { discover } from "../src/modern/handlers.js";
 import { createPendingRequests } from "../src/pending-requests.js";
 import { toolResult } from "../src/results.js";
 import { createToolAdapter } from "../src/tools.js";

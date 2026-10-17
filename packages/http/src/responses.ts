@@ -1,44 +1,49 @@
 import {
   INTERNAL_ERROR,
-  INVALID_PARAMS,
-  INVALID_REQUEST,
-  type JSONRPCResponse,
-  METHOD_NOT_FOUND,
-  MISSING_REQUIRED_CLIENT_CAPABILITY,
-  UNSUPPORTED_PROTOCOL_VERSION,
+  type ProtocolResponse,
+  type RequestId,
 } from "@toolgrain/protocol";
+import type { ErrorId, HttpProtocol } from "./http-protocol.js";
+import type { ObjectValue } from "./object.js";
+
+/** A valid request ID can be echoed in either era. */
+export function responseId(body?: ObjectValue): RequestId | undefined {
+  const id = body?.id;
+  if (
+    typeof id === "string" ||
+    (typeof id === "number" && Number.isFinite(id) && Number.isInteger(id))
+  )
+    return id;
+}
+
 export const errorResponse = (
   status: number,
   code: number,
   message: string,
-  body?: Record<string, unknown>,
+  id: ErrorId = {},
   data?: unknown,
 ) =>
   Response.json(
     {
       jsonrpc: "2.0",
-      ...(typeof body?.id === "string" ||
-      (typeof body?.id === "number" && Number.isFinite(body.id))
-        ? { id: body.id }
-        : {}),
+      ...id,
       error: { code, message, ...(data === undefined ? {} : { data }) },
     },
     { status },
   );
 
-export function unavailableResponse(body: Record<string, unknown>) {
-  return errorResponse(503, INTERNAL_ERROR, "Server unavailable", body);
+export function unavailableResponse(body: ObjectValue, protocol: HttpProtocol) {
+  return errorResponse(
+    503,
+    INTERNAL_ERROR,
+    "Server unavailable",
+    protocol.errorId(body),
+  );
 }
 
-export function protocolResponse(response: JSONRPCResponse): Response {
-  if (!("error" in response)) return Response.json(response);
-  const code = response.error.code;
-  const badRequest = [
-    UNSUPPORTED_PROTOCOL_VERSION,
-    MISSING_REQUIRED_CLIENT_CAPABILITY,
-    INVALID_REQUEST,
-    INVALID_PARAMS,
-  ].includes(code);
-  const status = code === METHOD_NOT_FOUND ? 404 : badRequest ? 400 : 200;
-  return Response.json(response, { status });
+export function protocolResponse(
+  response: ProtocolResponse,
+  protocol: HttpProtocol,
+): Response {
+  return Response.json(response, { status: protocol.responseStatus(response) });
 }
