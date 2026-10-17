@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:size": "bun ../../scripts/package-size.mjs"
   },
   "peerDependencies": {
     "zod": "^4.0.0"

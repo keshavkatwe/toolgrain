@@ -193,3 +193,30 @@ root `bun run test:examples`, without coverage instrumentation or coverage floor
 CI produces workspace JSON test reports under `reports/`, restores them from
 Turbo cache, and publishes a combined Actions summary and same-repository PR
 comment. The comment job has no checkout and does not execute repository code.
+
+## Package size and dependency auditing
+
+- `bun run test:size` builds and packs the five library packages without lifecycle
+  scripts or publication. It enforces packed/unpacked byte budgets from
+  `package-size.config.json`, all declared export targets, every compiled module
+  and declaration in `dist`, explicit required protocol artifacts, and package-file
+  boundaries. Reports include the complete inventory under each package's
+  `reports/size.json`; sizes exclude dependencies and retain required vendor files.
+- Initial size budgets allow approximately 20% growth, rounded up to KiB.
+  Intentional growth requires reviewing the relevant budget. Size checks are uncached
+  and run after successful installation even if an unrelated application build fails.
+- `bun run test:audit` audits the complete Bun lockfile once and writes per-workspace
+  `reports/audit.json`, separating runtime and direct-workspace development scopes.
+  Root tooling and examples are included. High/critical advisories and scan errors
+  fail CI; low/moderate findings are reported. Scanner failures retain stderr in
+  reports and logs. It does not update dependencies.
+- Audit initialization discovers report destinations from `package.json` before
+  loading `bun.lock`. Lockfile read/parse/metadata failures replace stale reports
+  for root, libraries, and examples with errors and remove prior raw advisories.
+- Auditing runs outside Turbo caching. Test tasks cache only `reports/tests.json`
+  alongside coverage, preventing stale audit reports from being restored.
+- CI includes sizes and advisory findings in the combined summary/PR comment and
+  retains JSON reports in the existing artifact for 14 days. `bun run test:ci`
+  verifies the checking and reporting scripts, running the renderer under Node.
+  Malformed JSON/schema reports fail rendering after the healthy results and
+  diagnostics have been written to the combined report and Actions summary.

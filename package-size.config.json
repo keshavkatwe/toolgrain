@@ -1,0 +1,30 @@
+{
+  "@toolgrain/core": {
+    "packedBytes": 2048,
+    "unpackedBytes": 6144
+  },
+  "@toolgrain/protocol": {
+    "packedBytes": 107520,
+    "unpackedBytes": 498688,
+    "requiredFiles": [
+      "dist/vendor/2026-07-28/schema.ts",
+      "dist/vendor/2026-07-28/provenance.json",
+      "dist/vendor/2026-07-28/LICENSE",
+      "dist/vendor/2025-06-18/schema.ts",
+      "dist/vendor/2025-06-18/provenance.json",
+      "dist/vendor/2025-06-18/LICENSE"
+    ]
+  },
+  "@toolgrain/mcp": {
+    "packedBytes": 14336,
+    "unpackedBytes": 71680
+  },
+  "@toolgrain/http": {
+    "packedBytes": 9216,
+    "unpackedBytes": 32768
+  },
+  "@toolgrain/node": {
+    "packedBytes": 7168,
+    "unpackedBytes": 22528
+  }
+}

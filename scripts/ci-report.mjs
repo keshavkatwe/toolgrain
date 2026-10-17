@@ -1,11 +1,11 @@
 // biome-ignore-all lint/suspicious/noUndeclaredEnvVars: Standalone Actions reporting script; it does not run in a cached Turbo task.
 import {
   appendFileSync,
-  existsSync,
   mkdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
+import { readReport } from "./ci-report-data.mjs";
 
 const workspaces = [
   "packages/core",
@@ -29,11 +29,11 @@ const escapeMarkdown = (value) =>
     .replaceAll("`", "&#96;")
     .replaceAll("\r", "")
     .replaceAll("\n", "<br>");
-const read = (path) =>
-  existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
+const reportErrors = [];
+const read = (path, kind) => readReport(path, kind, reportErrors);
 const lines = [
   "<!-- toolgrain-ci-report -->",
-  "## Test and coverage report",
+  "## Package CI report",
   "",
   `Commit: ${escapeMarkdown(process.env.GITHUB_SHA ?? "local")}`,
   "",
@@ -55,10 +55,10 @@ lines.push(
 );
 const failures = [];
 for (const workspace of workspaces) {
-  const report = read(`${workspace}/reports/tests.json`);
-  if (!report) {
+  const report = read(`${workspace}/reports/tests.json`, "tests");
+  if (!report || report.status === "error") {
     lines.push(
-      `| ${workspace} | — | — | — | Report unavailable; check build/install logs |`,
+      `| ${workspace} | — | — | — | ${escapeMarkdown(report?.error ?? "Report unavailable; check build/install logs")} |`,
     );
     continue;
   }
@@ -97,7 +97,10 @@ for (const workspace of [
   "packages/node",
   "packages/http",
 ]) {
-  const total = read(`${workspace}/coverage/coverage-summary.json`)?.total;
+  const total = read(
+    `${workspace}/coverage/coverage-summary.json`,
+    "coverage",
+  )?.total;
   // Read the same thresholds Vitest enforces, rather than maintaining a second policy.
   const config = readFileSync(`${workspace}/vitest.config.ts`, "utf8");
   const metrics = ["statements", "branches", "functions", "lines"];
@@ -120,7 +123,98 @@ for (const workspace of [
     `| ${workspace} | ${percentages.map((pct) => `${pct}%`).join(" | ")} | ${floors.every((floor) => floor === floors[0]) ? floors[0] : floors.join(" / ")}% | ${passed ? "Pass" : "Below threshold"} |`,
   );
 }
-if (failures.length) lines.push("", "### Failed tests", "", ...failures);
+lines.push(
+  "",
+  "### Library package sizes",
+  "",
+  "Sizes cover each package's own tarball, including declarations and required vendor artifacts; dependencies are excluded.",
+  "",
+  "| Workspace | Packed / budget (bytes) | Unpacked / budget (bytes) | Files | Result |",
+  "| --- | ---: | ---: | ---: | --- |",
+);
+for (const workspace of workspaces.filter((path) =>
+  path.startsWith("packages/"),
+)) {
+  const report = read(`${workspace}/reports/size.json`, "size");
+  if (!report || report.status === "error") {
+    lines.push(
+      `| ${workspace} | — | — | — | ${escapeMarkdown(report?.errors?.join("; ") ?? "Unavailable")} |`,
+    );
+    continue;
+  }
+  lines.push(
+    `| ${workspace} | ${report.packedBytes} / ${report.budget.packedBytes} | ${report.unpackedBytes} / ${report.budget.unpackedBytes} | ${report.fileCount} | ${escapeMarkdown(report.status)} |`,
+  );
+  for (const error of report.errors ?? [])
+    failures.push(
+      `- **${workspace}: package size/content** ${escapeMarkdown(error)}`,
+    );
+}
+const lockfileAudit = read("reports/audit-lockfile.json", "lockfile");
+lines.push(
+  "",
+  "### Dependency audit",
+  "",
+  "Known-advisory counts are per workspace, including transitive, optional, and peer dependencies. Development dependencies of the workspace itself are included in total counts. Shared findings repeat across workspaces.",
+  "",
+  `Complete lockfile: **${escapeMarkdown(lockfileAudit?.status ?? "unavailable")}**. High/critical advisories fail CI; low/moderate advisories are reported. Audit service or parsing errors fail CI.`,
+  "",
+  "| Workspace | Runtime | Dev only | Low | Moderate | High | Critical | Result |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+);
+const advisoryDetails = new Map();
+for (const workspace of ["", ...workspaces]) {
+  const report = read(
+    `${workspace ? `${workspace}/` : ""}reports/audit.json`,
+    "audit",
+  );
+  if (!report || report.status === "error") {
+    lines.push(
+      `| ${workspace || "Root tooling"} | — | — | — | — | — | — | ${escapeMarkdown(report?.error ?? "Unavailable")} |`,
+    );
+    continue;
+  }
+  const counts = ["low", "moderate", "high", "critical"].map(
+    (severity) =>
+      report.findings.filter((item) => item.severity === severity).length,
+  );
+  lines.push(
+    `| ${workspace || "Root tooling"} | ${report.runtime.length} | ${report.findings.length - report.runtime.length} | ${counts.join(" | ")} | ${escapeMarkdown(report.status)} |`,
+  );
+  for (const finding of report.findings) {
+    const key = `${finding.name}:${finding.id}`;
+    if (!advisoryDetails.has(key)) advisoryDetails.set(key, finding);
+  }
+}
+// Include advisories outside a workspace closure, which still gate the full lockfile.
+for (const [name, advisories] of Object.entries(
+  lockfileAudit?.advisories ?? {},
+)) {
+  for (const advisory of advisories)
+    advisoryDetails.set(`${name}:${advisory.id}`, { name, ...advisory });
+}
+if (advisoryDetails.size) {
+  lines.push("", "#### Advisory details", "");
+  for (const item of advisoryDetails.values()) {
+    const reference =
+      /^https:\/\/github\.com\/advisories\/GHSA-[a-zA-Z0-9-]+$/.test(item.url)
+        ? `[advisory](${item.url})`
+        : `ID ${escapeMarkdown(item.id)}`;
+    lines.push(
+      `- **${escapeMarkdown(item.name)} (${escapeMarkdown(item.severity)})**: ${escapeMarkdown(item.title)}. Affected: ${escapeMarkdown(item.vulnerable_versions)}. ${reference}`,
+    );
+  }
+}
+if (failures.length) lines.push("", "### Failures", "", ...failures);
+if (reportErrors.length) {
+  lines.push(
+    "",
+    "### Report errors",
+    "",
+    ...reportErrors.map((error) => `- ${escapeMarkdown(error)}`),
+  );
+  process.exitCode = 1;
+}
 lines.push(
   "",
   "Protocol uses schema integrity checks; examples use real-process integration tests. Neither has a coverage floor.",
