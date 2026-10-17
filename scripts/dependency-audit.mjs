@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { JSONC, semver } from "bun";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { Glob, JSONC, semver } from "bun";
 import { auditFindings, dependencyGraph, parseAudit } from "./audit-graph.mjs";
 
 // A root command rather than a cached Turbo task: advisories change independently of Git.
-const lock = JSONC.parse(readFileSync("bun.lock", "utf8"));
-const workspaces = Object.keys(lock.workspaces);
+const workspaces = new Set([""]);
 const write = (workspace, report) => {
   const directory = `${workspace ? `${workspace}/` : ""}reports`;
   mkdirSync(directory, { recursive: true });
@@ -16,6 +16,44 @@ const write = (workspace, report) => {
 };
 const checkedAt = new Date().toISOString();
 try {
+  mkdirSync("reports", { recursive: true });
+  rmSync("reports/audit-advisories.json", { force: true });
+  // Discover report destinations independently of the lockfile, so a failed
+  // lockfile read/parse can replace every workspace's previous audit result.
+  const project = JSON.parse(readFileSync("package.json", "utf8"));
+  const patterns = project.workspaces ?? [];
+  if (
+    !Array.isArray(patterns) ||
+    patterns.some((pattern) => typeof pattern !== "string")
+  )
+    throw new Error(
+      "Expected package.json workspaces to be an array of patterns",
+    );
+  for (const pattern of patterns) {
+    for (const path of new Glob(`${pattern}/package.json`).scanSync({
+      onlyFiles: true,
+    }))
+      workspaces.add(dirname(path));
+  }
+  const lock = JSONC.parse(readFileSync("bun.lock", "utf8"));
+  if (
+    !lock ||
+    typeof lock.workspaces !== "object" ||
+    lock.workspaces === null ||
+    Array.isArray(lock.workspaces) ||
+    typeof lock.packages !== "object" ||
+    lock.packages === null ||
+    Array.isArray(lock.packages)
+  )
+    throw new Error("Invalid Bun lockfile workspace/package metadata");
+  for (const workspace of Object.keys(lock.workspaces)) {
+    if (!workspaces.has(workspace))
+      throw new Error(`Undeclared lockfile workspace: ${workspace}`);
+  }
+  for (const workspace of workspaces) {
+    if (!Object.hasOwn(lock.workspaces, workspace))
+      throw new Error(`Missing lockfile workspace: ${workspace || "root"}`);
+  }
   const audit = spawnSync("bun", ["audit", "--json"], {
     encoding: "utf8",
     timeout: 120_000,

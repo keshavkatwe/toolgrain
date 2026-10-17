@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -388,7 +389,7 @@ test("audit command writes per-workspace results and fails on high findings or s
       packages: { affected: entry("affected", "1.0.0") },
     };
     write("bun.lock", lock);
-    write("package.json", { name: "fixture" });
+    write("package.json", { name: "fixture", workspaces: ["packages/*"] });
     write("packages/core/package.json", { name: "@test/core" });
     write("bin/bun", "#!/bin/sh\ncat audit-response.json\nexit 1\n", 0o755);
     const execute = () =>
@@ -453,5 +454,96 @@ test("audit command writes per-workspace results and fails on high findings or s
     );
     assert.equal(execute().status, 1);
     assert.match(read().error, /Scanner terminated unexpectedly/);
+  });
+});
+
+test("audit initialization failures replace stale reports for every configured workspace", () => {
+  fixture(({ root, write }) => {
+    const lock = {
+      workspaces: {
+        "": { name: "fixture" },
+        "packages/core": { name: "@test/core" },
+        "apps/example": { name: "@test/example" },
+      },
+      packages: {},
+    };
+    write("package.json", {
+      name: "fixture",
+      workspaces: ["packages/*", "apps/*"],
+    });
+    write("packages/core/package.json", { name: "@test/core" });
+    write("apps/example/package.json", { name: "@test/example" });
+    write(
+      "bin/bun",
+      "#!/bin/sh\nprintf '.' >> audit-called.txt\nprintf '{}'\n",
+      0o755,
+    );
+    const execute = () =>
+      spawnSync(
+        process.execPath,
+        [new URL("./dependency-audit.mjs", import.meta.url).pathname],
+        {
+          cwd: root,
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            PATH: `${join(root, "bin")}:${process.env.PATH}`,
+          },
+        },
+      );
+    const read = (path) => JSON.parse(readFileSync(join(root, path), "utf8"));
+    for (const failure of [
+      "malformed",
+      "missing",
+      "unreadable",
+      "invalid-shape",
+      "missing-workspace",
+    ]) {
+      rmSync(join(root, "bun.lock"), { recursive: true, force: true });
+      write("bun.lock", lock);
+      const success = execute();
+      assert.equal(success.status, 0, success.stderr);
+      const calls = readFileSync(join(root, "audit-called.txt"), "utf8");
+      const paths = [
+        "reports/audit.json",
+        "packages/core/reports/audit.json",
+        "apps/example/reports/audit.json",
+        "reports/audit-lockfile.json",
+      ];
+      for (const path of paths)
+        write(path, { ...read(path), checkedAt: "stale" });
+      if (failure === "malformed") write("bun.lock", "{");
+      if (failure === "missing") rmSync(join(root, "bun.lock"));
+      if (failure === "unreadable") {
+        rmSync(join(root, "bun.lock"));
+        // A directory gives a portable read failure, even under a privileged test user.
+        mkdirSync(join(root, "bun.lock"));
+      }
+      if (failure === "invalid-shape") write("bun.lock", { workspaces: null });
+      if (failure === "missing-workspace")
+        write("bun.lock", {
+          workspaces: { "": { name: "fixture" } },
+          packages: {},
+        });
+      const result = execute();
+      assert.equal(result.status, 1, failure);
+      assert.match(result.stderr, /Dependency audit failed:/);
+      assert.equal(
+        readFileSync(join(root, "audit-called.txt"), "utf8"),
+        calls,
+        "Initialization failure must not invoke the scanner",
+      );
+      for (const path of paths) {
+        const report = read(path);
+        assert.equal(report.status, "error", `${failure}: ${path}`);
+        assert.notEqual(report.checkedAt, "stale");
+        assert.ok(report.error.length > 0);
+      }
+      assert.equal(
+        existsSync(join(root, "reports/audit-advisories.json")),
+        false,
+        "Previous raw advisory payload must not survive a failed initialization",
+      );
+    }
   });
 });

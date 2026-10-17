@@ -210,6 +210,9 @@ comment. The comment job has no checkout and does not execute repository code.
   Root tooling and examples are included. High/critical advisories and scan errors
   fail CI; low/moderate findings are reported. Scanner failures retain stderr in
   reports and logs. It does not update dependencies.
+- Audit initialization discovers report destinations from `package.json` before
+  loading `bun.lock`. Lockfile read/parse/metadata failures replace stale reports
+  for root, libraries, and examples with errors and remove prior raw advisories.
 - Auditing runs outside Turbo caching. Test tasks cache only `reports/tests.json`
   alongside coverage, preventing stale audit reports from being restored.
 - CI includes sizes and advisory findings in the combined summary/PR comment and

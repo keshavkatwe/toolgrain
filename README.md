@@ -423,6 +423,10 @@ complete scan. High/critical advisories anywhere in the lockfile fail CI;
 low/moderate advisories remain visible without blocking. Network, process,
 malformed-response, and dependency-resolution errors fail CI and produce error
 reports. Failed scanner responses retain stderr in the reports and CI logs.
+Workspace report destinations are discovered from `package.json` before reading
+the lockfile. Missing, unreadable, malformed, or structurally invalid lockfiles
+replace previous workspace/lockfile reports with errors and discard stale raw
+advisory data without invoking the scanner.
 Audits run outside Turbo caching because advisories change independently
 of the repository. The command does not install fixes or change dependencies.
 
