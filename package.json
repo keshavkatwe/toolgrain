@@ -12,7 +12,10 @@
     "check-types": "turbo run check-types",
     "test:package": "turbo run test:package",
     "test:coverage": "turbo run test:coverage",
-    "test:examples": "turbo run test:examples"
+    "test:examples": "turbo run test:examples",
+    "test:size": "turbo run test:size --filter='./packages/*' --continue=dependencies-successful",
+    "test:audit": "bun scripts/dependency-audit.mjs",
+    "test:ci": "bun test scripts/*.test.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

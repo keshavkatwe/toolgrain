@@ -327,6 +327,9 @@ bun run test:coverage
 bun run test:examples
 bun run build
 bun run test:package
+bun run test:size
+bun run test:audit
+bun run test:ci
 bun run check:fix
 bun run format
 ```
@@ -385,3 +388,51 @@ Independent test suites continue after another suite fails. The same report is
 posted as a PR comment for branches in this repository by a separate job with
 PR write permission; test execution retains read-only permissions. Fork PRs use
 the Actions summary and downloadable artifact. Reports link to the run logs.
+
+### Package size and dependency auditing
+
+`bun run test:size` builds and checks the five library packages through Turbo.
+Each check packs the workspace with Bun 1.3.14 into a temporary directory,
+without running lifecycle scripts or publishing anything. It measures compressed
+tarball bytes, unpacked file bytes, and file count, and writes the complete file
+inventory and result to `packages/<name>/reports/size.json`. Runtime dependencies
+are not included in these sizes. Required protocol schemas, licenses, and
+provenance remain included.
+
+`package-size.config.json` sets a packed and unpacked byte budget for each
+library. Initial budgets allow approximately 20% growth above the current build,
+rounded up to KiB. Either exceeded budget fails CI. The archive must retain every
+declared export target, every compiled JavaScript/declaration file in `dist`, and
+the protocol's schemas, licenses, and provenance explicitly listed in the config.
+Missing required files and unexpected package files fail the check. Intentional growth
+requires reviewing and updating the relevant budget. Size checks run uncached
+to inspect the actual package contents on every run. They depend on the libraries'
+own builds and still run when an unrelated application build fails.
+
+`bun run test:audit` queries Bun's advisory service once for the complete
+`bun.lock`, then attributes known advisories to each workspace using its locked
+dependency graph and affected version ranges. Reports separate runtime
+dependencies (including optional and peer dependencies) from development-only
+findings. A workspace's development scope includes its own dev dependencies,
+but not the dev dependencies of libraries it consumes. Root tooling and every
+example receive their own reports as well.
+
+The audit writes `reports/audit.json` at the root and in every workspace,
+plus `reports/audit-advisories.json` and `reports/audit-lockfile.json` for the
+complete scan. High/critical advisories anywhere in the lockfile fail CI;
+low/moderate advisories remain visible without blocking. Network, process,
+malformed-response, and dependency-resolution errors fail CI and produce error
+reports. Failed scanner responses retain stderr in the reports and CI logs.
+Audits run outside Turbo caching because advisories change independently
+of the repository. The command does not install fixes or change dependencies.
+
+CI includes both tables and advisory details in the existing Actions summary
+and same-repository PR comment. JSON inventories and audit details join the
+`test-and-coverage-reports` artifact, retained for 14 days, including on failure.
+Only test JSON is included in test-task report caching, so cache restores cannot
+replace a fresh audit. `bun run test:ci` verifies the check and reporting scripts,
+including failure cases. Report rendering is tested with Node, matching CI. A
+malformed JSON report or invalid report schema produces a diagnostic row or
+report-error entry, preserves healthy results and the Actions/PR summary, and
+fails the rendering step after writing that summary. Dependency auditing checks known advisories; it does not
+establish whether application code can reach a vulnerable path.

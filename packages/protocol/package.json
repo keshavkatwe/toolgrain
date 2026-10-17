@@ -22,7 +22,8 @@
     "test": "vitest run",
     "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
-    "test:coverage": "vitest run"
+    "test:coverage": "vitest run",
+    "test:size": "bun ../../scripts/package-size.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",

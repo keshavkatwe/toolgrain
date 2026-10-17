@@ -42,6 +42,11 @@ jobs:
         id: style
         run: bun run check
 
+      - name: Audit locked dependencies for every workspace
+        id: audit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run test:audit
+
       - name: Check types
         id: types
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -62,24 +67,29 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: bun run test:package
 
-      - name: Test CI report generation
+      - name: Check library package sizes and contents
+        id: size
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run test:size
+
+      - name: Test CI checks and report generation
         id: reporting
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: node --test scripts/ci-report.test.mjs
+        run: bun run test:ci
 
-      - name: Write test and coverage summary
+      - name: Write package check summary
         if: ${{ !cancelled() }}
         env:
           CI_STEPS: ${{ toJSON(steps) }}
         run: node scripts/ci-report.mjs
 
-      - name: Upload test and coverage reports
+      - name: Upload package check reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-and-coverage-reports
           path: |
-            reports/pr-report.md
+            reports/
             packages/*/reports/
             apps/*/reports/
             packages/*/coverage/

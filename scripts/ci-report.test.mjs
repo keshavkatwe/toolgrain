@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -36,15 +36,18 @@ function fixture(run) {
   }
 }
 
-function report(root) {
-  execFileSync(process.execPath, [script.pathname], {
+function report(root, expectedExit = 0) {
+  // CI runs the renderer with Node even though the script tests run with Bun.
+  const result = spawnSync("node", [script.pathname], {
     cwd: root,
+    encoding: "utf8",
     env: {
       ...process.env,
       CI_STEPS: JSON.stringify({ tests: { outcome: "failure" } }),
       GITHUB_STEP_SUMMARY: join(root, "summary.md"),
     },
   });
+  assert.equal(result.status, expectedExit, result.stderr);
   const markdown = readFileSync(join(root, "reports/pr-report.md"), "utf8");
   assert.equal(markdown, readFileSync(join(root, "summary.md"), "utf8"));
   return markdown;
@@ -118,4 +121,111 @@ test("includes suite startup errors even when no assertions ran", () => {
     });
     assert.match(report(root), /suite failed.*Cannot import server/);
   });
+});
+
+test("reports size budgets, runtime/dev advisories and scan errors without hiding failures", () => {
+  fixture(({ root, write }) => {
+    write("packages/core/reports/size.json", {
+      packedBytes: 110,
+      unpackedBytes: 200,
+      fileCount: 9,
+      budget: { packedBytes: 100, unpackedBytes: 250 },
+      status: "failed",
+      errors: ["Packed size exceeds budget"],
+    });
+    const finding = {
+      name: "dependency",
+      id: 1,
+      severity: "high",
+      title: "Unsafe <input>",
+      vulnerable_versions: "<2.0.0",
+      url: "https://github.com/advisories/GHSA-aaaa-bbbb-cccc",
+    };
+    write("reports/audit-lockfile.json", {
+      status: "failed",
+      advisories: { dependency: [finding] },
+    });
+    write("packages/core/reports/audit.json", {
+      status: "failed",
+      runtime: [finding],
+      findings: [finding, { ...finding, id: 2, severity: "low" }],
+    });
+    write("packages/mcp/reports/audit.json", {
+      status: "error",
+      error: "Advisory service unavailable",
+    });
+    const markdown = report(root);
+    assert.match(markdown, /110 \/ 100 \| 200 \/ 250 \| 9 \| failed/);
+    assert.match(markdown, /Packed size exceeds budget/);
+    assert.match(markdown, /Complete lockfile: \*\*failed\*\*/);
+    assert.match(
+      markdown,
+      /packages\/core \| 1 \| 1 \| 1 \| 0 \| 1 \| 0 \| failed/,
+    );
+    assert.match(markdown, /Unsafe &lt;input&gt;/);
+    assert.match(markdown, /Advisory service unavailable/);
+  });
+});
+
+test("malformed report files produce diagnostics without losing healthy results or the Actions summary", () => {
+  const corruptions = [
+    ["packages/core/reports/size.json", '{"status":'],
+    ["packages/core/reports/size.json", {}],
+    [
+      "packages/core/reports/tests.json",
+      {
+        numPassedTests: 0,
+        numFailedTests: 0,
+        numPendingTests: 0,
+        numTotalTests: 0,
+        testResults: {},
+      },
+    ],
+    [
+      "packages/core/coverage/coverage-summary.json",
+      { total: { statements: { pct: "bad" } } },
+    ],
+    [
+      "packages/core/reports/audit.json",
+      { status: "passed", runtime: [], findings: [{}] },
+    ],
+    ["reports/audit-lockfile.json", { status: "passed", advisories: null }],
+  ];
+  for (const [path, data] of corruptions) {
+    fixture(({ root, write }) => {
+      write("packages/http/reports/size.json", {
+        status: "passed",
+        packedBytes: 10,
+        unpackedBytes: 20,
+        fileCount: 3,
+        budget: { packedBytes: 30, unpackedBytes: 40 },
+        errors: [],
+      });
+      write("packages/mcp/reports/tests.json", {
+        numPassedTests: 5,
+        numFailedTests: 0,
+        numPendingTests: 0,
+        numTotalTests: 5,
+        testResults: [],
+      });
+      write("packages/mcp/reports/audit.json", {
+        status: "passed",
+        runtime: [],
+        findings: [],
+      });
+      write(path, data);
+      const markdown = report(root, 1);
+      assert.ok(markdown.includes(path), path);
+      assert.match(markdown, /### Report errors/);
+      assert.match(
+        markdown,
+        /packages\/http \| 10 \/ 30 \| 20 \/ 40 \| 3 \| passed/,
+      );
+      assert.match(markdown, /packages\/mcp \| 5 \| 0 \| 0 \| 5/);
+      assert.match(
+        markdown,
+        /packages\/mcp \| 0 \| 0 \| 0 \| 0 \| 0 \| 0 \| passed/,
+      );
+    });
+  }
 });

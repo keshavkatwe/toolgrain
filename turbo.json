@@ -26,19 +26,23 @@
     },
     "test:coverage": {
       "dependsOn": ["build"],
-      "outputs": ["coverage/**", "reports/**"]
+      "outputs": ["coverage/**", "reports/tests.json"]
     },
     "@toolgrain/protocol#test:coverage": {
-      "outputs": ["reports/**"],
+      "outputs": ["reports/tests.json"],
       "dependsOn": ["build"]
     },
     "test:examples": {
       "dependsOn": ["^build"],
-      "outputs": ["reports/**"],
+      "outputs": ["reports/tests.json"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/scripts/test-http-example.mjs"
       ]
+    },
+    "test:size": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

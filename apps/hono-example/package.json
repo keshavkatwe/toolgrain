@@ -18,12 +18,12 @@
     "zod": "4.6.7",
     "@toolgrain/http": "workspace:*",
     "hono": "4.13.13",
-    "@hono/node-server": "1.19.11"
+    "@hono/node-server": "1.19.15"
   },
   "devDependencies": {
     "typescript": "7.0.2",
     "@types/node": "24.10.0",
     "vitest": "5.0.4",
-    "tsx": "4.21.0"
+    "tsx": "4.22.0"
   }
 }
