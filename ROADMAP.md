@@ -8,7 +8,7 @@ These items are proposals for discussion, with no timelines or implementation co
 - Clean installation tests using packed npm artifacts.
 - Supported runtime and dependency version policy.
 - Package metadata, licensing, and npm configuration.
-- Documentation, quickstarts, and GitHub Pages.
+- Documentation and quickstarts using Docusaurus, hosted on GitHub Pages — platform selected; implementation deferred.
 - Versioning, changelogs, and release verification.
 - Initial npm release.
 - Tool annotations and rich content results.
