@@ -13,7 +13,7 @@ import { errorResponse as legacyErrorResponse } from "./legacy/responses.js";
 import { createModernDispatcher } from "./modern/dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { validateVersionContext } from "./protocol/version-metadata.js";
-import type { createToolAdapter } from "./tools.js";
+import type { createToolAdapter } from "./tools/adapter.js";
 
 export type Dispatcher = (
   request: Request,

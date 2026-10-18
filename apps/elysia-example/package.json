@@ -13,7 +13,6 @@
     "inspect": "bun ../../scripts/inspect-http.mjs http://127.0.0.1:3003/mcp"
   },
   "dependencies": {
-    "@toolgrain/core": "workspace:*",
     "@toolgrain/mcp": "workspace:*",
     "zod": "4.6.7",
     "@toolgrain/http": "workspace:*",

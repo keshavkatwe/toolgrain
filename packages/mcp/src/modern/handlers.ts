@@ -4,9 +4,9 @@ import {
   type ListToolsResult,
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "@toolgrain/protocol";
-import { callTool as executeToolCall } from "../call-tool.js";
 import { ProtocolError } from "../protocol/responses.js";
-import type { createToolAdapter } from "../tools.js";
+import type { createToolAdapter } from "../tools/adapter.js";
+import { callTool as executeToolCall } from "../tools/call.js";
 import { callParams, commonParams, listParams } from "./messages.js";
 import { toolResult } from "./results.js";
 

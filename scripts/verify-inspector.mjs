@@ -256,6 +256,10 @@ try {
           assert.equal(tools[0].name, "greet");
           assert.equal(tools[0].inputSchema.type, "object");
           assert.deepEqual(tools[0].inputSchema.required, ["name"]);
+          assert.equal(tools[0].title, "Greeting");
+          assert.equal(tools[0].annotations.readOnlyHint, true);
+          assert.equal(tools[0].outputSchema.type, "object");
+          assert.deepEqual(tools[0].outputSchema.required, ["message"]);
         },
       );
       for (const name of ["Ada", "Zoë 世界"]) {

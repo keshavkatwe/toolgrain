@@ -1,5 +1,23 @@
 import type { JSONValue } from "@toolgrain/protocol";
 
+export type JsonCompatible<Value> = Value extends
+  | string
+  | number
+  | boolean
+  | null
+  ? Value
+  : Value extends (...args: never[]) => unknown
+    ? never
+    : Value extends readonly (infer Item)[]
+      ? readonly JsonCompatible<Item>[]
+      : Value extends object
+        ? { [Key in keyof Value]: JsonCompatible<Value[Key]> }
+        : never;
+
+export type IsJsonCompatible<Value> = [Value] extends [JsonCompatible<Value>]
+  ? true
+  : false;
+
 export function assertJSON(
   value: unknown,
   ancestors = new Set<object>(),

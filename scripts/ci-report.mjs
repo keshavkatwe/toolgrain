@@ -8,7 +8,6 @@ import {
 import { readReport } from "./ci-report-data.mjs";
 
 const workspaces = [
-  "packages/core",
   "packages/protocol",
   "packages/mcp",
   "packages/node",
@@ -91,12 +90,7 @@ lines.push(
   "| Workspace | Statements | Branches | Functions | Lines | Floor | Result |",
   "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
 );
-for (const workspace of [
-  "packages/core",
-  "packages/mcp",
-  "packages/node",
-  "packages/http",
-]) {
+for (const workspace of ["packages/mcp", "packages/node", "packages/http"]) {
   const total = read(
     `${workspace}/coverage/coverage-summary.json`,
     "coverage",

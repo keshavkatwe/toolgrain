@@ -87,9 +87,12 @@ export async function testHttpExample(workspace) {
       assert.equal(message.id, 1);
       if (method === "tools/call")
         assert.equal(message.result.structuredContent.message, "Hello, Ada!");
-      else if (method === "tools/list")
+      else if (method === "tools/list") {
         assert.equal(message.result.tools[0].name, "greet");
-      else
+        assert.equal(message.result.tools[0].title, "Greeting");
+        assert.equal(message.result.tools[0].annotations.readOnlyHint, true);
+        assert.equal(message.result.tools[0].outputSchema.type, "object");
+      } else
         assert.deepEqual(message.result.supportedVersions, [
           "2026-07-28",
           "2025-06-18",
@@ -146,7 +149,13 @@ export async function testHttpExample(workspace) {
           message.result.structuredContent.message,
           "Hello, Legacy!",
         );
-      else assert.equal(message.result.tools[0].name, "greet");
+      else {
+        assert.equal(message.result.tools[0].name, "greet");
+        assert.equal(message.result.tools[0].title, "Greeting");
+        assert.equal(message.result.tools[0].annotations.readOnlyHint, true);
+        assert.equal(message.result.tools[0].outputSchema.type, "object");
+        assert.equal(message.result.tools[0].icons, undefined);
+      }
     }
   } finally {
     // CLI commands can start child processes; terminate the entire test-owned group.

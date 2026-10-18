@@ -38,6 +38,31 @@ Public server, transport, and HTTP declarations remain byte-identical. Modern
 modules have no direct or transitive dependency on legacy modules within MCP or
 HTTP; execution and transport behavior stay shared.
 
+## Unified tool API verification — 2026-10-18
+
+After moving tool authoring and execution into `@toolgrain/mcp`, Inspector 2.11.0
+passes all 30 checks again over real stdio and plain Node HTTP, covering modern,
+legacy, and automatic discovery. Strict tool listings now also verify the title,
+read-only annotation, and object output schema. The Codex results above describe
+the earlier verification; Codex was not rerun for this API change.
+
+The library suites and six example applications pass 182 tests. Each example
+imports `tool` and `createServer` from `@toolgrain/mcp` and verifies metadata,
+output-schema discovery, and execution in both revisions. Additional server tests
+cover parsed/defaulted/transformed outputs, asynchronous validation, rich content,
+explicit errors, cancellation during output validation, and incompatible legacy
+metadata/output-schema omission. Compiled package/declaration checks pass, and
+vendor integrity remains unchanged. MCP coverage is 99.52% statements, 99.32%
+branches, 99.03% functions, and 100% lines.
+
+Structured error validation was also rechecked on 2026-10-18: both revisions now
+validate any supplied `structuredContent` against the declared output schema,
+including `isError: true` results. Text-only errors may omit structured data;
+output defaults do not create it. Regression tests cover parsed error defaults,
+transforms, async refinements, and `0`, `false`, and `null` payloads. All 93 MCP and
+38 HTTP tests pass, as do source type checks and compiled declaration checks for
+valid text-only errors and rejected incompatible structured errors.
+
 ## Normal Codex setup
 
 Build the examples and configure the command or URL using normal MCP settings:
@@ -148,7 +173,7 @@ stopped. A sanitized local summary is retained at `reports/compatibility/codex.j
   GET and DELETE remain 405.
 - Legacy HTTP cancellation is advisory and cannot cancel another invocation:
   a stateless notification has no client/session identity for safe routing.
-  Disconnect/stdio cancellation suppresses delivery; running core execution
+  Disconnect/stdio cancellation suppresses delivery; running tool execution
   continues under the existing semantics.
 - Legacy structured content contains objects only. Other JSON outputs retain
   their JSON text. Tool handlers and modern output behavior remain unchanged.

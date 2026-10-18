@@ -1,4 +1,3 @@
-import { type ToolMap, tool } from "@toolgrain/core";
 import type { ProtocolResponse, RequestId } from "@toolgrain/protocol";
 import {
   PROTOCOL_VERSION,
@@ -7,7 +6,12 @@ import {
 import type { Result } from "@toolgrain/protocol/2025-06-18";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createServer, ToolSchemaError } from "../src/index.js";
+import {
+  createServer,
+  type ToolMap,
+  ToolSchemaError,
+  tool,
+} from "../src/index.js";
 import { deferred, MemoryTransport } from "./memory.js";
 
 const meta = {
@@ -454,7 +458,7 @@ it("reports unsupported handler outputs as tool errors", async () => {
   const { transport } = await setup({
     invalid: tool({
       input: z.object({}),
-      execute: () => ({ missing: undefined }),
+      execute: () => ({ missing: undefined }) as never,
     }),
   });
   const reply = result(

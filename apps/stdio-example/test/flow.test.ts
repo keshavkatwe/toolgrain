@@ -96,6 +96,12 @@ it("runs discovery → listing → execution through compiled packages and real 
         tools: [
           {
             name: "greet",
+            title: "Greeting",
+            annotations: { readOnlyHint: true },
+            outputSchema: {
+              type: "object",
+              properties: { message: { type: "string" } },
+            },
             inputSchema: {
               type: "object",
               properties: { name: { type: "string" } },
@@ -155,7 +161,16 @@ it("runs legacy initialization and calls alongside modern requests through real 
     const listed = await client.next();
     expect(listed).toMatchObject({
       id: 2,
-      result: { tools: [{ name: "greet" }] },
+      result: {
+        tools: [
+          {
+            name: "greet",
+            title: "Greeting",
+            annotations: { readOnlyHint: true },
+            outputSchema: { type: "object" },
+          },
+        ],
+      },
     });
     expect("result" in listed && listed.result).not.toHaveProperty(
       "resultType",

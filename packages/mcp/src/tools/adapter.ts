@@ -1,11 +1,17 @@
-import { createRegistry, ToolInputError, type ToolMap } from "@toolgrain/core";
-import { type ToolExecutionResult, toolError, toolResult } from "./results.js";
-import { describeTool } from "./tool-schema.js";
+import { ToolInputError } from "./errors.js";
+import { createRegistry, type ToolMap } from "./registry.js";
+import {
+  resolveToolResult,
+  type ToolExecutionResult,
+  toolError,
+} from "./results.js";
+import { describeTool } from "./schema.js";
 
 export function createToolAdapter(tools: ToolMap) {
   const registry = createRegistry(tools);
   const entries = registry.list();
   const names = new Set(entries.map(({ name }) => name));
+  const outputs = new Map(entries.map(({ name, output }) => [name, output]));
   const listed = entries.map((entry) => describeTool(entry.name, entry));
   return {
     has: (name: string) => names.has(name),
@@ -19,7 +25,12 @@ export function createToolAdapter(tools: ToolMap) {
       try {
         const result = await registry.execute(name, input);
         if (!isActive()) return;
-        return toolResult(result);
+        const converted = await resolveToolResult(
+          name,
+          result,
+          outputs.get(name),
+        );
+        return isActive() ? converted : undefined;
       } catch (error) {
         if (!isActive()) return;
         if (error instanceof ToolInputError) {

@@ -11,7 +11,6 @@ These items are proposals for discussion, with no timelines or implementation co
 - Documentation and quickstarts using Docusaurus, hosted on GitHub Pages — platform selected; implementation deferred.
 - Versioning, changelogs, and release verification.
 - Initial npm release.
-- Tool annotations and rich content results.
 - Handler execution context and cooperative cancellation.
 - Authentication integration and per-request identity.
 - Resources support.

@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-17
+Updated: 2026-10-18
 
 ## Working agreement
 
@@ -19,7 +19,7 @@ Updated: 2026-10-17
 
 Toolgrain is a TypeScript toolkit for building MCP servers with a simple, typed developer API. Implement MCP support directly against protocol revisions `2026-07-28` and `2025-06-18`. Owning that implementation means owning compatibility, interoperability testing, and protocol maintenance.
 
-A protocol-independent tool execution core is the proposed architecture. Ease of defining and composing tools is the intended product value; SDK independence gives us control over the implementation.
+Toolgrain is MCP-first. `@toolgrain/mcp` owns the complete tool authoring API; validation and execution remain separate internal modules. There is no separate core package. Ease of defining and composing tools is the intended product value; SDK independence gives us control over the implementation.
 
 ## Confirmed MCP protocol target
 
@@ -33,23 +33,25 @@ A protocol-independent tool execution core is the proposed architecture. Ease of
 - The user has created the `toolgrain` npm organization, providing the `@toolgrain` scope.
 - Scoped packages are sufficient. A separate unscoped `toolgrain` package is optional and is not reserved by organization creation.
 - Use GitHub and GitHub Pages. No custom domain purchase is planned.
-- Package names below are proposals, not published packages or finalized boundaries.
+- Current workspace names and the MCP authoring boundary are confirmed; packages remain private and unpublished.
 
-## Proposed developer API
+## Confirmed developer API
 
-The user accepted this as a starting idea. It is not implemented or finalized.
+The public authoring API lives in `@toolgrain/mcp`. Package name remains MCP-specific.
 
 ```ts
-import { tool } from "@toolgrain/core";
-import { createServer } from "@toolgrain/mcp";
+import { createServer, tool } from "@toolgrain/mcp";
 import { stdio } from "@toolgrain/node";
 import { z } from "zod";
 
 const greet = tool({
+  title: "Greeting",
   description: "Greet someone by name",
+  annotations: { readOnlyHint: true },
   input: z.object({
     name: z.string().min(1),
   }),
+  output: z.object({ message: z.string() }),
   async execute({ name }) {
     return { message: `Hello, ${name}!` };
   },
@@ -64,35 +66,27 @@ const server = createServer({
 await server.listen(stdio());
 ```
 
-Proposed semantics:
+Confirmed semantics:
 
 - Registration keys define exposed tool names.
 - Tool definitions are independent and reusable across servers.
 - Input types are inferred, with runtime argument validation.
 - Ordinary strings and JSON values are converted into MCP tool results.
-- Explicit helpers could support images and other rich MCP content.
+- `mcpResult()` explicitly marks rich MCP content and result metadata; plain objects remain application data.
 - Transport selection is explicit.
 - Zod 4 is the initial schema library. Independence from the MCP SDK does not mean zero dependencies.
 
-## Rough roadmap for discussion
+## Confirmed tool execution decisions
 
-1. Refine API examples and agree on the smallest useful scope.
-2. Build a protocol-independent core for tool definitions and execution.
-3. Implement MCP messages, lifecycle, capabilities, and errors for protocol revision `2026-07-28`.
-4. Start with tool discovery and execution over stdio, then consider Streamable HTTP.
-5. Test interoperability with real MCP clients before expanding into resources, prompts, and other features.
-
-This roadmap is a proposal, not a committed implementation plan.
-
-## Confirmed core package decisions
-
-- `@toolgrain/core` is implemented in `packages/core`, version `0.0.0`, private and unpublished.
-- `tool()` defines reusable tools; `createRegistry()` snapshots named registrations and provides `list()` and asynchronous `execute(name, unknownInput)`.
-- Zod 4 is a peer dependency. Validation uses asynchronous parsing; handlers receive the schema's parsed output, including transforms and defaults.
-- Handler outputs remain unchanged. MCP result conversion belongs to a future protocol layer.
-- Unknown names and invalid input reject with `UnknownToolError` and `ToolInputError`; handler failures propagate unchanged.
-- Literal names infer specific output types; dynamic names infer the union of registered outputs.
-- No handler context, output validation, MCP messages, transports, or server facade yet.
+- The separate `@toolgrain/core` workspace is removed. Tool definitions, the registry, execution, schema conversion, and result handling live together in `packages/mcp/src/tools/`; the registry is internal. Related tests live in `packages/mcp/test/tools/`.
+- `tool()` creates reusable, frozen definitions and preserves input inference. Registration requires these definitions; raw objects and modified spreads are rejected by types and at runtime.
+- `tool()` accepts optional `title`, `description`, `annotations`, `icons`, `_meta`, and Zod `output` directly. No MCP wrapper is needed.
+- Input validation uses asynchronous parsing; handlers receive parsed values, including defaults and transforms.
+- Optional output schemas constrain handler return types and asynchronously parse returned data, including defaults and transforms. Plain results are validated directly; any supplied `mcpResult()` structured content is validated, including error data. Error results may omit structured content and use text; output defaults do not create data for these errors. Invalid output becomes a tool error without structured data. Without an output schema, any JSON structured content is allowed.
+- Without an output schema, handler outputs remain unchanged before MCP result conversion. Calling a definition's `execute` property invokes the raw handler and bypasses all server validation and conversion.
+- Exposed names follow the recommended 1–128 ASCII letters/digits/underscore/hyphen/dot rules, enforced at server construction with `ToolNameError`.
+- `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Ordinary result-shaped objects remain data.
+- Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. No handler context or cooperative interruption yet.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 
 ## Confirmed protocol package decisions
@@ -109,15 +103,15 @@ This roadmap is a proposal, not a committed implementation plan.
 - The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Modern requests carry version and client capabilities individually. Legacy stdio uses connection-scoped `initialize` / `notifications/initialized` negotiation and supports `ping`; modern requests remain independent and can interleave. Legacy initialization negotiates `2025-06-18` and never claims modern semantics through `initialize`.
-- Tool schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Fail unrepresentable schemas at construction.
-- Strings become text; modern JSON values become structured content plus text. Legacy structured content contains only objects; other JSON values are text only. Reject unsupported output values as tool errors.
-- Input validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
+- Input schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Output schemas use output-mode conversion. Fail unrepresentable schemas or invalid metadata at construction. Legacy listings retain supported metadata, omit icons, and advertise only object-root output schemas.
+- Strings become text without an output schema; declared outputs include parsed structured content plus serialized text. Other modern JSON values become structured content plus text. Legacy structured content contains only objects; other JSON values are text only. Reject unsupported output values as tool errors.
+- Input/output validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
 - Modern discovery/list results use `ttlMs: 0`, `cacheScope: "private"`; discovery advertises both supported revisions. Legacy result envelopes omit modern result/cache/server-info metadata. Tool lists are a single page; nonempty cursors are rejected.
-- Each MCP tool adapter reuses one core registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
+- Each MCP tool adapter reuses one internal registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
 - Keep revision-specific validation, dispatch, response shaping, and legacy negotiation in separate `modern/` and `legacy/` modules. Share tool execution, JSON normalization, schema conversion, envelope decoding, and transport lifecycle; era selection stays in thin composition modules. Modern modules must not depend on legacy modules. This separation preserves the public API and wire behavior while keeping legacy support removable.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
-- Resources, prompts, subscriptions, extensions, rich-content helpers, publication, and deployment remain separate steps.
+- Resources, prompts, multi-round-trip input-required results, subscriptions, extensions, publication, and deployment remain separate steps.
 
 ## Confirmed Node stdio decisions
 
@@ -137,12 +131,12 @@ This roadmap is a proposal, not a committed implementation plan.
 - Support `2026-07-28` and `2025-06-18` with independent POSTs and JSON responses. GET/DELETE return 405. No session IDs or global per-client negotiation state. Persistent sessions, resumability, SSE/progress/subscriptions, OAuth/Clerk, and identity context remain separate work.
 - Validate modern protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Legacy initialization may omit the version header; subsequent legacy POSTs carry `2025-06-18`. Optional legacy routing/parameter headers are validated when present. Invalid annotations fail HTTP-handler construction. Valid legacy initialized/cancelled notifications return 202 empty; cancellation is advisory no-op because independent requests have no session/client identity. Modern HTTP notifications remain unsupported.
 - MCP exposes `handle(message, { signal?, protocolVersion? })` for independent requests and `getToolDefinitions()` for copied metadata. HTTP passes the validated revision per invocation; shared dispatch/error conversion serves stdio and HTTP. HTTP request IDs are isolated per invocation. Legacy JSON-RPC errors use HTTP 200; modern errors retain modern status rules.
-- Cancellation suppresses delivery without interrupting running core execution. Closing the server is terminal across HTTP and stdio; closing the attached transport also closes independent processing.
+- Cancellation suppresses delivery without interrupting running tool execution. Closing the server is terminal across HTTP and stdio; closing the attached transport also closes independent processing.
 - Examples are separate workspaces: `http-example` (plain Node), `express-example`, `hono-example`, `elysia-example`, and `nextjs-example`. Each owns its dependencies, native dev/build/start commands, and real-process HTTP smoke test. They do not import sibling application code. Next uses the Next CLI, Elysia uses Bun, and Express/Hono use their normal Node workflows. NestJS is not separately verified.
 
 ## Repository state and next step
 
-Core, protocol, MCP, Node stdio, and Streamable HTTP support are on `main`.
+Protocol, MCP, Node stdio, and Streamable HTTP support are implemented. The unified tool authoring API replaces the former core package.
 HTTP support and independent framework examples were merged in PR #6
 (`e8e2895`) on 2026-10-16 after review and passing CI. Keep Bun 1.3.14,
 pinned Turbo, root-level Biome, and shared strict TypeScript defaults.
@@ -185,7 +179,7 @@ Root `bun run test:package` uses Turbo to run every workspace package verificati
 Root `bun run test:coverage` uses Turbo with each workspace's own build as a
 prerequisite and caches `coverage/**` for measured packages. CI runs this instead
 of plain tests. Vitest V8 includes all library source files and enforces each of
-statements, branches, functions, and lines: 100% for core and 95% per package for MCP, Node, and HTTP.
+statements, branches, functions, and lines: 95% per package for MCP, Node, and HTTP.
 Protocol integrity runs without coverage instrumentation. Example tests run separately through
 root `bun run test:examples`, without coverage instrumentation or coverage floors. CI runs
 `test:coverage` and `test:examples` together and retains example reports. CI retains coverage reports for 14 days.
@@ -196,7 +190,7 @@ comment. The comment job has no checkout and does not execute repository code.
 
 ## Package size and dependency auditing
 
-- `bun run test:size` builds and packs the five library packages without lifecycle
+- `bun run test:size` builds and packs the four library packages without lifecycle
   scripts or publication. It enforces packed/unpacked byte budgets from
   `package-size.config.json`, all declared export targets, every compiled module
   and declaration in `dist`, explicit required protocol artifacts, and package-file

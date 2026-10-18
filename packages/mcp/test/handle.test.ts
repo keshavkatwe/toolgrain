@@ -1,8 +1,7 @@
-import { tool } from "@toolgrain/core";
 import { PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createServer } from "../src/index.js";
+import { createServer, tool } from "../src/index.js";
 import { deferred } from "./memory.js";
 
 const meta = {

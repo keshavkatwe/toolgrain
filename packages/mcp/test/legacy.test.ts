@@ -1,4 +1,3 @@
-import { tool } from "@toolgrain/core";
 import {
   LEGACY_PROTOCOL_VERSION,
   PROTOCOL_VERSION,
@@ -6,7 +5,7 @@ import {
 } from "@toolgrain/protocol";
 import { expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createServer } from "../src/index.js";
+import { createServer, tool } from "../src/index.js";
 import { deferred, MemoryTransport } from "./memory.js";
 
 const legacyOptions = { protocolVersion: LEGACY_PROTOCOL_VERSION } as const;
@@ -271,7 +270,7 @@ it("preserves validation, execution errors, and asynchronous cancellation for le
           throw new Error("failed");
         },
       }),
-      invalid: tool({ input: z.object({}), execute: () => undefined }),
+      invalid: tool({ input: z.object({}), execute: () => undefined as never }),
       slow: tool({
         input: z.object({}),
         execute: () => {

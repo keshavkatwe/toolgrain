@@ -1,5 +1,4 @@
-import { tool } from "@toolgrain/core";
-import { createServer } from "@toolgrain/mcp";
+import { createServer, tool } from "@toolgrain/mcp";
 import {
   PROTOCOL_VERSION,
   SUPPORTED_PROTOCOL_VERSIONS,

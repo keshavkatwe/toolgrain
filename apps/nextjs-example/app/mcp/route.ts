@@ -1,6 +1,5 @@
-import { tool } from "@toolgrain/core";
 import { createHttpHandler } from "@toolgrain/http";
-import { createServer } from "@toolgrain/mcp";
+import { createServer, tool } from "@toolgrain/mcp";
 import { z } from "zod";
 
 const handler = createHttpHandler(
@@ -9,7 +8,10 @@ const handler = createHttpHandler(
     version: "1.0.0",
     tools: {
       greet: tool({
+        title: "Greeting",
+        annotations: { readOnlyHint: true, openWorldHint: false },
         input: z.object({ name: z.string() }),
+        output: z.object({ message: z.string() }),
         execute: ({ name }) => ({ message: `Hello, ${name}!` }),
       }),
     },

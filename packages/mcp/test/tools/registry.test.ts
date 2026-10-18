@@ -1,11 +1,8 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
-import {
-  createRegistry,
-  ToolInputError,
-  tool,
-  UnknownToolError,
-} from "../src/index.js";
+import { tool } from "../../src/tools/definition.js";
+import { ToolInputError, UnknownToolError } from "../../src/tools/errors.js";
+import { createRegistry } from "../../src/tools/registry.js";
 
 describe("tool execution", () => {
   it("infers parsed inputs and applies defaults and transforms", async () => {
@@ -45,7 +42,7 @@ describe("tool execution", () => {
   });
 
   it("preserves sync and async values and handler failures", async () => {
-    const value = new Date();
+    const value = { timestamp: "2026-10-18T00:00:00.000Z" };
     const failure = new Error("handler failed");
     const registry = createRegistry({
       sync: tool({ input: z.unknown(), execute: () => value }),

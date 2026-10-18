@@ -1,6 +1,6 @@
 import { INVALID_PARAMS } from "@toolgrain/protocol";
-import { ProtocolError } from "./protocol/responses.js";
-import type { createToolAdapter } from "./tools.js";
+import { ProtocolError } from "../protocol/responses.js";
+import type { createToolAdapter } from "./adapter.js";
 
 /** Execute an already-validated call through the shared registry. */
 export function callTool(

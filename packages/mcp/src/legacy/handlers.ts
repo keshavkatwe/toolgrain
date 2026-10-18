@@ -7,9 +7,9 @@ import type {
   InitializeResult,
   ListToolsResult,
 } from "@toolgrain/protocol/2025-06-18";
-import { callTool as executeToolCall } from "../call-tool.js";
 import { ProtocolError } from "../protocol/responses.js";
-import type { createToolAdapter } from "../tools.js";
+import type { createToolAdapter } from "../tools/adapter.js";
+import { callTool as executeToolCall } from "../tools/call.js";
 import {
   callParams,
   commonParams,
@@ -50,11 +50,14 @@ export function listTools(params: unknown, tools: Tools): ListToolsResult {
   if (!parsed.success || parsed.data.cursor)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool list parameters");
   return {
-    tools: tools.list().map(({ name, inputSchema, description }) => ({
-      name,
-      inputSchema,
-      ...(description === undefined ? {} : { description }),
-    })),
+    tools: tools
+      .list()
+      .map(({ icons: _icons, outputSchema, ...definition }) => ({
+        ...definition,
+        ...(outputSchema?.type === "object"
+          ? { outputSchema: { ...outputSchema, type: "object" as const } }
+          : {}),
+      })),
   };
 }
 

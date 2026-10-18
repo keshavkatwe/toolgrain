@@ -1,8 +1,4 @@
 {
-  "@toolgrain/core": {
-    "packedBytes": 2048,
-    "unpackedBytes": 6144
-  },
   "@toolgrain/protocol": {
     "packedBytes": 107520,
     "unpackedBytes": 498688,
@@ -16,8 +12,8 @@
     ]
   },
   "@toolgrain/mcp": {
-    "packedBytes": 14336,
-    "unpackedBytes": 71680
+    "packedBytes": 19456,
+    "unpackedBytes": 98304
   },
   "@toolgrain/http": {
     "packedBytes": 9216,

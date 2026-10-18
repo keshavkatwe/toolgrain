@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { tool } from "@toolgrain/core";
-import { createServer } from "@toolgrain/mcp";
-import { PROTOCOL_VERSION } from "@toolgrain/protocol";
+import { createServer, mcpResult, tool } from "@toolgrain/mcp";
+import { LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
 
 let callbacks;
@@ -14,8 +13,15 @@ const server = createServer({
   version: "1.0",
   tools: {
     greet: tool({
+      title: "Greeting",
+      annotations: { readOnlyHint: true },
       input: z.object({ name: z.string() }),
-      execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+      output: z.object({ message: z.string() }),
+      execute: ({ name }) =>
+        mcpResult({
+          content: [],
+          structuredContent: { message: `Hello, ${name}!` },
+        }),
     }),
   },
 });
@@ -46,4 +52,20 @@ callbacks.onMessage({
 const message = await response;
 assert.deepEqual(message.result.structuredContent, { message: "Hello, Ada!" });
 assert.equal(message.result.resultType, "complete");
+const legacy = await server.handle(
+  {
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: { name: "greet", arguments: { name: "Legacy" } },
+  },
+  { protocolVersion: LEGACY_PROTOCOL_VERSION },
+);
+assert.deepEqual(legacy.result.structuredContent, {
+  message: "Hello, Legacy!",
+});
+assert.equal(legacy.result.resultType, undefined);
+assert.deepEqual(legacy.result.content, [
+  { type: "text", text: '{"message":"Hello, Legacy!"}' },
+]);
 await server.close();
