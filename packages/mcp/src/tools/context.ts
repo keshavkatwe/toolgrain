@@ -6,7 +6,7 @@ import {
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 
-/** What the client reported about itself. */
+/** What the client reported about itself; unverified, so not a basis for security decisions. */
 export interface ToolClient {
   readonly info?: Implementation;
   readonly capabilities?: ClientCapabilities;
@@ -17,7 +17,7 @@ export interface ToolRequest {
   readonly protocolVersion: SupportedProtocolVersion;
   /** Absent when the era and transport carry no client information, such as legacy HTTP. */
   readonly client?: ToolClient;
-  /** A copy of the request's `_meta`; empty when the request carried none. */
+  /** A deeply frozen copy of the request's `_meta`; empty when the request carried none. */
   readonly meta: Readonly<Record<string, unknown>>;
 }
 
@@ -34,34 +34,57 @@ export interface ToolContextOptions {
 
 /** Build a context for calling a definition's `execute` directly, for example in tests. */
 export function toolContext(options: ToolContextOptions = {}): ToolContext {
+  // Default each field separately so an explicit undefined cannot replace a default.
+  const {
+    id = 0,
+    protocolVersion = PROTOCOL_VERSION,
+    client,
+    meta = {},
+  } = options.request ?? {};
   return createToolContext(options.signal ?? new AbortController().signal, {
-    id: 0,
-    protocolVersion: PROTOCOL_VERSION,
-    meta: {},
-    ...options.request,
+    id,
+    protocolVersion,
+    ...(client === undefined ? {} : { client }),
+    meta,
   });
 }
 
+/** Each request gets its own deeply frozen copies, so handlers cannot affect one another. */
 export function createToolContext(
   signal: AbortSignal,
-  request: ToolRequest,
+  { client, ...request }: ToolRequest,
 ): ToolContext {
   return Object.freeze({
     signal,
     request: Object.freeze({
       ...request,
-      meta: Object.freeze({ ...request.meta }),
+      ...(client === undefined
+        ? {}
+        : { client: frozenCopy(toolClient(client.info, client.capabilities)) }),
+      meta: frozenCopy(request.meta),
     }),
   });
 }
 
-/** Omit absent fields so the context matches its optional-property types. */
+/** Omit absent fields so the client matches its optional-property types. */
 export function toolClient(
   info: Implementation | undefined,
   capabilities: ClientCapabilities | undefined,
 ): ToolClient {
-  return Object.freeze({
+  return {
     ...(info === undefined ? {} : { info }),
     ...(capabilities === undefined ? {} : { capabilities }),
-  });
+  };
+}
+
+function frozenCopy<T>(value: T): T {
+  return deepFreeze(structuredClone(value));
+}
+
+function deepFreeze<T>(value: T): T {
+  if (typeof value === "object" && value !== null) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) deepFreeze(child);
+  }
+  return value;
 }

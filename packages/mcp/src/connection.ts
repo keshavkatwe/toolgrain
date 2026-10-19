@@ -57,13 +57,14 @@ class Connection implements Pick<Server, "listen" | "close"> {
   readonly close = (): Promise<void> => {
     if (this.closePromise) return this.closePromise;
     this.state = "closed";
-    this.onClose?.();
-    this.requests.clear();
     this.closePromise = Promise.resolve().then(async () => {
       const transport = this.transport;
       this.transport = undefined;
       await transport?.close();
     });
+    // Aborting runs handler listeners synchronously; a nested close reuses this promise.
+    this.onClose?.();
+    this.requests.clear();
     return this.closePromise;
   };
 

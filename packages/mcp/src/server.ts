@@ -47,6 +47,7 @@ export function createServer<const Tools extends ToolMap>(
   let closed = false;
   const running = new Set<AbortController>();
   const closeIndependent = () => {
+    if (closed) return;
     closed = true;
     for (const controller of running)
       controller.abort(new DOMException("Server closed", "AbortError"));

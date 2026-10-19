@@ -11,7 +11,7 @@ These items are proposals for discussion, with no timelines or implementation co
 - Documentation and quickstarts using Docusaurus, hosted on GitHub Pages — platform selected; implementation deferred.
 - Versioning, changelogs, and release verification.
 - Initial npm release.
-- Handler execution context and cooperative cancellation — v0 implemented on `feat/handler-context` (see `AGENTS.md`); progress, elicitation, and identity remain later work.
+- Handler execution context and cooperative cancellation — v0 implemented (see `AGENTS.md`); progress, elicitation, and identity remain later work.
 - Authentication integration and per-request identity.
 - Resources support.
 - Prompts support.

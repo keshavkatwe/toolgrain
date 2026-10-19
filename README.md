@@ -88,13 +88,17 @@ const search = tool({
 - `ctx.signal` is an `AbortSignal`. It aborts when a stdio client sends
   `notifications/cancelled`, when an HTTP caller's signal aborts (for example on
   disconnect), when the transport closes (including stdin EOF), or when the
-  server closes. Its reason is an `AbortError`, or the caller's reason for HTTP.
+  server closes. Its reason is an `AbortError`: "Request cancelled by client",
+  "Connection closed" for stdio requests, or "Server closed" for `handle()`
+  calls. When an HTTP caller's signal aborts, its own reason is used.
   A response is never sent after the signal aborts, so whatever the handler
   returns or throws afterwards is discarded.
 - `ctx.request` holds `id`, `protocolVersion`, an optional `client` with the
-  `info` and `capabilities` the client reported, and `meta`, a frozen copy of the
-  request's `_meta`. Modern requests carry client details on each request; legacy
-  stdio uses those from `initialize`; legacy HTTP has none, so `client` is absent.
+  `info` and `capabilities` the client reported, and `meta`, a copy of the
+  request's `_meta`. Each request gets its own deeply frozen copies. Modern
+  requests carry client details on each request; legacy stdio uses those from
+  `initialize`; legacy HTTP has none, so `client` is absent. Client details are
+  self-reported and unverified, so don't base security decisions on them.
 - If the request is cancelled while its input is still being validated, the
   handler is not started.
 

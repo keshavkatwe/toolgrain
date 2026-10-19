@@ -76,6 +76,10 @@ it("gives modern handlers the request id, version, client, and a meta copy", asy
   expect(Object.isFrozen(ctx?.request)).toBe(true);
   expect(Object.isFrozen(ctx?.request.meta)).toBe(true);
   expect(ctx?.request.meta).not.toBe(modernMeta);
+  expect(Object.isFrozen(ctx?.request.client?.info)).toBe(true);
+  expect(
+    Object.isFrozen(ctx?.request.meta["io.modelcontextprotocol/clientInfo"]),
+  ).toBe(true);
 });
 
 it("omits absent client info and uses empty meta for legacy HTTP-style calls", async () => {
@@ -121,6 +125,21 @@ it("gives legacy stdio handlers the client from initialization", async () => {
     client: { info: clientInfo, capabilities: { elicitation: {} } },
     meta: { "com.example/trace": "abc" },
   });
+
+  // Each request gets its own deeply frozen client, so one handler cannot
+  // change what later handlers see.
+  const first = contexts[0]?.request.client;
+  expect(Reflect.set(first?.info ?? {}, "name", "changed")).toBe(false);
+  expect(Reflect.set(first?.capabilities ?? {}, "sampling", {})).toBe(false);
+  transport.receive(call({}, 2));
+  await vi.waitFor(() => expect(transport.messages).toHaveLength(3));
+  const second = contexts[1]?.request.client;
+  expect(second).not.toBe(first);
+  expect(second?.info).not.toBe(first?.info);
+  expect(second).toEqual({
+    info: clientInfo,
+    capabilities: { elicitation: {} },
+  });
 });
 
 it("aborts the signal when a stdio client cancels the request", async () => {
@@ -149,6 +168,26 @@ it("aborts in-flight signals when the transport closes", async () => {
   transport.callbacks?.onClose();
   expect(contexts[0]?.signal.reason).toMatchObject({
     name: "AbortError",
+    message: "Connection closed",
+  });
+  release.resolve();
+});
+
+it("reuses the pending close when an abort listener closes the server", async () => {
+  const release = deferred();
+  const { contexts, started, tools } = recorder(release.promise);
+  const { server, transport } = await listen(tools);
+  transport.receive(call());
+  await started.promise;
+  let nested: Promise<void> | undefined;
+  contexts[0]?.signal.addEventListener("abort", () => {
+    nested = server.close();
+  });
+  const outer = server.close();
+  expect(nested).toBe(outer);
+  await outer;
+  expect(transport.closes).toBe(1);
+  expect(contexts[0]?.signal.reason).toMatchObject({
     message: "Connection closed",
   });
   release.resolve();
@@ -204,6 +243,23 @@ it("builds direct-call contexts with defaults and overrides", () => {
     protocolVersion: PROTOCOL_VERSION,
     client: { info: clientInfo },
     meta: { a: 1 },
+  });
+
+  const info = { name: "caller", version: "1" };
+  const copied = toolContext({ request: { client: { info } } });
+  expect(copied.request.client?.info).toEqual(info);
+  expect(copied.request.client?.info).not.toBe(info);
+  expect(Object.isFrozen(copied.request.client?.info)).toBe(true);
+  expect(Object.isFrozen(info)).toBe(false);
+
+  // JavaScript callers can pass undefined despite the types; defaults still apply.
+  const loose = toolContext({
+    request: { id: undefined, protocolVersion: undefined, meta: undefined },
+  } as never);
+  expect(loose.request).toEqual({
+    id: 0,
+    protocolVersion: PROTOCOL_VERSION,
+    meta: {},
   });
 
   const greet = tool({
