@@ -6,6 +6,7 @@ import { tool } from "../src/index.js";
 import { discover } from "../src/modern/handlers.js";
 import { createPendingRequests } from "../src/pending-requests.js";
 import { createToolAdapter } from "../src/tools/adapter.js";
+import { toolContext } from "../src/tools/context.js";
 import { toolResult } from "../src/tools/results.js";
 import { deferred, MemoryTransport } from "./memory.js";
 
@@ -50,8 +51,14 @@ it("does not execute unknown or already inactive tools", async () => {
   const adapter = createToolAdapter({
     known: tool({ input: z.object({}), execute }),
   });
-  expect(await adapter.execute("missing", {}, () => true)).toBeUndefined();
-  expect(await adapter.execute("known", {}, () => false)).toBeUndefined();
+  expect(await adapter.execute("missing", {}, toolContext())).toBeUndefined();
+  expect(
+    await adapter.execute(
+      "known",
+      {},
+      toolContext({ signal: AbortSignal.abort() }),
+    ),
+  ).toBeUndefined();
   expect(execute).not.toHaveBeenCalled();
 });
 
@@ -68,11 +75,11 @@ it("formats root validation errors and non-Error handler failures", async () => 
       },
     }),
   });
-  expect(await adapter.execute("validated", {}, () => true)).toMatchObject({
+  expect(await adapter.execute("validated", {}, toolContext())).toMatchObject({
     isError: true,
     content: [{ text: "input: Rejected" }],
   });
-  expect(await adapter.execute("failure", {}, () => true)).toMatchObject({
+  expect(await adapter.execute("failure", {}, toolContext())).toMatchObject({
     isError: true,
     content: [{ text: "Tool execution failed" }],
   });
@@ -118,7 +125,7 @@ it("omits discovery instructions when none were supplied", () => {
 });
 
 it("suppresses failures from a tool cancelled during execution", async () => {
-  let active = true;
+  const controller = new AbortController();
   const started = deferred();
   const result = deferred<string>();
   const execute = vi.fn(() => {
@@ -128,9 +135,13 @@ it("suppresses failures from a tool cancelled during execution", async () => {
   const adapter = createToolAdapter({
     failure: tool({ input: z.object({}), execute }),
   });
-  const response = adapter.execute("failure", {}, () => active);
+  const response = adapter.execute(
+    "failure",
+    {},
+    toolContext({ signal: controller.signal }),
+  );
   await started.promise;
-  active = false;
+  controller.abort();
   result.reject(new Error("handler failed after cancellation"));
   expect(await response).toBeUndefined();
   expect(execute).toHaveBeenCalledOnce();

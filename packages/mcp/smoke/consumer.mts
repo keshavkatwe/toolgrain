@@ -1,9 +1,11 @@
 import {
   createServer,
   mcpResult,
+  type ToolContext,
   type Transport,
   type TransportCallbacks,
   tool,
+  toolContext,
 } from "@toolgrain/mcp";
 import { type DiscoverResult, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
@@ -34,10 +36,10 @@ const server = createServer({
       annotations: { readOnlyHint: true },
       input: z.object({ name: z.string() }),
       output: z.object({ message: z.string() }),
-      execute: ({ name }) =>
+      execute: ({ name }, ctx: ToolContext) =>
         mcpResult({
           content: [],
-          structuredContent: { message: `Hello, ${name}!` },
+          structuredContent: { message: `Hello, ${name}:${ctx.request.id}` },
         }),
     }),
     textOnlyError: tool({
@@ -97,3 +99,8 @@ function rejectedDefinitions() {
   });
 }
 void rejectedDefinitions;
+
+const direct: ToolContext = toolContext({ request: { id: "smoke" } });
+const directVersion: "2026-07-28" | "2025-06-18" =
+  direct.request.protocolVersion;
+void directVersion;

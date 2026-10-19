@@ -180,10 +180,10 @@ stopped. A sanitized local summary is retained at `reports/compatibility/codex.j
   GET and DELETE remain 405.
 - Legacy HTTP cancellation is advisory and cannot cancel another invocation:
   a stateless notification has no client/session identity for safe routing.
-  Disconnect/stdio cancellation suppresses delivery; running tool execution
-  continues under the existing semantics.
+  Disconnects and stdio cancellation suppress delivery and abort the handler's
+  `ctx.signal`; handlers stop early only if they observe it.
 - Legacy structured content contains objects only. Other JSON outputs retain
-  their JSON text. Tool handlers and modern output behavior remain unchanged.
+  their JSON text. Modern output behavior remains unchanged.
 
 The tested Codex build connects with normal settings. Claude, Cursor, other
 versions, GUI flows, authentication, remote deployments, and real-client

@@ -1,8 +1,11 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
+import { toolContext } from "../../src/tools/context.js";
 import { tool } from "../../src/tools/definition.js";
 import { ToolInputError, UnknownToolError } from "../../src/tools/errors.js";
 import { createRegistry } from "../../src/tools/registry.js";
+
+const ctx = toolContext();
 
 describe("tool execution", () => {
   it("infers parsed inputs and applies defaults and transforms", async () => {
@@ -12,9 +15,9 @@ describe("tool execution", () => {
       execute,
     });
     const registry = createRegistry({ count });
-    expect(await registry.execute("count", {})).toBe(12);
-    expect(execute).toHaveBeenCalledExactlyOnceWith({ count: 12 });
-    expectTypeOf(registry.execute("count", {})).toEqualTypeOf<
+    expect(await registry.execute("count", {}, ctx)).toBe(12);
+    expect(execute).toHaveBeenCalledExactlyOnceWith({ count: 12 }, ctx);
+    expectTypeOf(registry.execute("count", {}, ctx)).toEqualTypeOf<
       Promise<number>
     >();
   });
@@ -28,7 +31,7 @@ describe("tool execution", () => {
       }),
     });
     const error = await registry
-      .execute("checked", "bad")
+      .execute("checked", "bad", ctx)
       .catch((error: unknown) => error);
     expect(error).toBeInstanceOf(ToolInputError);
     if (!(error instanceof ToolInputError))
@@ -37,7 +40,7 @@ describe("tool execution", () => {
     expect(error.cause).toBeInstanceOf(z.ZodError);
     expect(error.issues).toBe((error.cause as z.ZodError).issues);
     expect(execute).not.toHaveBeenCalled();
-    expect(await registry.execute("checked", "ok")).toBe("ok");
+    expect(await registry.execute("checked", "ok", ctx)).toBe("ok");
     expect(execute).toHaveBeenCalledOnce();
   });
 
@@ -60,10 +63,10 @@ describe("tool execution", () => {
         },
       }),
     });
-    expect(await registry.execute("sync", null)).toBe(value);
-    expect(await registry.execute("async", null)).toBe(value);
-    await expect(registry.execute("throws", null)).rejects.toBe(failure);
-    await expect(registry.execute("rejects", null)).rejects.toBe(failure);
+    expect(await registry.execute("sync", null, ctx)).toBe(value);
+    expect(await registry.execute("async", null, ctx)).toBe(value);
+    await expect(registry.execute("throws", null, ctx)).rejects.toBe(failure);
+    await expect(registry.execute("rejects", null, ctx)).rejects.toBe(failure);
   });
 });
 
@@ -91,9 +94,13 @@ describe("registry", () => {
     list.splice(0);
     expect(registry.list()).toHaveLength(2);
     tools.first = tool({ input: z.string(), execute: () => "changed" });
-    expect(await registry.execute("first", "original")).toBe("original");
+    expect(await registry.execute("first", "original", ctx)).toBe("original");
     expect(
-      await createRegistry({ alias: definition }).execute("alias", "reused"),
+      await createRegistry({ alias: definition }).execute(
+        "alias",
+        "reused",
+        ctx,
+      ),
     ).toBe("reused");
   });
 
@@ -104,10 +111,10 @@ describe("registry", () => {
       ["__proto__"]: definition,
     });
     for (const name of ["toString", "constructor", "__proto__"]) {
-      expect(await registry.execute(name, "ok")).toBe("ok");
+      expect(await registry.execute(name, "ok", ctx)).toBe("ok");
     }
     await expect(
-      createRegistry({}).execute("toString", null),
+      createRegistry({}).execute("toString", null, ctx),
     ).rejects.toBeInstanceOf(UnknownToolError);
     const inherited = Object.create({ hidden: definition }) as {
       visible: typeof definition;
@@ -124,7 +131,7 @@ describe("registry", () => {
     const registry = createRegistry({});
     expect(registry.list()).toEqual([]);
     const error = await registry
-      .execute("missing", {})
+      .execute("missing", {}, ctx)
       .catch((error: unknown) => error);
     expect(error).toBeInstanceOf(UnknownToolError);
     expect(error).toMatchObject({ toolName: "missing" });
@@ -135,14 +142,14 @@ describe("registry", () => {
       text: definition,
       number: tool({ input: z.number(), execute: async (value) => value }),
     });
-    expectTypeOf(registry.execute("text", "hi")).toEqualTypeOf<
+    expectTypeOf(registry.execute("text", "hi", ctx)).toEqualTypeOf<
       Promise<string>
     >();
-    expectTypeOf(registry.execute("number", 1)).toEqualTypeOf<
+    expectTypeOf(registry.execute("number", 1, ctx)).toEqualTypeOf<
       Promise<number>
     >();
     const name: string = "text";
-    expectTypeOf(registry.execute(name, "hi")).toEqualTypeOf<
+    expectTypeOf(registry.execute(name, "hi", ctx)).toEqualTypeOf<
       Promise<string | number>
     >();
     tool({

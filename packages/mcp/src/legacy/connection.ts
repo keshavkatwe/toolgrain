@@ -1,4 +1,6 @@
 import {
+  type ClientCapabilities,
+  type Implementation,
   INVALID_REQUEST,
   type JSONRPCErrorResponse,
   LEGACY_PROTOCOL_VERSION,
@@ -12,13 +14,15 @@ import {
   hasProtocolVersionMetadata,
   metadataMatchesVersion,
 } from "../protocol/version-metadata.js";
-import { commonParams } from "./messages.js";
+import { type ToolClient, toolClient } from "../tools/context.js";
+import { commonParams, initializeParams } from "./messages.js";
 import { errorResponse } from "./responses.js";
 
 /** Owns the initialization lifecycle for one attached transport. */
 export function createLegacyConnection() {
   let state: "initializing" | "awaiting-initialized" | "ready" | undefined;
   let initializeId: RequestId | undefined;
+  let client: ToolClient | undefined;
   return {
     prepare(request: Request) {
       const legacy =
@@ -60,6 +64,13 @@ export function createLegacyConnection() {
             response && "result" in response
               ? "awaiting-initialized"
               : undefined;
+          // The response succeeded only if these parameters already validated.
+          const params = initializeParams.safeParse(request.params);
+          if (state && params.success)
+            client = toolClient(
+              params.data.clientInfo as Implementation,
+              params.data.capabilities as ClientCapabilities,
+            );
         },
         finish() {
           initializeId = undefined;
@@ -73,6 +84,10 @@ export function createLegacyConnection() {
         state === "awaiting-initialized"
       )
         state = "ready";
+    },
+    /** Details from a completed legacy initialization on this connection. */
+    client() {
+      return client;
     },
     canCancel(id: RequestId) {
       return id !== initializeId;

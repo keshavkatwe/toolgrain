@@ -107,7 +107,10 @@ it("lists converted input schemas and executes without discovery", async () => {
     structuredContent: { count: 2 },
     content: [{ type: "text", text: '{"count":2}' }],
   });
-  expect(execute).toHaveBeenCalledExactlyOnceWith({ count: 2 });
+  expect(execute).toHaveBeenCalledExactlyOnceWith(
+    { count: 2 },
+    expect.anything(),
+  );
 });
 
 it("snapshots registrations and handles inherited-property names", async () => {
@@ -321,7 +324,7 @@ describe("transport lifecycle", () => {
     });
   });
 
-  it("allows execution after cancellation during validation but suppresses its response", async () => {
+  it("skips the handler when cancelled during validation", async () => {
     const gate = deferred<boolean>();
     const validating = deferred();
     const execute = vi.fn(() => "done");
@@ -343,7 +346,7 @@ describe("transport lifecycle", () => {
     });
     gate.resolve(true);
     await settle();
-    expect(execute).toHaveBeenCalledExactlyOnceWith({});
+    expect(execute).not.toHaveBeenCalled();
     expect(transport.messages).toEqual([]);
   });
 

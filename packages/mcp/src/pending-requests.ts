@@ -1,26 +1,29 @@
 import type { RequestId } from "@toolgrain/protocol";
 
-/** Owns duplicate detection and cancellation state for in-flight requests. */
+/** Owns duplicate detection and cancellation signals for in-flight requests. */
 export function createPendingRequests(isOpen: () => boolean) {
-  const pending = new Map<RequestId, { cancelled: boolean }>();
+  const pending = new Map<RequestId, AbortController>();
   return {
     begin(id: RequestId) {
       if (pending.has(id)) return;
-      const token = { cancelled: false };
-      pending.set(id, token);
+      const controller = new AbortController();
+      pending.set(id, controller);
       return {
-        isActive: () => isOpen() && !token.cancelled,
+        signal: controller.signal,
+        isActive: () => isOpen() && !controller.signal.aborted,
         finish: () => {
           pending.delete(id);
         },
       };
     },
     cancel(id: RequestId) {
-      const token = pending.get(id);
-      if (token) token.cancelled = true;
+      pending
+        .get(id)
+        ?.abort(new DOMException("Request cancelled by client", "AbortError"));
     },
     clear() {
-      for (const token of pending.values()) token.cancelled = true;
+      for (const controller of pending.values())
+        controller.abort(new DOMException("Connection closed", "AbortError"));
       pending.clear();
     },
   };

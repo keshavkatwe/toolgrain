@@ -65,6 +65,57 @@ input validation, output validation, and MCP result conversion. Invoke tools
 through the server's transport or `server.handle()` for the complete behavior.
 The registry is an internal module; there is no separate core package.
 
+### Handler context
+
+Handlers receive a second argument, `ctx` (type `ToolContext`). Handlers that
+only take `input` remain valid.
+
+```ts
+const search = tool({
+  input: z.object({ query: z.string() }),
+  async execute({ query }, ctx) {
+    const response = await fetch(
+      `https://example.com/search?q=${encodeURIComponent(query)}`,
+      {
+        signal: ctx.signal,
+      },
+    );
+    return response.json();
+  },
+});
+```
+
+- `ctx.signal` is an `AbortSignal`. It aborts when a stdio client sends
+  `notifications/cancelled`, when an HTTP caller's signal aborts (for example on
+  disconnect), when the transport closes (including stdin EOF), or when the
+  server closes. Its reason is an `AbortError`: "Request cancelled by client",
+  "Connection closed" for stdio requests, or "Server closed" for `handle()`
+  calls. When an HTTP caller's signal aborts, its own reason is used.
+  A response is never sent after the signal aborts, so whatever the handler
+  returns or throws afterwards is discarded.
+- `ctx.request` holds `id`, `protocolVersion`, an optional `client` with the
+  `info` and `capabilities` the client reported, and `meta`, a copy of the
+  request's `_meta`. Each request gets its own deeply frozen copies. Modern
+  requests carry client details on each request; legacy stdio uses those from
+  `initialize`; legacy HTTP has none, so `client` is absent. Client details are
+  self-reported and unverified, so don't base security decisions on them.
+- If the request is cancelled while its input is still being validated, the
+  handler is not started.
+- Cancellation is cooperative. A handler that ignores `ctx.signal` keeps running
+  until it finishes; its response is still discarded, and on stdio its request
+  ID stays in use until then.
+
+Calling `execute` directly requires a context. Build one with `toolContext()`,
+optionally passing a `signal` or `request` fields. `toolContext()` is the
+supported way to create a context: future versions may add required fields that
+it fills in, so contexts written out by hand can stop compiling.
+
+```ts
+import { toolContext } from "@toolgrain/mcp";
+
+await search.execute({ query: "mcp" }, toolContext());
+```
+
 ### Rich results
 
 Return ordinary strings or JSON values for automatic conversion. Use
@@ -175,10 +226,10 @@ the attachment and reach the optional server `onError` callback. Diagnostics do
 not write to stdout.
 
 Each tool adapter creates one internal registry and reuses it for all executions.
-Cancellation suppresses pending responses, but does not interrupt validation or
-handler execution once registry execution starts. Cancellation during validation
-can therefore still allow the handler to run. Responses already handed to an
-adapter cannot be recalled.
+Cancellation suppresses pending responses and aborts the handler's `ctx.signal`;
+handlers stop early only if they observe it. A request cancelled during
+validation never starts its handler. Responses already handed to an adapter
+cannot be recalled.
 
 Both complete upstream schemas are vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license

@@ -5,10 +5,12 @@ import {
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 import type { JSONRPCResponse, Result } from "@toolgrain/protocol/2025-06-18";
+import type { RequestScope } from "../dispatcher.js";
 import type { Request } from "../protocol/messages.js";
 import { ProtocolError } from "../protocol/responses.js";
 import { hasProtocolVersionMetadata } from "../protocol/version-metadata.js";
 import type { createToolAdapter } from "../tools/adapter.js";
+import { createToolContext } from "../tools/context.js";
 import { callTool, initialize, listTools, ping } from "./handlers.js";
 import { successResponse } from "./responses.js";
 
@@ -32,7 +34,7 @@ export function createLegacyDispatcher(
 ) {
   return async (
     request: Request,
-    isActive: () => boolean,
+    scope: RequestScope,
   ): Promise<JSONRPCResponse | undefined> => {
     let result: Result | undefined;
     switch (request.method) {
@@ -46,7 +48,14 @@ export function createLegacyDispatcher(
         result = listTools(request.params, tools);
         break;
       case "tools/call":
-        result = await callTool(request.params, tools, isActive);
+        result = await callTool(request.params, tools, (params) =>
+          createToolContext(scope.signal, {
+            id: request.id,
+            protocolVersion: LEGACY_PROTOCOL_VERSION,
+            ...(scope.client === undefined ? {} : { client: scope.client }),
+            meta: params._meta ?? {},
+          }),
+        );
         break;
       default:
         throw new ProtocolError(METHOD_NOT_FOUND, "Method not found");

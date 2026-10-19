@@ -45,9 +45,19 @@ export function createServer<const Tools extends ToolMap>(
     options.instructions,
   );
   let closed = false;
-  const connection = createConnection(dispatch, options.onError, () => {
+  const running = new Set<AbortController>();
+  const closeIndependent = () => {
+    if (closed) return;
     closed = true;
-  });
+    for (const controller of running)
+      controller.abort(new DOMException("Server closed", "AbortError"));
+    running.clear();
+  };
+  const connection = createConnection(
+    dispatch,
+    options.onError,
+    closeIndependent,
+  );
   return {
     listen: connection.listen,
     getToolDefinitions: () => tools.list(),
@@ -59,16 +69,25 @@ export function createServer<const Tools extends ToolMap>(
       if (incoming.kind === "error")
         return formatErrorResponse(incoming.response, protocolVersion);
       if (incoming.kind !== "request") return;
-      return executeRequest(
-        dispatch,
-        incoming.request,
-        active,
-        options.onError,
-        protocolVersion,
-      );
+      const controller = new AbortController();
+      const abort = () => controller.abort(signal?.reason);
+      signal?.addEventListener("abort", abort, { once: true });
+      running.add(controller);
+      try {
+        return await executeRequest(
+          dispatch,
+          incoming.request,
+          { signal: controller.signal },
+          options.onError,
+          protocolVersion,
+        );
+      } finally {
+        signal?.removeEventListener("abort", abort);
+        running.delete(controller);
+      }
     },
     close() {
-      closed = true;
+      closeIndependent();
       return connection.close();
     },
   };

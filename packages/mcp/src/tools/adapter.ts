@@ -1,3 +1,4 @@
+import type { ToolContext } from "./context.js";
 import { ToolInputError } from "./errors.js";
 import { createRegistry, type ToolMap } from "./registry.js";
 import {
@@ -19,11 +20,12 @@ export function createToolAdapter(tools: ToolMap) {
     async execute(
       name: string,
       input: unknown,
-      isActive: () => boolean,
+      ctx: ToolContext,
     ): Promise<ToolExecutionResult | undefined> {
+      const isActive = () => !ctx.signal.aborted;
       if (!names.has(name) || !isActive()) return;
       try {
-        const result = await registry.execute(name, input);
+        const result = await registry.execute(name, input, ctx);
         if (!isActive()) return;
         const converted = await resolveToolResult(
           name,
