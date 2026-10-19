@@ -101,9 +101,14 @@ const search = tool({
   self-reported and unverified, so don't base security decisions on them.
 - If the request is cancelled while its input is still being validated, the
   handler is not started.
+- Cancellation is cooperative. A handler that ignores `ctx.signal` keeps running
+  until it finishes; its response is still discarded, and on stdio its request
+  ID stays in use until then.
 
 Calling `execute` directly requires a context. Build one with `toolContext()`,
-optionally passing a `signal` or `request` fields:
+optionally passing a `signal` or `request` fields. `toolContext()` is the
+supported way to create a context: future versions may add required fields that
+it fills in, so contexts written out by hand can stop compiling.
 
 ```ts
 import { toolContext } from "@toolgrain/mcp";
