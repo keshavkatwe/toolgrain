@@ -10,7 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "test": "vitest run",
     "test:examples": "vitest run",
-    "inspect": "bun ../../scripts/inspect-http.mjs http://127.0.0.1:3001/mcp"
+    "inspect": "toolgrain-repo inspect-http http://127.0.0.1:3001/mcp"
   },
   "dependencies": {
     "@toolgrain/mcp": "workspace:*",
@@ -23,6 +23,7 @@
     "@types/node": "24.10.0",
     "vitest": "5.0.4",
     "@types/express": "5.0.6",
-    "tsx": "4.22.0"
+    "tsx": "4.22.0",
+    "@toolgrain/repo-tools": "workspace:*"
   }
 }

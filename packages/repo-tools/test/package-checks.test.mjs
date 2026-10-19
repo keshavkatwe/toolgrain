@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
-  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -12,9 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { semver } from "bun";
-import { auditFindings, dependencyGraph, parseAudit } from "./audit-graph.mjs";
-import { checkSize } from "./package-size.mjs";
+import { parseAudit } from "../src/audit.mjs";
+import { checkSize } from "../src/package-size.mjs";
+
+const repo = new URL("../../../", import.meta.url);
+const cli = new URL("../src/cli.mjs", import.meta.url).pathname;
 
 const advisory = {
   id: 1,
@@ -28,76 +29,6 @@ const entry = (name, version, metadata = {}) => [
   "",
   metadata,
 ];
-
-test("attributes nested versions, workspace runtime dependencies and direct dev tooling separately", () => {
-  const lock = {
-    workspaces: {
-      "": { name: "root", devDependencies: { tooling: "1.0.0" } },
-      "packages/library": {
-        name: "@test/core",
-        dependencies: { parent: "1.0.0", "@test/protocol": "workspace:*" },
-        devDependencies: { tooling: "1.0.0" },
-      },
-      "packages/protocol": {
-        name: "@test/protocol",
-        dependencies: { safe: "2.0.0" },
-        devDependencies: { unrelated: "1.0.0" },
-      },
-    },
-    packages: {
-      parent: entry("parent", "1.0.0", { dependencies: { affected: "1.0.0" } }),
-      "parent/affected": entry("affected", "1.0.0"),
-      affected: entry("affected", "2.0.0"),
-      safe: entry("safe", "2.0.0"),
-      tooling: entry("tooling", "1.0.0", {
-        dependencies: { affected: "2.0.0" },
-      }),
-      unrelated: entry("unrelated", "1.0.0"),
-      "@test/protocol": entry("@test/protocol", "workspace:packages/protocol"),
-    },
-  };
-  const runtime = dependencyGraph(lock, "packages/library");
-  assert.deepEqual([...runtime.get("affected")], ["1.0.0"]);
-  assert.ok(runtime.has("safe"));
-  assert.ok(!runtime.has("tooling"));
-  const all = dependencyGraph(lock, "packages/library", true);
-  assert.deepEqual([...all.get("affected")], ["1.0.0", "2.0.0"]);
-  assert.ok(!all.has("unrelated"));
-  assert.deepEqual(
-    auditFindings(all, { affected: [advisory] }, semver.satisfies)[0].versions,
-    ["1.0.0"],
-  );
-  assert.equal(
-    auditFindings(
-      dependencyGraph(lock, ""),
-      { affected: [advisory] },
-      semver.satisfies,
-    ).length,
-    0,
-  );
-});
-
-test("handles scoped hoisting, cycles and absent optional peers without hiding unresolved dependencies", () => {
-  const lock = {
-    workspaces: { "": { name: "root", dependencies: { "@scope/a": "1.0.0" } } },
-    packages: {
-      "@scope/a": entry("@scope/a", "1.0.0", {
-        dependencies: { b: "1.0.0" },
-        peerDependencies: { missing: "*" },
-        optionalPeers: ["missing"],
-      }),
-      "@scope/a/b": entry("b", "1.0.0", {
-        dependencies: { "@scope/a": "1.0.0" },
-      }),
-    },
-  };
-  assert.equal(dependencyGraph(lock, "").size, 2);
-  delete lock.packages["@scope/a/b"];
-  assert.throws(
-    () => dependencyGraph(lock, ""),
-    /Unresolved locked dependency/,
-  );
-});
 
 test("rejects unavailable, malformed and ambiguous audit responses", () => {
   assert.deepEqual(parseAudit("{}", 0), {});
@@ -152,24 +83,6 @@ test("enforces both size budgets, expected artifacts and package file boundaries
     "passed",
   );
   assert.throws(() => checkSize(files, 20, {}), /Invalid size budget/);
-  const danglingExports = checkSize(files, 20, budget, {
-    exports: {
-      "./missing": {
-        types: "./dist/missing.d.ts",
-        import: "./dist/missing.js",
-      },
-    },
-  });
-  assert.ok(
-    danglingExports.errors.includes(
-      "Missing required package file: dist/missing.js",
-    ),
-  );
-  assert.ok(
-    danglingExports.errors.includes(
-      "Missing required package file: dist/missing.d.ts",
-    ),
-  );
 });
 
 function fixture(run) {
@@ -183,6 +96,10 @@ function fixture(run) {
       { mode },
     );
   };
+  write(
+    "package-size.config.json",
+    readFileSync(new URL("package-size.config.json", repo), "utf8"),
+  );
   try {
     run({ root, write });
   } finally {
@@ -201,11 +118,10 @@ test("real packing produces a report and rejects unexpected contents without pub
     write("dist/index.js", "export {};\n");
     write("dist/index.d.ts", "export {};\n");
     write("secret.txt", "unexpected package content");
-    const result = spawnSync(
-      process.execPath,
-      [new URL("./package-size.mjs", import.meta.url).pathname],
-      { cwd: root, encoding: "utf8" },
-    );
+    const result = spawnSync(process.execPath, [cli, "size"], {
+      cwd: root,
+      encoding: "utf8",
+    });
     assert.equal(result.status, 1, result.stderr);
     const report = JSON.parse(
       readFileSync(join(root, "reports/size.json"), "utf8"),
@@ -215,7 +131,7 @@ test("real packing produces a report and rejects unexpected contents without pub
   });
 });
 
-test("packed protocol archives must retain exports, internal modules and both revisions' vendor artifacts", () => {
+test("packed protocol archives must retain internal modules and both revisions' vendor artifacts", () => {
   fixture(({ root, write }) => {
     const manifest = {
       name: "@toolgrain/protocol",
@@ -245,11 +161,11 @@ test("packed protocol archives must retain exports, internal modules and both re
     for (const path of files) write(path, "fixture\n");
     const execute = (included, expectedExit) => {
       write("package.json", { ...manifest, files: included });
-      const result = spawnSync(
-        process.execPath,
-        [new URL("./package-size.mjs", import.meta.url).pathname],
-        { cwd: root, encoding: "utf8", timeout: 60_000 },
-      );
+      const result = spawnSync(process.execPath, [cli, "size"], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 60_000,
+      });
       assert.equal(result.status, expectedExit, result.stderr);
       return JSON.parse(readFileSync(join(root, "reports/size.json"), "utf8"));
     };
@@ -284,7 +200,6 @@ test("packed protocol archives must retain exports, internal modules and both re
 });
 
 test("library size reports still run after an unrelated application build fails", () => {
-  const repo = new URL("../", import.meta.url);
   const workflow = readFileSync(
     new URL(".github/workflows/ci.yml", repo),
     "utf8",
@@ -310,14 +225,11 @@ test("library size reports still run after an unrelated application build fails"
     });
     write("turbo.json", readFileSync(new URL("turbo.json", repo), "utf8"));
     write(".gitignore", "node_modules/\ndist/\n.turbo/\nreports/\n");
-    write(
-      "package-size.config.json",
-      readFileSync(new URL("package-size.config.json", repo), "utf8"),
-    );
-    write(
-      "scripts/package-size.mjs",
-      readFileSync(new URL("scripts/package-size.mjs", repo), "utf8"),
-    );
+    for (const name of ["cli.mjs", "package-size.mjs"])
+      write(
+        `tools/${name}`,
+        readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8"),
+      );
     const library = {
       name: "@toolgrain/mcp",
       version: "0.0.0",
@@ -325,7 +237,7 @@ test("library size reports still run after an unrelated application build fails"
       files: ["dist"],
       scripts: {
         build: "node build.mjs",
-        "test:size": "bun ../../scripts/package-size.mjs",
+        "test:size": "bun ../../tools/cli.mjs size",
       },
     };
     const app = {
@@ -376,50 +288,29 @@ test("library size reports still run after an unrelated application build fails"
   });
 });
 
-test("audit command writes per-workspace results and fails on high findings or service errors", () => {
+test("audit command writes the lockfile result and fails on high findings or scanner errors", () => {
   fixture(({ root, write }) => {
-    const lock = {
-      workspaces: {
-        "": { name: "fixture" },
-        "packages/library": {
-          name: "@test/core",
-          devDependencies: { affected: "1.0.0" },
-        },
-      },
-      packages: { affected: entry("affected", "1.0.0") },
-    };
-    write("bun.lock", lock);
-    write("package.json", { name: "fixture", workspaces: ["packages/*"] });
-    write("packages/library/package.json", { name: "@test/core" });
-    write("bin/bun", "#!/bin/sh\ncat audit-response.json\nexit 1\n", 0o755);
     const execute = () =>
-      spawnSync(
-        process.execPath,
-        [new URL("./dependency-audit.mjs", import.meta.url).pathname],
-        {
-          cwd: root,
-          encoding: "utf8",
-          env: {
-            ...process.env,
-            PATH: `${join(root, "bin")}:${process.env.PATH}`,
-          },
+      spawnSync(process.execPath, [cli, "audit"], {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${join(root, "bin")}:${process.env.PATH}`,
         },
-      );
+      });
     const read = () =>
-      JSON.parse(
-        readFileSync(join(root, "packages/library/reports/audit.json"), "utf8"),
-      );
+      JSON.parse(readFileSync(join(root, "reports/audit.json"), "utf8"));
+    write("bin/bun", "#!/bin/sh\ncat audit-response.json\nexit 1\n", 0o755);
     write("audit-response.json", {
       affected: [{ ...advisory, severity: "moderate" }],
     });
     assert.equal(execute().status, 0);
     assert.equal(read().status, "passed");
-    assert.equal(read().runtime.length, 0);
-    assert.equal(read().findings.length, 1);
+    assert.equal(read().advisories.affected.length, 1);
     write("audit-response.json", { affected: [advisory] });
     assert.equal(execute().status, 1);
     assert.equal(read().status, "failed");
-    write("audit-response.json", "");
     write(
       "bin/bun",
       "#!/bin/sh\necho 'ConnectionRefused: audit request failed' >&2\nexit 1\n",
@@ -430,12 +321,6 @@ test("audit command writes per-workspace results and fails on high findings or s
     assert.equal(read().status, "error");
     assert.match(failed.stderr, /ConnectionRefused: audit request failed/);
     assert.match(read().error, /ConnectionRefused: audit request failed/);
-    assert.match(
-      JSON.parse(
-        readFileSync(join(root, "reports/audit-lockfile.json"), "utf8"),
-      ).error,
-      /ConnectionRefused/,
-    );
     write("audit-response.json", '{"invalid":');
     write(
       "bin/bun",
@@ -454,96 +339,5 @@ test("audit command writes per-workspace results and fails on high findings or s
     );
     assert.equal(execute().status, 1);
     assert.match(read().error, /Scanner terminated unexpectedly/);
-  });
-});
-
-test("audit initialization failures replace stale reports for every configured workspace", () => {
-  fixture(({ root, write }) => {
-    const lock = {
-      workspaces: {
-        "": { name: "fixture" },
-        "packages/library": { name: "@test/core" },
-        "apps/example": { name: "@test/example" },
-      },
-      packages: {},
-    };
-    write("package.json", {
-      name: "fixture",
-      workspaces: ["packages/*", "apps/*"],
-    });
-    write("packages/library/package.json", { name: "@test/core" });
-    write("apps/example/package.json", { name: "@test/example" });
-    write(
-      "bin/bun",
-      "#!/bin/sh\nprintf '.' >> audit-called.txt\nprintf '{}'\n",
-      0o755,
-    );
-    const execute = () =>
-      spawnSync(
-        process.execPath,
-        [new URL("./dependency-audit.mjs", import.meta.url).pathname],
-        {
-          cwd: root,
-          encoding: "utf8",
-          env: {
-            ...process.env,
-            PATH: `${join(root, "bin")}:${process.env.PATH}`,
-          },
-        },
-      );
-    const read = (path) => JSON.parse(readFileSync(join(root, path), "utf8"));
-    for (const failure of [
-      "malformed",
-      "missing",
-      "unreadable",
-      "invalid-shape",
-      "missing-workspace",
-    ]) {
-      rmSync(join(root, "bun.lock"), { recursive: true, force: true });
-      write("bun.lock", lock);
-      const success = execute();
-      assert.equal(success.status, 0, success.stderr);
-      const calls = readFileSync(join(root, "audit-called.txt"), "utf8");
-      const paths = [
-        "reports/audit.json",
-        "packages/library/reports/audit.json",
-        "apps/example/reports/audit.json",
-        "reports/audit-lockfile.json",
-      ];
-      for (const path of paths)
-        write(path, { ...read(path), checkedAt: "stale" });
-      if (failure === "malformed") write("bun.lock", "{");
-      if (failure === "missing") rmSync(join(root, "bun.lock"));
-      if (failure === "unreadable") {
-        rmSync(join(root, "bun.lock"));
-        // A directory gives a portable read failure, even under a privileged test user.
-        mkdirSync(join(root, "bun.lock"));
-      }
-      if (failure === "invalid-shape") write("bun.lock", { workspaces: null });
-      if (failure === "missing-workspace")
-        write("bun.lock", {
-          workspaces: { "": { name: "fixture" } },
-          packages: {},
-        });
-      const result = execute();
-      assert.equal(result.status, 1, failure);
-      assert.match(result.stderr, /Dependency audit failed:/);
-      assert.equal(
-        readFileSync(join(root, "audit-called.txt"), "utf8"),
-        calls,
-        "Initialization failure must not invoke the scanner",
-      );
-      for (const path of paths) {
-        const report = read(path);
-        assert.equal(report.status, "error", `${failure}: ${path}`);
-        assert.notEqual(report.checkedAt, "stale");
-        assert.ok(report.error.length > 0);
-      }
-      assert.equal(
-        existsSync(join(root, "reports/audit-advisories.json")),
-        false,
-        "Previous raw advisory payload must not survive a failed initialization",
-      );
-    }
   });
 });

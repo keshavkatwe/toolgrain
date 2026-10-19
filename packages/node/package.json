@@ -16,16 +16,17 @@
     "build": "tsc -p tsconfig.build.json",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json",
+    "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json && toolgrain-repo exports",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "test:coverage": "vitest run --coverage",
-    "test:size": "bun ../../scripts/package-size.mjs"
+    "test:size": "toolgrain-repo size"
   },
   "devDependencies": {
     "typescript": "7.0.2",
     "vitest": "5.0.4",
     "@types/node": "24.10.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@toolgrain/repo-tools": "workspace:*"
   },
   "dependencies": {
     "@toolgrain/mcp": "workspace:*",

@@ -20,14 +20,15 @@
     "build": "tsc -p tsconfig.build.json && bun scripts/copy-vendor.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json",
+    "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json && toolgrain-repo exports",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "test:coverage": "vitest run",
-    "test:size": "bun ../../scripts/package-size.mjs"
+    "test:size": "toolgrain-repo size"
   },
   "devDependencies": {
     "typescript": "7.0.2",
     "vitest": "5.0.4",
-    "@types/node": "24.10.0"
+    "@types/node": "24.10.0",
+    "@toolgrain/repo-tools": "workspace:*"
   }
 }

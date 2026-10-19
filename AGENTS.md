@@ -148,7 +148,7 @@ over stdio and plain Node HTTP with Inspector 2.11.0 CLI and Codex CLI/app-serve
 0.163.0-alpha.10.2, using Node 24.20.0. Codex works with no modern feature flag or
 stdio marker by negotiating `2025-06-18`; explicit modern and mixed-client cases
 also pass. Inspector checks both eras and automatic discovery. See
-`docs/compatibility.md` and the manual `node scripts/verify-inspector.mjs` check.
+`docs/compatibility.md` and the manual `bun run verify:inspector` check (Node).
 User configuration was not changed. No commits, publication, or other roadmap
 features are authorized by this implementation. Remaining roadmap items are
 proposals in `ROADMAP.md` without timelines or implementation commitments.
@@ -168,24 +168,42 @@ or deployment are authorized by implementation alone.
 - Library and stdio dev tasks watch src with tsc and write JavaScript/declarations to dist. Framework/HTTP examples use native development commands after dependency builds; each HTTP dev server has a distinct port. Next build output is `.next`, not `dist`.
 - All public package exports point to dist. Do not add a development/source export condition.
 - Stdio Inspector is a separate example script, launching the compiled server with Bun in modern protocol mode. Reconnect after successful rebuilds to use updated compiled modules.
-- Each HTTP example has an `inspect` script connecting to its running development endpoint through the shared `scripts/inspect-http.mjs` launcher. The HTTP launcher uses Bunx outside the workspace, pins Inspector to 2.11.0 in modern HTTP mode, and accepts an optional URL argument to override the endpoint. Start the application separately.
+- Each HTTP example has an `inspect` script connecting to its running development endpoint through the shared `toolgrain-repo inspect-http` launcher. The HTTP launcher uses Bunx outside the workspace, pins Inspector to 2.11.0 in modern HTTP mode, and accepts an optional URL argument to override the endpoint. Start the application separately.
 - The example has no hot-reload global server state. Keep build output separate from MCP stdout.
 
 ## Package verification
 
 Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.
 
-The MCP package verification also runs `publint --strict` and
-`scripts/check-package-types.mjs`, which packs with Bun (npm pack rejects the Bun
-`devEngines`) and runs `@arethetypeswrong/cli` with the `esm-only` profile.
-CommonJS and node10 resolution are intentionally unsupported.
+Each library's verification also runs `toolgrain-repo exports`: `publint --strict`,
+then `@arethetypeswrong/cli` with the `esm-only` profile against a Bun-packed
+archive (npm pack rejects the Bun `devEngines`). CommonJS and node10 resolution
+are intentionally unsupported.
+
+## Repository tooling
+
+- `packages/repo-tools` (`@toolgrain/repo-tools`, private) owns repository
+  verification, reporting, and inspection. Its `toolgrain-repo` command provides
+  `size`, `exports`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
+  `@toolgrain/repo-tools/http-example` is the shared example smoke test.
+- Libraries and HTTP examples declare it as a development dependency. The root
+  does not, because a root dependency on an internal package invalidates every
+  cached task; root scripts and CI invoke `packages/repo-tools/src/cli.mjs` by path.
+- Commands load on demand. `ci-report` runs under Node without installed
+  dependencies, so the summary still renders after a failed install;
+  `verify-inspector` runs under Node because it verifies the Node runtime.
+- Cached `test`, `test:examples`, and `test:package` tasks list
+  `$TURBO_ROOT$/packages/repo-tools/src/**` as inputs, so tooling changes rerun them.
+- `bun run test:ci` runs the tooling's Bun tests.
+- Package-local helpers (`packages/protocol/scripts/copy-vendor.ts` and the stdio
+  example's Inspector launcher) stay with their packages.
 
 ## Confirmed MCP test tooling decisions
 
 - No additional runtime dependencies. JSON-RPC, write-queue, and JSON-value
   libraries were reviewed and rejected; the hand-written code encodes MCP rules.
-- Dev-only tools, pinned exactly in `packages/mcp`: `fast-check`, `ajv`,
-  `publint`, and `@arethetypeswrong/cli`.
+- Dev-only tools, pinned exactly: `fast-check` and `ajv` in `packages/mcp`;
+  `publint` and `@arethetypeswrong/cli` in `packages/repo-tools`.
 - `test/properties.test.ts` covers JSON value acceptance/rejection, result text
   conversion, and envelope decoding with fast-check. Zod record parsing drops own
   `__proto__` keys without changing prototypes; a dedicated test records this.
@@ -204,35 +222,36 @@ of plain tests. Vitest V8 includes all library source files and enforces each of
 statements, branches, functions, and lines: 95% per package for MCP, Node, and HTTP.
 Protocol integrity runs without coverage instrumentation. Example tests run separately through
 root `bun run test:examples`, without coverage instrumentation or coverage floors. CI runs
-`test:coverage` and `test:examples` together and retains example reports. CI retains coverage reports for 14 days.
+`test:coverage` and `test:examples` together. CI retains coverage reports for 14 days.
 
-CI produces workspace JSON test reports under `reports/`, restores them from
-Turbo cache, and publishes a combined Actions summary and same-repository PR
-comment. The comment job has no checkout and does not execute repository code.
+Test results use Vitest's default GitHub Actions reporter: failure annotations
+and a job-summary section per workspace, named by each config's `test.name`.
+Turbo passes `GITHUB_ACTIONS`, `GITHUB_REPOSITORY`, `GITHUB_SHA`,
+`GITHUB_STEP_SUMMARY`, and `GITHUB_WORKSPACE` through without hashing them. A
+cache hit replays annotations from logs but does not rewrite the job summary.
+CI publishes coverage, sizes, and advisories in a combined Actions summary and a
+same-repository PR comment, updated in place on each push. The comment job has
+no checkout and does not execute repository code.
 
 ## Package size and dependency auditing
 
 - `bun run test:size` builds and packs the four library packages without lifecycle
   scripts or publication. It enforces packed/unpacked byte budgets from
-  `package-size.config.json`, all declared export targets, every compiled module
-  and declaration in `dist`, explicit required protocol artifacts, and package-file
-  boundaries. Reports include the complete inventory under each package's
+  `package-size.config.json` (found by walking up from the package), every compiled
+  module and declaration in `dist`, explicit required protocol artifacts, and
+  package-file boundaries. Declared export targets are checked by publint and attw. Reports include the complete inventory under each package's
   `reports/size.json`; sizes exclude dependencies and retain required vendor files.
 - Initial size budgets allow approximately 20% growth, rounded up to KiB.
   Intentional growth requires reviewing the relevant budget. Size checks are uncached
   and run after successful installation even if an unrelated application build fails.
-- `bun run test:audit` audits the complete Bun lockfile once and writes per-workspace
-  `reports/audit.json`, separating runtime and direct-workspace development scopes.
-  Root tooling and examples are included. High/critical advisories and scan errors
-  fail CI; low/moderate findings are reported. Scanner failures retain stderr in
-  reports and logs. It does not update dependencies.
-- Audit initialization discovers report destinations from `package.json` before
-  loading `bun.lock`. Lockfile read/parse/metadata failures replace stale reports
-  for root, libraries, and examples with errors and remove prior raw advisories.
-- Auditing runs outside Turbo caching. Test tasks cache only `reports/tests.json`
-  alongside coverage, preventing stale audit reports from being restored.
+- `bun run test:audit` runs `bun audit --json` once for the complete lockfile and
+  writes root `reports/audit.json`. Per-workspace attribution was removed in favor
+  of this lockfile-wide gate. High/critical advisories and scan errors fail CI;
+  low/moderate findings are reported. Scanner failures retain stderr in reports
+  and logs. It does not update dependencies.
+- Auditing runs outside Turbo caching, so stale audit reports are never restored.
 - CI includes sizes and advisory findings in the combined summary/PR comment and
   retains JSON reports in the existing artifact for 14 days. `bun run test:ci`
-  verifies the checking and reporting scripts, running the renderer under Node.
+  verifies the checking and reporting commands, running the renderer under Node.
   Malformed JSON/schema reports fail rendering after the healthy results and
   diagnostics have been written to the combined report and Actions summary.
