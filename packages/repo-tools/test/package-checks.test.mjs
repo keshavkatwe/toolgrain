@@ -83,6 +83,23 @@ test("enforces both size budgets, expected artifacts and package file boundaries
     "passed",
   );
   assert.throws(() => checkSize(files, 20, {}), /Invalid size budget/);
+  const compiled = files.map((file) => file.path);
+  assert.equal(
+    checkSize(files, 20, budget, compiled, ["src/index.ts"]).status,
+    "passed",
+  );
+  assert.deepEqual(
+    checkSize(
+      [...files, { path: "dist/removed.js", bytes: 0 }],
+      20,
+      budget,
+      [...compiled, "dist/removed.js"],
+      ["src/index.ts"],
+    ).errors,
+    [
+      "Stale build output without source: dist/removed.js; run bun run build --force",
+    ],
+  );
 });
 
 function fixture(run) {

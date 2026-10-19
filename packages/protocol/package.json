@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && bun scripts/copy-vendor.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && bun scripts/copy-vendor.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:package": "node smoke/runtime.mjs && tsc -p smoke/tsconfig.json && toolgrain-repo exports",

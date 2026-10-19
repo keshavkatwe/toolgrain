@@ -12,7 +12,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Archive } from "bun";
 
-export function checkSize(files, packedBytes, budget, compiledFiles = []) {
+export function checkSize(
+  files,
+  packedBytes,
+  budget,
+  compiledFiles = [],
+  sourceFiles = undefined,
+) {
   for (const key of ["packedBytes", "unpackedBytes"]) {
     if (!Number.isSafeInteger(budget?.[key]) || budget[key] <= 0)
       throw new Error(`Invalid size budget: ${key}`);
@@ -37,6 +43,20 @@ export function checkSize(files, packedBytes, budget, compiledFiles = []) {
       ...(budget.requiredFiles ?? []),
     ]),
   ].sort();
+  // Turbo restores cached outputs without removing extra files, so a compiled
+  // module can outlive its source. Libraries compile src/**/*.ts into dist.
+  if (sourceFiles) {
+    const sources = new Set(sourceFiles);
+    for (const path of compiledFiles) {
+      const source = path
+        .replace(/^dist\//, "src/")
+        .replace(/\.(?:d\.ts|js)$/, ".ts");
+      if (!sources.has(source))
+        errors.push(
+          `Stale build output without source: ${path}; run bun run build --force`,
+        );
+    }
+  }
   const inventory = new Set(files.map((file) => file.path));
   for (const path of requiredFiles) {
     if (!inventory.has(path))
@@ -110,6 +130,11 @@ export async function main() {
     const compiledFiles = readdirSync("dist", { recursive: true })
       .map((path) => `dist/${path.replaceAll("\\", "/")}`)
       .filter((path) => /\.(?:js|d\.ts)$/.test(path));
+    const sourceFiles = existsSync("src")
+      ? readdirSync("src", { recursive: true }).map(
+          (path) => `src/${path.replaceAll("\\", "/")}`,
+        )
+      : undefined;
     report = {
       name: manifest.name,
       ...checkSize(
@@ -117,6 +142,7 @@ export async function main() {
         bytes.byteLength,
         budgets[manifest.name],
         compiledFiles,
+        sourceFiles,
       ),
     };
   } catch (error) {

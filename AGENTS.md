@@ -239,7 +239,10 @@ no checkout and does not execute repository code.
   scripts or publication. It enforces packed/unpacked byte budgets from
   `package-size.config.json` (found by walking up from the package), every compiled
   module and declaration in `dist`, explicit required protocol artifacts, and
-  package-file boundaries. Declared export targets are checked by publint and attw. Reports include the complete inventory under each package's
+  package-file boundaries. Declared export targets are checked by publint and attw.
+- Library builds remove `dist` before compiling. Turbo cache restores do not
+  remove extra files, so the size check also fails on any compiled `dist` module
+  without a matching `src/**/*.ts` source; rerun `bun run build --force`. Reports include the complete inventory under each package's
   `reports/size.json`; sizes exclude dependencies and retain required vendor files.
 - Initial size budgets allow approximately 20% growth, rounded up to KiB.
   Intentional growth requires reviewing the relevant budget. Size checks are uncached
