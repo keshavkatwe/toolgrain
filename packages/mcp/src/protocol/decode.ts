@@ -30,8 +30,8 @@ export function decode(message: unknown): Incoming {
       typeof message === "object" &&
       message !== null &&
       !Array.isArray(message) &&
-      "method" in message &&
-      !Object.hasOwn(message, "id")
+      (("method" in message && !Object.hasOwn(message, "id")) ||
+        isResponse(message))
     )
       return { kind: "ignore" };
     const id =
@@ -55,4 +55,15 @@ export function decode(message: unknown): Incoming {
     return { kind: "ignore" };
   }
   return { kind: "notification", notification: parsed.data };
+}
+
+/** Servers send no requests, so a client response has nothing to answer. */
+function isResponse(message: object): boolean {
+  return (
+    "jsonrpc" in message &&
+    message.jsonrpc === "2.0" &&
+    !Object.hasOwn(message, "method") &&
+    Object.hasOwn(message, "id") &&
+    Object.hasOwn(message, "result") !== Object.hasOwn(message, "error")
+  );
 }

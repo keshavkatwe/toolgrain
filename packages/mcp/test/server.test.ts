@@ -217,10 +217,16 @@ it("accepts and preserves unknown metadata and capability extensions", async () 
   ).toMatchObject({ tools: [] });
 });
 
-it("ignores notifications and reports adapter parse failures without an ID", async () => {
+it("ignores notifications, client responses, and reports adapter parse failures without an ID", async () => {
   const { transport } = await setup();
   transport.receive({ jsonrpc: "2.0", method: "tools/call", params: {} });
   transport.receive({ jsonrpc: "1.0", method: "ignored" });
+  transport.receive({ jsonrpc: "2.0", id: 1, result: {} });
+  transport.receive({
+    jsonrpc: "2.0",
+    id: 2,
+    error: { code: -32601, message: "Method not found" },
+  });
   await settle();
   expect(transport.messages).toEqual([]);
   transport.callbacks?.onParseError(new SyntaxError("bad JSON"));

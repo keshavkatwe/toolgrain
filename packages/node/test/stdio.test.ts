@@ -48,6 +48,20 @@ it("reports malformed JSON and UTF-8, then resumes on the next line", async () =
   await transport.close();
 });
 
+it("skips whitespace-only lines, including at end of input", async () => {
+  const input = new PassThrough();
+  const transport = stdio({ input, output: new PassThrough() });
+  const received = callbacks();
+  await transport.start(received);
+  input.write('\n \t\r\n{"valid":true}\n\r\n  ');
+  input.end();
+  await vi.waitFor(() => expect(received.onClose).toHaveBeenCalledOnce(), {
+    interval: 1,
+  });
+  expect(received.onParseError).not.toHaveBeenCalled();
+  expect(received.onMessage).toHaveBeenCalledExactlyOnceWith({ valid: true });
+});
+
 it("caps incoming bytes and terminates without processing later lines", async () => {
   const input = new PassThrough();
   const transport = stdio({
