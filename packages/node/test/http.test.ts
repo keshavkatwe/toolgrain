@@ -3,8 +3,7 @@ import {
   request as httpRequest,
 } from "node:http";
 import type { AddressInfo } from "node:net";
-import { tool } from "@toolgrain/core";
-import { createServer } from "@toolgrain/mcp";
+import { createServer, tool } from "@toolgrain/mcp";
 import { PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { expect, it } from "vitest";
 import { z } from "zod";

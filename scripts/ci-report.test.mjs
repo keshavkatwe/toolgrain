@@ -23,7 +23,7 @@ function fixture(run) {
       typeof data === "string" ? data : JSON.stringify(data),
     );
   };
-  for (const name of ["core", "mcp", "node", "http"]) {
+  for (const name of ["mcp", "node", "http"]) {
     write(
       `packages/${name}/vitest.config.ts`,
       "statements: 95, branches: 95, functions: 95, lines: 95",
@@ -98,7 +98,7 @@ test("marks missing reports unavailable rather than implying a pass", () => {
     assert.match(markdown, /Report unavailable; check build\/install logs/);
     assert.match(
       markdown,
-      /\| packages\/core \| — \| — \| — \| — \| 95 \/ 95 \/ 95 \/ 95% \| Unavailable/,
+      /\| packages\/node \| — \| — \| — \| — \| 95 \/ 95 \/ 95 \/ 95% \| Unavailable/,
     );
     assert.doesNotMatch(markdown, /\| Pass \|/);
   });
@@ -125,7 +125,7 @@ test("includes suite startup errors even when no assertions ran", () => {
 
 test("reports size budgets, runtime/dev advisories and scan errors without hiding failures", () => {
   fixture(({ root, write }) => {
-    write("packages/core/reports/size.json", {
+    write("packages/node/reports/size.json", {
       packedBytes: 110,
       unpackedBytes: 200,
       fileCount: 9,
@@ -145,7 +145,7 @@ test("reports size budgets, runtime/dev advisories and scan errors without hidin
       status: "failed",
       advisories: { dependency: [finding] },
     });
-    write("packages/core/reports/audit.json", {
+    write("packages/node/reports/audit.json", {
       status: "failed",
       runtime: [finding],
       findings: [finding, { ...finding, id: 2, severity: "low" }],
@@ -160,7 +160,7 @@ test("reports size budgets, runtime/dev advisories and scan errors without hidin
     assert.match(markdown, /Complete lockfile: \*\*failed\*\*/);
     assert.match(
       markdown,
-      /packages\/core \| 1 \| 1 \| 1 \| 0 \| 1 \| 0 \| failed/,
+      /packages\/node \| 1 \| 1 \| 1 \| 0 \| 1 \| 0 \| failed/,
     );
     assert.match(markdown, /Unsafe &lt;input&gt;/);
     assert.match(markdown, /Advisory service unavailable/);
@@ -169,10 +169,10 @@ test("reports size budgets, runtime/dev advisories and scan errors without hidin
 
 test("malformed report files produce diagnostics without losing healthy results or the Actions summary", () => {
   const corruptions = [
-    ["packages/core/reports/size.json", '{"status":'],
-    ["packages/core/reports/size.json", {}],
+    ["packages/node/reports/size.json", '{"status":'],
+    ["packages/node/reports/size.json", {}],
     [
-      "packages/core/reports/tests.json",
+      "packages/node/reports/tests.json",
       {
         numPassedTests: 0,
         numFailedTests: 0,
@@ -182,11 +182,11 @@ test("malformed report files produce diagnostics without losing healthy results 
       },
     ],
     [
-      "packages/core/coverage/coverage-summary.json",
+      "packages/node/coverage/coverage-summary.json",
       { total: { statements: { pct: "bad" } } },
     ],
     [
-      "packages/core/reports/audit.json",
+      "packages/node/reports/audit.json",
       { status: "passed", runtime: [], findings: [{}] },
     ],
     ["reports/audit-lockfile.json", { status: "passed", advisories: null }],

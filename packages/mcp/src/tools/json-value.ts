@@ -1,7 +1,31 @@
 import type { JSONValue } from "@toolgrain/protocol";
 
+export type JsonCompatible<Value> = Value extends
+  | string
+  | number
+  | boolean
+  | null
+  ? Value
+  : Value extends (...args: never[]) => unknown
+    ? never
+    : Value extends readonly (infer Item)[]
+      ? readonly JsonCompatible<Item>[]
+      : Value extends object
+        ? { [Key in keyof Value]: JsonCompatible<Value[Key]> }
+        : never;
+
+export type IsJsonCompatible<Value> = [Value] extends [JsonCompatible<Value>]
+  ? true
+  : false;
+
+export interface AssertJSONOptions {
+  /** Treat undefined object properties as absent, matching JSON serialization. */
+  readonly omitUndefined?: boolean;
+}
+
 export function assertJSON(
   value: unknown,
+  options: AssertJSONOptions = {},
   ancestors = new Set<object>(),
 ): asserts value is JSONValue {
   if (value === null || typeof value === "string" || typeof value === "boolean")
@@ -34,7 +58,13 @@ export function assertJSON(
         (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length)
       )
         throw new Error("Tool output contains a non-JSON array property");
-      assertJSON(descriptor.value, ancestors);
+      if (
+        options.omitUndefined &&
+        !Array.isArray(value) &&
+        descriptor.value === undefined
+      )
+        continue;
+      assertJSON(descriptor.value, options, ancestors);
     }
     if (Array.isArray(value) && keys.length !== value.length + 1)
       throw new Error("Tool output contains a sparse array");

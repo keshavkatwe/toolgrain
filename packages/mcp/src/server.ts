@@ -1,4 +1,3 @@
-import type { ToolMap } from "@toolgrain/core";
 import type {
   ProtocolResponse,
   Tool as ProtocolTool,
@@ -8,7 +7,8 @@ import { createConnection } from "./connection.js";
 import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
-import { createToolAdapter } from "./tools.js";
+import { createToolAdapter } from "./tools/adapter.js";
+import type { ToolMap } from "./tools/registry.js";
 import type { Transport } from "./transport.js";
 
 export interface ServerOptions<Tools extends ToolMap = ToolMap> {

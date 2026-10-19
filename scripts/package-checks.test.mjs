@@ -33,7 +33,7 @@ test("attributes nested versions, workspace runtime dependencies and direct dev 
   const lock = {
     workspaces: {
       "": { name: "root", devDependencies: { tooling: "1.0.0" } },
-      "packages/core": {
+      "packages/library": {
         name: "@test/core",
         dependencies: { parent: "1.0.0", "@test/protocol": "workspace:*" },
         devDependencies: { tooling: "1.0.0" },
@@ -56,11 +56,11 @@ test("attributes nested versions, workspace runtime dependencies and direct dev 
       "@test/protocol": entry("@test/protocol", "workspace:packages/protocol"),
     },
   };
-  const runtime = dependencyGraph(lock, "packages/core");
+  const runtime = dependencyGraph(lock, "packages/library");
   assert.deepEqual([...runtime.get("affected")], ["1.0.0"]);
   assert.ok(runtime.has("safe"));
   assert.ok(!runtime.has("tooling"));
-  const all = dependencyGraph(lock, "packages/core", true);
+  const all = dependencyGraph(lock, "packages/library", true);
   assert.deepEqual([...all.get("affected")], ["1.0.0", "2.0.0"]);
   assert.ok(!all.has("unrelated"));
   assert.deepEqual(
@@ -193,7 +193,7 @@ function fixture(run) {
 test("real packing produces a report and rejects unexpected contents without publishing", () => {
   fixture(({ root, write }) => {
     write("package.json", {
-      name: "@toolgrain/core",
+      name: "@toolgrain/mcp",
       version: "0.0.0",
       private: true,
       files: ["dist", "secret.txt"],
@@ -319,7 +319,7 @@ test("library size reports still run after an unrelated application build fails"
       readFileSync(new URL("scripts/package-size.mjs", repo), "utf8"),
     );
     const library = {
-      name: "@toolgrain/core",
+      name: "@toolgrain/mcp",
       version: "0.0.0",
       private: true,
       files: ["dist"],
@@ -331,12 +331,12 @@ test("library size reports still run after an unrelated application build fails"
     const app = {
       name: "@test/broken-app",
       version: "0.0.0",
-      dependencies: { "@toolgrain/core": "workspace:*" },
+      dependencies: { "@toolgrain/mcp": "workspace:*" },
       scripts: { build: "node -e 'process.exit(1)'" },
     };
-    write("packages/core/package.json", library);
+    write("packages/library/package.json", library);
     write(
-      "packages/core/build.mjs",
+      "packages/library/build.mjs",
       'import {mkdirSync,writeFileSync} from "node:fs";mkdirSync("dist",{recursive:true});for(const name of ["index.js","index.d.ts"])writeFileSync("dist/"+name,"export {};\\n");',
     );
     write("apps/broken/package.json", app);
@@ -345,11 +345,11 @@ test("library size reports still run after an unrelated application build fails"
       configVersion: 1,
       workspaces: {
         "": { name: "fixture" },
-        "packages/core": library,
+        "packages/library": library,
         "apps/broken": app,
       },
       packages: {
-        "@toolgrain/core": entry("@toolgrain/core", "workspace:packages/core"),
+        "@toolgrain/mcp": entry("@toolgrain/mcp", "workspace:packages/library"),
         "@test/broken-app": entry("@test/broken-app", "workspace:apps/broken"),
       },
     });
@@ -369,7 +369,7 @@ test("library size reports still run after an unrelated application build fails"
     assert.equal(size.status, 0, `${size.stdout}\n${size.stderr}`);
     assert.equal(
       JSON.parse(
-        readFileSync(join(root, "packages/core/reports/size.json"), "utf8"),
+        readFileSync(join(root, "packages/library/reports/size.json"), "utf8"),
       ).status,
       "passed",
     );
@@ -381,7 +381,7 @@ test("audit command writes per-workspace results and fails on high findings or s
     const lock = {
       workspaces: {
         "": { name: "fixture" },
-        "packages/core": {
+        "packages/library": {
           name: "@test/core",
           devDependencies: { affected: "1.0.0" },
         },
@@ -390,7 +390,7 @@ test("audit command writes per-workspace results and fails on high findings or s
     };
     write("bun.lock", lock);
     write("package.json", { name: "fixture", workspaces: ["packages/*"] });
-    write("packages/core/package.json", { name: "@test/core" });
+    write("packages/library/package.json", { name: "@test/core" });
     write("bin/bun", "#!/bin/sh\ncat audit-response.json\nexit 1\n", 0o755);
     const execute = () =>
       spawnSync(
@@ -407,7 +407,7 @@ test("audit command writes per-workspace results and fails on high findings or s
       );
     const read = () =>
       JSON.parse(
-        readFileSync(join(root, "packages/core/reports/audit.json"), "utf8"),
+        readFileSync(join(root, "packages/library/reports/audit.json"), "utf8"),
       );
     write("audit-response.json", {
       affected: [{ ...advisory, severity: "moderate" }],
@@ -462,7 +462,7 @@ test("audit initialization failures replace stale reports for every configured w
     const lock = {
       workspaces: {
         "": { name: "fixture" },
-        "packages/core": { name: "@test/core" },
+        "packages/library": { name: "@test/core" },
         "apps/example": { name: "@test/example" },
       },
       packages: {},
@@ -471,7 +471,7 @@ test("audit initialization failures replace stale reports for every configured w
       name: "fixture",
       workspaces: ["packages/*", "apps/*"],
     });
-    write("packages/core/package.json", { name: "@test/core" });
+    write("packages/library/package.json", { name: "@test/core" });
     write("apps/example/package.json", { name: "@test/example" });
     write(
       "bin/bun",
@@ -506,7 +506,7 @@ test("audit initialization failures replace stale reports for every configured w
       const calls = readFileSync(join(root, "audit-called.txt"), "utf8");
       const paths = [
         "reports/audit.json",
-        "packages/core/reports/audit.json",
+        "packages/library/reports/audit.json",
         "apps/example/reports/audit.json",
         "reports/audit-lockfile.json",
       ];

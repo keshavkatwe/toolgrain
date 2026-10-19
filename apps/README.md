@@ -4,6 +4,10 @@ Each example is a separate application. Framework dependencies and runtime
 configuration stay in that framework's workspace; applications do not import
 code from sibling examples.
 
+Every example imports `tool` and `createServer` from `@toolgrain/mcp`. The greeting
+tool declares its title, behavioral annotations, and Zod output schema directly.
+Smoke tests verify metadata, schema discovery, and execution in both protocol eras.
+
 | Application | Development workflow | Development port |
 | --- | --- | --- |
 | [Plain Node HTTP](./http-example/README.md) | tsx watcher + Node HTTP | 3000 |

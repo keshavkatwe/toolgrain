@@ -1,8 +1,9 @@
-import { tool } from "@toolgrain/core";
 import {
   createServer,
+  mcpResult,
   type Transport,
   type TransportCallbacks,
+  tool,
 } from "@toolgrain/mcp";
 import { type DiscoverResult, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
@@ -29,8 +30,30 @@ const server = createServer({
   version: "1.0",
   tools: {
     greet: tool({
+      title: "Greeting",
+      annotations: { readOnlyHint: true },
       input: z.object({ name: z.string() }),
-      execute: ({ name }) => `Hello, ${name}!`,
+      output: z.object({ message: z.string() }),
+      execute: ({ name }) =>
+        mcpResult({
+          content: [],
+          structuredContent: { message: `Hello, ${name}!` },
+        }),
+    }),
+    textOnlyError: tool({
+      input: z.object({}),
+      output: z.number(),
+      execute: () =>
+        mcpResult({
+          isError: true,
+          content: [{ type: "text", text: "Unavailable" }],
+        }),
+    }),
+    structuredError: tool({
+      input: z.object({}),
+      output: z.number(),
+      execute: () =>
+        mcpResult({ isError: true, content: [], structuredContent: 1 }),
     }),
   },
 });
@@ -45,3 +68,32 @@ const discovery: DiscoverResult = {
   capabilities: { tools: {} },
 };
 void discovery;
+
+function rejectedDefinitions() {
+  // @ts-expect-error Compiled declarations preserve schema/handler checking.
+  tool({ input: z.string(), execute: (value: number) => value });
+  // @ts-expect-error Compiled declarations preserve output schema checking.
+  tool({ input: z.object({}), output: z.number(), execute: () => "wrong" });
+  // @ts-expect-error Compiled declarations reject non-JSON results without a schema.
+  tool({ input: z.object({}), execute: () => new Date() });
+  // @ts-expect-error Compiled declarations reject non-JSON structured content.
+  mcpResult({ content: [], structuredContent: new Date() });
+  // @ts-expect-error Compiled declarations reject non-JSON structured error content.
+  mcpResult({ content: [], isError: true, structuredContent: new Date() });
+  tool({
+    input: z.object({}),
+    // @ts-expect-error Compiled declarations reject invalid structured error data.
+    output: z.number(),
+    execute: () =>
+      mcpResult({ content: [], isError: true, structuredContent: "wrong" }),
+  });
+  createServer({
+    name: "invalid",
+    version: "1",
+    tools: {
+      // @ts-expect-error Raw objects cannot bypass tool() checking.
+      bad: { input: z.string(), execute: (value: number) => value },
+    },
+  });
+}
+void rejectedDefinitions;

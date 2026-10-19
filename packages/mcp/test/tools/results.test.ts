@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { toolResult } from "../src/results.js";
+import { toolResult } from "../../src/tools/results.js";
 
 it("converts strings to text and JSON values to structured content and text", () => {
   expect(toolResult("hello")).toEqual({

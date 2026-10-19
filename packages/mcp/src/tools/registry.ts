@@ -1,25 +1,22 @@
-import type { z } from "zod";
+import {
+  isRegisteredTool,
+  type RegisteredTool,
+  type ToolMetadata,
+} from "./definition.js";
 import { ToolInputError, UnknownToolError } from "./errors.js";
 
-// `never` permits heterogeneous handler inputs without exposing `any`.
-export type ToolMap = Record<
-  string,
-  {
-    readonly description?: string;
-    readonly input: z.ZodType;
-    readonly execute: (input: never) => unknown;
-  }
->;
+export type ToolMap = Record<string, RegisteredTool>;
 
 type ResultOf<T> = T extends { execute: (...args: never[]) => infer Result }
   ? Awaited<Result>
   : never;
 
 export type ToolEntry<Tools extends ToolMap> = {
-  [Name in keyof Tools & string]: {
+  [Name in keyof Tools & string]: ToolMetadata & {
     name: Name;
     description?: string;
     input: Tools[Name]["input"];
+    output?: NonNullable<RegisteredTool["output"]>;
   };
 }[keyof Tools & string];
 
@@ -39,21 +36,21 @@ export function createRegistry<const Tools extends ToolMap>(
   tools: Tools,
 ): Registry<Tools> {
   const entries = new Map(
-    Object.entries(tools).map(([name, definition]) => [
-      name,
-      Object.freeze({ ...definition }),
-    ]),
+    Object.entries(tools).map(([name, definition]) => {
+      if (!isRegisteredTool(definition))
+        throw new TypeError(
+          `Tool ${JSON.stringify(name)} must be created with tool()`,
+        );
+      return [name, Object.freeze({ ...definition })] as const;
+    }),
   );
 
   return {
     list() {
-      return Array.from(entries, ([name, definition]) => ({
-        name,
-        input: definition.input,
-        ...(definition.description === undefined
-          ? {}
-          : { description: definition.description }),
-      })) as ToolEntry<Tools>[];
+      return Array.from(entries, ([name, definition]) => {
+        const { execute: _execute, ...metadata } = definition;
+        return { name, ...metadata };
+      }) as ToolEntry<Tools>[];
     },
     async execute(name: string, input: unknown) {
       const definition = entries.get(name);
