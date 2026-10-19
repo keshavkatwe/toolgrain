@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -8,33 +9,15 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { Archive } from "bun";
-
-function exportTargets(value) {
-  if (value === undefined || value === null) return [];
-  if (typeof value === "string") {
-    if (
-      !value.startsWith("./") ||
-      value.includes("*") ||
-      value
-        .split("/")
-        .slice(1)
-        .some((part) => !part || part === "." || part === "..")
-    )
-      throw new Error(`Unsupported package export target: ${value}`);
-    return [value.slice(2)];
-  }
-  if (typeof value !== "object") throw new Error("Invalid package exports");
-  return Object.values(value).flatMap(exportTargets);
-}
 
 export function checkSize(
   files,
   packedBytes,
   budget,
-  manifest = {},
   compiledFiles = [],
+  sourceFiles = undefined,
 ) {
   for (const key of ["packedBytes", "unpackedBytes"]) {
     if (!Number.isSafeInteger(budget?.[key]) || budget[key] <= 0)
@@ -56,11 +39,24 @@ export function checkSize(
     ...new Set([
       "dist/index.js",
       "dist/index.d.ts",
-      ...exportTargets(manifest.exports),
       ...compiledFiles,
       ...(budget.requiredFiles ?? []),
     ]),
   ].sort();
+  // Turbo restores cached outputs without removing extra files, so a compiled
+  // module can outlive its source. Libraries compile src/**/*.ts into dist.
+  if (sourceFiles) {
+    const sources = new Set(sourceFiles);
+    for (const path of compiledFiles) {
+      const source = path
+        .replace(/^dist\//, "src/")
+        .replace(/\.(?:d\.ts|js)$/, ".ts");
+      if (!sources.has(source))
+        errors.push(
+          `Stale build output without source: ${path}; run bun run build --force`,
+        );
+    }
+  }
   const inventory = new Set(files.map((file) => file.path));
   for (const path of requiredFiles) {
     if (!inventory.has(path))
@@ -91,17 +87,25 @@ export function checkSize(
   };
 }
 
-if (import.meta.main) {
+/** Find repository policy from the package directory, as package scripts run there. */
+function findUp(name, directory = process.cwd()) {
+  for (;;) {
+    const path = join(directory, name);
+    if (existsSync(path)) return path;
+    const parent = dirname(directory);
+    if (parent === directory) throw new Error(`Cannot find ${name}`);
+    directory = parent;
+  }
+}
+
+export async function main() {
   mkdirSync("reports", { recursive: true });
   const destination = mkdtempSync(join(tmpdir(), "toolgrain-size-"));
   let report;
   try {
     const manifest = JSON.parse(readFileSync("package.json", "utf8"));
     const budgets = JSON.parse(
-      readFileSync(
-        new URL("../package-size.config.json", import.meta.url),
-        "utf8",
-      ),
+      readFileSync(findUp("package-size.config.json"), "utf8"),
     );
     const archivePath = join(destination, "package.tgz");
     const packed = spawnSync(
@@ -126,14 +130,19 @@ if (import.meta.main) {
     const compiledFiles = readdirSync("dist", { recursive: true })
       .map((path) => `dist/${path.replaceAll("\\", "/")}`)
       .filter((path) => /\.(?:js|d\.ts)$/.test(path));
+    const sourceFiles = existsSync("src")
+      ? readdirSync("src", { recursive: true }).map(
+          (path) => `src/${path.replaceAll("\\", "/")}`,
+        )
+      : undefined;
     report = {
       name: manifest.name,
       ...checkSize(
         files,
         bytes.byteLength,
         budgets[manifest.name],
-        manifest,
         compiledFiles,
+        sourceFiles,
       ),
     };
   } catch (error) {

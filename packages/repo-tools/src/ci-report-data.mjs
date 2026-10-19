@@ -1,23 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
-import { severities, validateAdvisories } from "./audit-graph.mjs";
+import { validateAdvisories } from "./audit.mjs";
 
 const object = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const strings = (value) =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 const count = (value) => Number.isSafeInteger(value) && value >= 0;
-const finding = (value) =>
-  object(value) &&
-  typeof value.name === "string" &&
-  Number.isSafeInteger(value.id) &&
-  severities.includes(value.severity) &&
-  ["title", "url", "vulnerable_versions"].every(
-    (key) => typeof value[key] === "string",
-  );
-
 function valid(report, kind) {
   if (!object(report)) return false;
-  if (["size", "audit", "lockfile"].includes(kind)) {
+  if (["size", "audit"].includes(kind)) {
     if (report.status === "error")
       return kind === "size"
         ? strings(report.errors) && report.errors.length > 0
@@ -25,28 +16,6 @@ function valid(report, kind) {
     if (!["passed", "failed"].includes(report.status)) return false;
   }
   switch (kind) {
-    case "tests":
-      return (
-        [
-          "numPassedTests",
-          "numFailedTests",
-          "numPendingTests",
-          "numTotalTests",
-        ].every((key) => count(report[key])) &&
-        Array.isArray(report.testResults) &&
-        report.testResults.every(
-          (suite) =>
-            object(suite) &&
-            (suite.assertionResults === undefined ||
-              (Array.isArray(suite.assertionResults) &&
-                suite.assertionResults.every(
-                  (test) =>
-                    object(test) &&
-                    (test.failureMessages === undefined ||
-                      strings(test.failureMessages)),
-                ))),
-        )
-      );
     case "coverage":
       return (
         object(report.total) &&
@@ -72,13 +41,6 @@ function valid(report, kind) {
         strings(report.errors)
       );
     case "audit":
-      return (
-        Array.isArray(report.runtime) &&
-        report.runtime.every(finding) &&
-        Array.isArray(report.findings) &&
-        report.findings.every(finding)
-      );
-    case "lockfile":
       validateAdvisories(report.advisories);
       return true;
     default:

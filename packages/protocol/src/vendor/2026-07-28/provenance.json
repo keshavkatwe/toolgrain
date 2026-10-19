@@ -4,6 +4,12 @@
   "sourcePath": "schema/2026-07-28/schema.ts",
   "sourceUrl": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/271ecc9accafdd9b83a3c869fa67c22953b2af80/schema/2026-07-28/schema.ts",
   "sha256": "742750af0bb8c716e7030c4977c992b55d1adc4407e9e66997db5846baedc2cd",
+  "jsonSchema": {
+    "sourcePath": "schema/2026-07-28/schema.json",
+    "sourceUrl": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/271ecc9accafdd9b83a3c869fa67c22953b2af80/schema/2026-07-28/schema.json",
+    "sha256": "ef70b61f99b6d2e5e3b46863822eab08dff6a45bedc7a08914e0e5b133f40203",
+    "usage": "Test-only conformance fixture; not copied to dist."
+  },
   "licenseSourceUrl": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/271ecc9accafdd9b83a3c869fa67c22953b2af80/LICENSE",
   "notice": "No upstream NOTICE file exists at the pinned commit."
 }

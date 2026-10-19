@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    reporters: ["default", "json"],
-    outputFile: { json: "reports/tests.json" },
+    // Names each workspace's section in the GitHub Actions job summary.
+    name: "@toolgrain/hono-example",
   },
 });

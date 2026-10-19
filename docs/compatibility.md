@@ -116,18 +116,18 @@ Use Node 24.20.0 or a newer supported Node version and Bun 1.3.14:
 ```sh
 bun install --frozen-lockfile
 bun run build --filter=@toolgrain/stdio-example... --filter=@toolgrain/http-example...
-node scripts/verify-inspector.mjs
+node packages/repo-tools/src/cli.mjs verify-inspector
 ```
 
-The script pins Inspector 2.11.0 through Bunx outside the workspace, runs the
-compiled examples using the invoking Node executable, and starts HTTP on an
-available loopback port. Configuration, storage, and secrets are temporary.
+The command (also `bun run verify:inspector`) pins Inspector 2.11.0 through
+Bunx outside the workspace, runs the compiled examples using the invoking Node
+executable, and starts HTTP on an available loopback port. Configuration, storage, and secrets are temporary.
 It cleans up subprocess groups on POSIX systems, including timeouts and signals.
 No browser, authentication, inference, or npm publication is needed. An uncached
 Inspector needs registry access. To use a preinstalled copy:
 
 ```sh
-node scripts/verify-inspector.mjs --inspector-cli /absolute/path/to/inspector/clients/launcher/build/index.js
+node packages/repo-tools/src/cli.mjs verify-inspector --inspector-cli /absolute/path/to/inspector/clients/launcher/build/index.js
 ```
 
 There are **30 passing checks**, 15 per transport:
