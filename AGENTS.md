@@ -86,8 +86,20 @@ Confirmed semantics:
 - Without an output schema, handler outputs remain unchanged before MCP result conversion. Calling a definition's `execute` property invokes the raw handler and bypasses all server validation and conversion.
 - Exposed names follow the recommended 1–128 ASCII letters/digits/underscore/hyphen/dot rules, enforced at server construction with `ToolNameError`.
 - `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Undefined optional envelope/content fields and optional properties parsing to undefined are absent; undefined inside unparsed data is rejected. Output parsing replaces text that serialized the original structured data. Ordinary result-shaped objects remain data.
-- Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. No handler context or cooperative interruption yet.
+- Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. Handlers receive a `ToolContext`; see the handler context section below.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
+
+## Confirmed handler context design
+
+Agreed with the user on 2026-10-19 and implemented on the `feat/handler-context` branch (not yet merged).
+
+- Handlers receive a second argument, `execute(input, ctx)`, typed `ToolContext`. This is additive: handlers that take only `input` remain valid.
+- v0 `ctx` is `{ signal, request: { id, protocolVersion, client?, meta } }`. `signal` is an `AbortSignal`. `request.client` is `{ info?, capabilities? }` and is absent where the era and transport provide no client information (for example legacy HTTP). `request.meta` is the request's raw `_meta`, read-only. The shape is the same for stdio and HTTP and for both protocol eras.
+- If the signal has aborted by the time input validation finishes, the handler is not started. This replaces the current rule that handlers run after cancellation during validation.
+- `ctx` is required in the handler type. Direct `execute` calls (for example in tests) build one with an exported `toolContext({ signal? })` helper.
+- Docs and examples name the parameter `ctx` and the type `ToolContext`.
+- Progress, elicitation through multi-round-trip input requests, and identity/auth are later additive fields. No `ctx.log` is planned because MCP logging is deprecated in `2026-07-28`.
+- Implementation choices pending user review: the signal aborts on stdio `notifications/cancelled`, on the `handle()` caller's signal (HTTP disconnect), on transport close including stdin EOF, and on server close. `signal.reason` is a `DOMException` `AbortError` ("Request cancelled by client", "Connection closed", "Server closed"), or the caller's own reason for `handle()`. Results and failures after an abort are discarded without reporting, as responses already were. `toolContext()` also accepts partial `request` overrides and defaults to id `0`, the modern revision, and empty meta. Internally a per-request `RequestScope { signal, client? }` replaces the former `isActive` callback; legacy stdio stores client details after a successful `initialize`.
 
 ## Confirmed protocol package decisions
 
@@ -108,7 +120,7 @@ Confirmed semantics:
 - Strings become text without an output schema; declared outputs include parsed structured content plus serialized text. Other modern JSON values become structured content plus text. Legacy structured content contains only objects; other JSON values are text only. Reject unsupported output values as tool errors.
 - Input/output validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
 - Modern discovery/list results use `ttlMs: 0`, `cacheScope: "private"`; discovery advertises both supported revisions. Legacy result envelopes omit modern result/cache/server-info metadata. Tool lists are a single page; nonempty cursors are rejected.
-- Each MCP tool adapter reuses one internal registry. Cancellation suppresses pending responses; validation and handlers continue once registry execution starts, including cancellation during validation. Handlers receive no cancellation context.
+- Each MCP tool adapter reuses one internal registry. Cancellation suppresses pending responses and aborts the handler context signal; validation continues once registry execution starts, but a request cancelled during validation never starts its handler. Handlers stop early only if they observe the signal.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
 - Keep revision-specific validation, dispatch, response shaping, and legacy negotiation in separate `modern/` and `legacy/` modules. Share tool execution, JSON normalization, schema conversion, envelope decoding, and transport lifecycle; era selection stays in thin composition modules. Modern modules must not depend on legacy modules. This separation preserves the public API and wire behavior while keeping legacy support removable.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.

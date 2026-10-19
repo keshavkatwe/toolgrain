@@ -13,6 +13,7 @@ import {
   ToolNameError,
   ToolSchemaError,
   tool,
+  toolContext,
 } from "../../src/index.js";
 import { createRegistry } from "../../src/tools/registry.js";
 import { deferred } from "../memory.js";
@@ -722,12 +723,12 @@ it("requires schema-checked tools and rejects modified object spreads", () => {
     input: z.number().positive(),
     execute: (value) => value,
   });
-  expect(positive.execute(-1)).toBe(-1);
+  expect(positive.execute(-1, toolContext())).toBe(-1);
   const options: ToolDefinition<z.ZodString, string> = {
     input: z.string(),
     execute: (value) => value,
   };
-  expect(tool(options).execute("typed")).toBe("typed");
+  expect(tool(options).execute("typed", toolContext())).toBe("typed");
   const extraOptions = {
     input: z.object({}),
     execute: () => null,
@@ -749,7 +750,9 @@ it("checks handler output types against the optional output schema", () => {
     output: z.object({ count: z.number() }),
     execute: () => ({ count: 1 }),
   });
-  expectTypeOf(definition.execute({})).toEqualTypeOf<{ count: number }>();
+  expectTypeOf(definition.execute({}, toolContext())).toEqualTypeOf<{
+    count: number;
+  }>();
   // @ts-expect-error The handler must return data accepted by the output schema.
   tool({ input: z.object({}), output: z.number(), execute: () => "wrong" });
   tool({
@@ -770,7 +773,9 @@ it("checks handler output types against the optional output schema", () => {
     input: z.object({}),
     execute: () => ({ count: 1 }),
   });
-  expectTypeOf(jsonResult.execute({})).toEqualTypeOf<{ count: number }>();
+  expectTypeOf(jsonResult.execute({}, toolContext())).toEqualTypeOf<{
+    count: number;
+  }>();
   interface NamedResult {
     count: number;
   }
@@ -778,7 +783,9 @@ it("checks handler output types against the optional output schema", () => {
     input: z.object({}),
     execute: (): NamedResult => ({ count: 1 }),
   });
-  expectTypeOf(namedResult.execute({})).toEqualTypeOf<NamedResult>();
+  expectTypeOf(
+    namedResult.execute({}, toolContext()),
+  ).toEqualTypeOf<NamedResult>();
   mcpResult({ content: [], structuredContent: { count: 1 } as NamedResult });
   tool({ input: z.object({}), execute: () => "plain text" });
   tool({

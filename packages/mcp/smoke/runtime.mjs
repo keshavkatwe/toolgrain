@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { createServer, mcpResult, tool } from "@toolgrain/mcp";
+import { createServer, mcpResult, tool, toolContext } from "@toolgrain/mcp";
 import { LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
 
 let callbacks;
 let resolve;
+const versions = [];
 const response = new Promise((yes) => {
   resolve = yes;
 });
@@ -17,11 +18,13 @@ const server = createServer({
       annotations: { readOnlyHint: true },
       input: z.object({ name: z.string() }),
       output: z.object({ message: z.string() }),
-      execute: ({ name }) =>
-        mcpResult({
+      execute: ({ name }, ctx) => {
+        versions.push(ctx.request.protocolVersion);
+        return mcpResult({
           content: [],
           structuredContent: { message: `Hello, ${name}!` },
-        }),
+        });
+      },
     }),
   },
 });
@@ -68,4 +71,8 @@ assert.equal(legacy.result.resultType, undefined);
 assert.deepEqual(legacy.result.content, [
   { type: "text", text: '{"message":"Hello, Legacy!"}' },
 ]);
+assert.deepEqual(versions, [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]);
+const direct = toolContext({ request: { id: "smoke" } });
+assert.equal(direct.request.id, "smoke");
+assert.equal(direct.signal.aborted, false);
 await server.close();

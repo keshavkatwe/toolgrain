@@ -3,7 +3,7 @@ import {
   type ProtocolResponse,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
-import type { Dispatcher } from "./dispatcher.js";
+import type { Dispatcher, RequestScope } from "./dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { ProtocolError, protocolError } from "./protocol/responses.js";
 
@@ -11,12 +11,13 @@ import { ProtocolError, protocolError } from "./protocol/responses.js";
 export async function executeRequest(
   dispatch: Dispatcher,
   request: Request,
-  isActive: () => boolean,
+  scope: RequestScope,
   onError?: (error: unknown) => void,
   protocolVersion?: SupportedProtocolVersion,
 ): Promise<ProtocolResponse | undefined> {
+  const isActive = () => !scope.signal.aborted;
   try {
-    const response = await dispatch(request, isActive, protocolVersion);
+    const response = await dispatch(request, scope, protocolVersion);
     return isActive() ? response : undefined;
   } catch (error) {
     if (!isActive()) return;

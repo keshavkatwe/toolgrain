@@ -1,3 +1,4 @@
+import type { ToolContext } from "./context.js";
 import {
   isRegisteredTool,
   type RegisteredTool,
@@ -25,10 +26,12 @@ export interface Registry<Tools extends ToolMap> {
   execute<Name extends keyof Tools & string>(
     name: Name,
     input: unknown,
+    ctx: ToolContext,
   ): Promise<ResultOf<Tools[Name]>>;
   execute(
     name: string,
     input: unknown,
+    ctx: ToolContext,
   ): Promise<ResultOf<Tools[keyof Tools & string]>>;
 }
 
@@ -52,12 +55,14 @@ export function createRegistry<const Tools extends ToolMap>(
         return { name, ...metadata };
       }) as ToolEntry<Tools>[];
     },
-    async execute(name: string, input: unknown) {
+    async execute(name: string, input: unknown, ctx: ToolContext) {
       const definition = entries.get(name);
       if (!definition) throw new UnknownToolError(name);
       const parsed = await definition.input.safeParseAsync(input);
       if (!parsed.success) throw new ToolInputError(name, parsed.error);
-      return definition.execute(parsed.data as never);
+      // A request cancelled during validation never starts its handler.
+      ctx.signal.throwIfAborted();
+      return definition.execute(parsed.data as never, ctx);
     },
   } as Registry<Tools>;
 }

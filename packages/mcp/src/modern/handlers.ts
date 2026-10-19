@@ -7,6 +7,7 @@ import {
 import { ProtocolError } from "../protocol/responses.js";
 import type { createToolAdapter } from "../tools/adapter.js";
 import { callTool as executeToolCall } from "../tools/call.js";
+import type { ToolContext } from "../tools/context.js";
 import { callParams, commonParams, listParams } from "./messages.js";
 import { toolResult } from "./results.js";
 
@@ -43,11 +44,11 @@ export function listTools(params: unknown, tools: Tools): ListToolsResult {
 export async function callTool(
   params: unknown,
   tools: Tools,
-  isActive: () => boolean,
+  ctx: (params: { _meta?: Record<string, unknown> | undefined }) => ToolContext,
 ) {
   const parsed = callParams.safeParse(params);
   if (!parsed.success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool call parameters");
-  const result = await executeToolCall(parsed.data, tools, isActive);
+  const result = await executeToolCall(parsed.data, tools, ctx(parsed.data));
   return result ? toolResult(result) : undefined;
 }

@@ -93,7 +93,10 @@ it("lists input-mode schemas and executes parsed inputs through the unchanged to
       content: [{ type: "text", text: '{"count":2}' }],
     },
   });
-  expect(execute).toHaveBeenCalledExactlyOnceWith({ count: 2 });
+  expect(execute).toHaveBeenCalledExactlyOnceWith(
+    { count: 2 },
+    expect.anything(),
+  );
 });
 
 it("negotiates the supported initialization revision independently without persisting HTTP state", async () => {

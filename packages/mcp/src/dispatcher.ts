@@ -14,10 +14,18 @@ import { createModernDispatcher } from "./modern/dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { validateVersionContext } from "./protocol/version-metadata.js";
 import type { createToolAdapter } from "./tools/adapter.js";
+import type { ToolClient } from "./tools/context.js";
+
+/** Per-request execution state supplied by the connection or independent caller. */
+export interface RequestScope {
+  signal: AbortSignal;
+  /** Client details negotiated by legacy initialization, when the connection has them. */
+  client?: ToolClient | undefined;
+}
 
 export type Dispatcher = (
   request: Request,
-  isActive: () => boolean,
+  scope: RequestScope,
   protocolVersion?: SupportedProtocolVersion,
 ) => Promise<ProtocolResponse | undefined>;
 
@@ -29,11 +37,11 @@ export function createDispatcher(
 ): Dispatcher {
   const legacy = createLegacyDispatcher(tools, identity, instructions);
   const modern = createModernDispatcher(tools, identity, instructions);
-  return (request, isActive, protocolVersion) => {
+  return (request, scope, protocolVersion) => {
     validateVersionContext(request, protocolVersion);
     return usesLegacyProtocol(request, protocolVersion)
-      ? legacy(request, isActive)
-      : modern(request, isActive);
+      ? legacy(request, scope)
+      : modern(request, scope);
   };
 }
 

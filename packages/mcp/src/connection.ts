@@ -160,7 +160,7 @@ class Connection implements Pick<Server, "listen" | "close"> {
       const response = await executeRequest(
         this.dispatch,
         request,
-        pending.isActive,
+        { signal: pending.signal, client: this.legacy.client() },
         (error) => this.report(error),
         prepared.protocolVersion,
       );

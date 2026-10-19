@@ -1,5 +1,6 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import type { z } from "zod";
+import type { ToolContext } from "./context.js";
 import type { IsJsonCompatible, JsonCompatible } from "./json-value.js";
 import type { McpResult } from "./rich-result.js";
 
@@ -24,7 +25,7 @@ export interface ToolDefinition<
   readonly input: Schema;
   readonly output?: Output;
   /** Raw handler; server invocation performs validation and result conversion. */
-  readonly execute: (input: z.output<Schema>) => Result;
+  readonly execute: (input: z.output<Schema>, ctx: ToolContext) => Result;
 }
 
 // Registered symbols let duplicate package copies recognize each other's tools.
@@ -34,7 +35,7 @@ const TOOL_BRAND = Symbol.for("@toolgrain/mcp/tool@1");
 export abstract class RegisteredTool {
   abstract readonly input: z.ZodType;
   abstract readonly output?: z.ZodType;
-  abstract readonly execute: (input: never) => unknown;
+  abstract readonly execute: (input: never, ctx: ToolContext) => unknown;
   abstract readonly title?: string;
   abstract readonly description?: string;
   abstract readonly annotations?: NonNullable<ProtocolTool["annotations"]>;
@@ -63,7 +64,10 @@ export function isRegisteredTool(value: unknown): value is RegisteredTool {
 export class Tool<Schema extends z.ZodType, Result> extends RegisteredTool {
   declare readonly input: Schema;
   declare readonly output?: z.ZodType;
-  declare readonly execute: (input: z.output<Schema>) => Result;
+  declare readonly execute: (
+    input: z.output<Schema>,
+    ctx: ToolContext,
+  ) => Result;
   declare readonly title?: string;
   declare readonly description?: string;
   declare readonly annotations?: NonNullable<ProtocolTool["annotations"]>;
@@ -102,6 +106,7 @@ type ToolDefinitionWithoutOutput<Schema extends z.ZodType, Result> = Omit<
 > & {
   readonly execute: (
     input: z.output<Schema>,
+    ctx: ToolContext,
   ) => Result & JsonSafeOutput<Result>;
 };
 

@@ -11,7 +11,7 @@ These items are proposals for discussion, with no timelines or implementation co
 - Documentation and quickstarts using Docusaurus, hosted on GitHub Pages — platform selected; implementation deferred.
 - Versioning, changelogs, and release verification.
 - Initial npm release.
-- Handler execution context and cooperative cancellation.
+- Handler execution context and cooperative cancellation — v0 implemented on `feat/handler-context` (see `AGENTS.md`); progress, elicitation, and identity remain later work.
 - Authentication integration and per-request identity.
 - Resources support.
 - Prompts support.
@@ -19,3 +19,7 @@ These items are proposals for discussion, with no timelines or implementation co
 - Subscriptions and change notifications.
 - Performance, concurrency, and resilience testing.
 - Ongoing protocol updates and compatibility maintenance.
+
+Features deprecated in `2026-07-28` (sampling, logging, roots, and Dynamic Client
+Registration) and the deprecated HTTP+SSE transport are proposed to stay out of
+scope. See the [deprecated features registry](https://modelcontextprotocol.io/specification/2026-07-28/deprecated).
