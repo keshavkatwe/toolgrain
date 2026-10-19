@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-18
+Updated: 2026-10-19
 
 ## Working agreement
 
@@ -95,6 +95,7 @@ Confirmed semantics:
 - Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
 - Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
 - Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
+- Each revision folder also vendors the upstream `schema.json` from the same pinned commit, recorded under `jsonSchema` in provenance and verified by checksum. It is a test-only conformance fixture and is not copied to dist.
 - Modern wire exports remain at the package root; legacy wire types use `@toolgrain/protocol/2025-06-18`. Root exports `LEGACY_PROTOCOL_VERSION`, `SUPPORTED_PROTOCOL_VERSIONS`, `SupportedProtocolVersion`, and shared `ProtocolResponse` envelopes. Both schemas are pinned to the same upstream commit, with separate integrity/provenance/license artifacts in sibling `src/vendor/2026-07-28/` and `src/vendor/2025-06-18/` folders.
 
 ## Confirmed MCP package decisions
@@ -173,6 +174,27 @@ or deployment are authorized by implementation alone.
 ## Package verification
 
 Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.
+
+The MCP package verification also runs `publint --strict` and
+`scripts/check-package-types.mjs`, which packs with Bun (npm pack rejects the Bun
+`devEngines`) and runs `@arethetypeswrong/cli` with the `esm-only` profile.
+CommonJS and node10 resolution are intentionally unsupported.
+
+## Confirmed MCP test tooling decisions
+
+- No additional runtime dependencies. JSON-RPC, write-queue, and JSON-value
+  libraries were reviewed and rejected; the hand-written code encodes MCP rules.
+- Dev-only tools, pinned exactly in `packages/mcp`: `fast-check`, `ajv`,
+  `publint`, and `@arethetypeswrong/cli`.
+- `test/properties.test.ts` covers JSON value acceptance/rejection, result text
+  conversion, and envelope decoding with fast-check. Zod record parsing drops own
+  `__proto__` keys without changing prototypes; a dedicated test records this.
+- `test/conformance.test.ts` validates discovery, listing, call, initialization,
+  ping, and error responses against both vendored upstream JSON Schemas with Ajv.
+  Legacy errors with unknown IDs use JSON-RPC `id: null`, which the 2025-06-18
+  schema cannot express; only their error objects are schema-checked.
+- `test/wire-types.test.ts` checks during `check-types` that hand-written Zod wire
+  schemas match vendored protocol types, including nested field paths.
 
 ## Coverage verification
 

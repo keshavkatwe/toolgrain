@@ -7,19 +7,19 @@ import { assertJSON } from "./json-value.js";
 import { validateToolName } from "./name.js";
 import type { ToolMap } from "./registry.js";
 
+export const toolAnnotations = z.looseObject({
+  title: z.string().optional(),
+  readOnlyHint: z.boolean().optional(),
+  destructiveHint: z.boolean().optional(),
+  idempotentHint: z.boolean().optional(),
+  openWorldHint: z.boolean().optional(),
+});
+
 const metadata = z.strictObject({
   title: z.string().optional(),
   description: z.string().optional(),
   icons: z.array(icon).optional(),
-  annotations: z
-    .looseObject({
-      title: z.string().optional(),
-      readOnlyHint: z.boolean().optional(),
-      destructiveHint: z.boolean().optional(),
-      idempotentHint: z.boolean().optional(),
-      openWorldHint: z.boolean().optional(),
-    })
-    .optional(),
+  annotations: toolAnnotations.optional(),
   _meta: object.optional(),
 });
 
