@@ -24,6 +24,7 @@ export function createMessageDecoder(
   function decodeMessage() {
     const bytes = Buffer.concat(fragments, bufferedBytes);
     resetBuffer();
+    if (isBlank(bytes)) return;
     let value: unknown;
     try {
       value = JSON.parse(utf8.decode(bytes));
@@ -48,11 +49,18 @@ export function createMessageDecoder(
       }
     },
     end() {
-      if (bufferedBytes)
+      if (!isBlank(Buffer.concat(fragments, bufferedBytes)))
         callbacks.onParseError(
           new SyntaxError("Unterminated MCP message at end of input"),
         );
       resetBuffer();
     },
   };
+}
+
+/** Lines containing only JSON whitespace carry no message and are skipped. */
+function isBlank(bytes: Buffer): boolean {
+  for (const byte of bytes)
+    if (byte !== 0x20 && byte !== 0x09 && byte !== 0x0d) return false;
+  return true;
 }

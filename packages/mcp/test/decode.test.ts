@@ -38,3 +38,19 @@ it("accepts string and integer IDs in requests and cancellation notifications", 
     ).toEqual({ kind: "cancel", id });
   }
 });
+
+it("ignores client responses but rejects malformed response-like messages", () => {
+  for (const message of [
+    { jsonrpc: "2.0", id: 1, result: {} },
+    { jsonrpc: "2.0", id: "a", error: { code: -32601, message: "Nope" } },
+    { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse" } },
+  ])
+    expect(decode(message)).toEqual({ kind: "ignore" });
+  for (const message of [
+    { jsonrpc: "2.0", id: 1 },
+    { jsonrpc: "2.0", id: 1, result: {}, error: {} },
+    { jsonrpc: "1.0", id: 1, result: {} },
+    { jsonrpc: "2.0", result: {} },
+  ])
+    expect(decode(message)).toHaveProperty("kind", "error");
+});
