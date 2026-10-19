@@ -8,12 +8,28 @@ export interface McpResultOptions<Structured = unknown> {
   _meta?: MetaObject;
 }
 
-export class McpResult<Structured> {
-  declare private readonly resultBrand: undefined;
+// Registered symbols let duplicate package copies recognize each other's results.
+const RESULT_BRAND = Symbol.for("@toolgrain/mcp/result@1");
 
+export class McpResult<Structured> {
   constructor(readonly value: McpResultOptions<Structured>) {
     Object.freeze(this);
   }
+
+  /** Structural brand shared by package copies; object spreads do not keep it. */
+  "~toolgrain"(): "result@1" {
+    return "result@1";
+  }
+}
+Object.defineProperty(McpResult.prototype, RESULT_BRAND, { value: true });
+
+/** Recognize results created by any compatible copy of this package. */
+export function isMcpResult(value: unknown): value is McpResult<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { [RESULT_BRAND]?: unknown })[RESULT_BRAND] === true
+  );
 }
 
 export type McpErrorResult<Structured = never> = McpResult<Structured> & {

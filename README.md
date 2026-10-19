@@ -40,7 +40,8 @@ Registration keys supply exposed names: 1–128 ASCII letters, digits, underscor
 hyphens, or dots. Names are case-sensitive. Definitions are reusable across
 servers, and registrations must be created with `tool()`; raw objects and modified
 object spreads are rejected. Pass modified definitions through `tool()` again to
-check their schema/handler types.
+check their schema/handler types. Definitions and `mcpResult()` values from a
+duplicate installed copy of a compatible `@toolgrain/mcp` version are recognized.
 
 `tool()` accepts `title`, `description`, `annotations`, `icons`, and `_meta`
 directly. Tool annotations are descriptive hints, not access controls. Metadata
@@ -51,9 +52,13 @@ An optional `output` schema constrains the handler return type and asynchronousl
 parses successful returned data before serialization, applying output defaults,
 transforms, and refinements. Input JSON Schema describes the accepted input;
 output JSON Schema describes the parsed output. Unrepresentable schemas fail at
-server construction. Without `output`, handlers must return a string, JSON value,
-or `mcpResult()` whose structured content is JSON-compatible. Toolgrain checks
-the value at runtime but does not parse or transform it before result conversion.
+server construction with `ToolSchemaError`. An output-side `.transform()` is not
+representable by itself; pipe it into a schema describing the parsed value, such
+as `z.string().transform(Number).pipe(z.number())`. Optional output properties
+that parse to `undefined` are omitted. Without `output`, handlers must return a
+string, JSON value, or `mcpResult()` whose structured content is JSON-compatible.
+Toolgrain checks the value at runtime but does not parse or transform it before
+result conversion; `undefined` inside that data is rejected rather than dropped.
 
 `execute` on a definition is the **raw handler**. Calling it directly bypasses
 input validation, output validation, and MCP result conversion. Invoke tools
@@ -85,9 +90,11 @@ const report = tool({
 ```
 
 The helper supports text, image, audio, resource links, and embedded text/blob
-resources. Content and data are validated and copied during conversion. A JSON
-text block accompanies structured data unless an identical text block is already
-present. Ordinary objects containing `content` or `isError` remain application
+resources. Content and data are validated and copied during conversion. Optional
+result and content fields set to `undefined` are treated as absent. A JSON text
+block accompanies structured data unless an identical text block is already
+present. When an output schema changes the data, a text block containing the
+original JSON is updated to the parsed JSON instead of being duplicated. Ordinary objects containing `content` or `isError` remain application
 data; Toolgrain does not guess that they are protocol results.
 
 When `output` is declared, an explicit successful result must supply

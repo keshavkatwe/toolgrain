@@ -27,10 +27,11 @@ export interface ToolDefinition<
   readonly execute: (input: z.output<Schema>) => Result;
 }
 
+// Registered symbols let duplicate package copies recognize each other's tools.
+const TOOL_BRAND = Symbol.for("@toolgrain/mcp/tool@1");
+
 /** Internal erased type for heterogeneous, schema-checked registrations. */
 export abstract class RegisteredTool {
-  // Private identity also prevents registering modified object spreads.
-  declare private readonly toolBrand: undefined;
   abstract readonly input: z.ZodType;
   abstract readonly output?: z.ZodType;
   abstract readonly execute: (input: never) => unknown;
@@ -39,6 +40,24 @@ export abstract class RegisteredTool {
   abstract readonly annotations?: NonNullable<ProtocolTool["annotations"]>;
   abstract readonly icons?: NonNullable<ProtocolTool["icons"]>;
   abstract readonly _meta?: NonNullable<ProtocolTool["_meta"]>;
+
+  /**
+   * Structural brand shared by package copies. Object spreads drop prototype
+   * methods, so modified spreads must pass through tool() again.
+   */
+  "~toolgrain"(): "tool@1" {
+    return "tool@1";
+  }
+}
+Object.defineProperty(RegisteredTool.prototype, TOOL_BRAND, { value: true });
+
+/** Recognize definitions created by any compatible copy of this package. */
+export function isRegisteredTool(value: unknown): value is RegisteredTool {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { [TOOL_BRAND]?: unknown })[TOOL_BRAND] === true
+  );
 }
 
 export class Tool<Schema extends z.ZodType, Result> extends RegisteredTool {

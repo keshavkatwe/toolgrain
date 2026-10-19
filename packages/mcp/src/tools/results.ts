@@ -1,8 +1,8 @@
 import type { ContentBlock, MetaObject } from "@toolgrain/protocol";
 import type { z } from "zod";
 import { explicitResult } from "./content.js";
-import { assertJSON } from "./json-value.js";
-import { McpResult } from "./rich-result.js";
+import { type AssertJSONOptions, assertJSON } from "./json-value.js";
+import { isMcpResult, type McpResult } from "./rich-result.js";
 
 /** Validated output shared by both protocol adapters. */
 export interface ToolExecutionResult {
@@ -13,16 +13,18 @@ export interface ToolExecutionResult {
 }
 
 export function toolResult(value: unknown): ToolExecutionResult {
-  if (value instanceof McpResult)
-    return withStructuredText(readExplicit(value));
+  if (isMcpResult(value)) return withStructuredText(readExplicit(value));
   assertJSON(value);
   if (typeof value === "string")
     return { content: [{ type: "text", text: value }] };
   return structuredResult(value);
 }
 
-function structuredResult(value: unknown): ToolExecutionResult {
-  assertJSON(value);
+function structuredResult(
+  value: unknown,
+  options?: AssertJSONOptions,
+): ToolExecutionResult {
+  assertJSON(value, options);
   const text = JSON.stringify(value);
   return {
     content: [{ type: "text", text }],
@@ -31,8 +33,11 @@ function structuredResult(value: unknown): ToolExecutionResult {
 }
 
 function readExplicit(value: McpResult<unknown>): ToolExecutionResult {
-  assertJSON(value.value);
-  // JSON validation excludes explicit undefined optional fields before schema parsing.
+  // Structured content is application data, so undefined values inside it fail.
+  const { structuredContent } = value.value;
+  if (structuredContent !== undefined) assertJSON(structuredContent);
+  // Undefined optional envelope fields, such as `isError: undefined`, are absent.
+  assertJSON(value.value, { omitUndefined: true });
   return explicitResult.parse(
     JSON.parse(JSON.stringify(value.value)),
   ) as ToolExecutionResult;
@@ -58,7 +63,7 @@ export async function resolveToolResult(
   output?: z.ZodType,
 ): Promise<ToolExecutionResult> {
   if (!output) return toolResult(value);
-  const explicit = value instanceof McpResult ? readExplicit(value) : undefined;
+  const explicit = isMcpResult(value) ? readExplicit(value) : undefined;
   if (explicit && !Object.hasOwn(explicit, "structuredContent")) {
     if (explicit.isError) return explicit;
     throw new Error(
@@ -72,13 +77,19 @@ export async function resolveToolResult(
     throw new Error(`Invalid output for tool: ${name}`, {
       cause: parsed.error,
     });
-  const result = structuredResult(parsed.data);
-  return explicit
-    ? withStructuredText({
-        ...explicit,
-        structuredContent: result.structuredContent,
-      })
-    : result;
+  // The schema accepted these values; undefined optional properties are absent.
+  const result = structuredResult(parsed.data, { omitUndefined: true });
+  if (!explicit) return result;
+  // Text serializing the raw data describes the parsed data after output parsing.
+  const raw = JSON.stringify(explicit.structuredContent);
+  const text = JSON.stringify(result.structuredContent);
+  return withStructuredText({
+    ...explicit,
+    content: explicit.content.map((block) =>
+      block.type === "text" && block.text === raw ? { ...block, text } : block,
+    ),
+    structuredContent: result.structuredContent,
+  });
 }
 
 export function toolError(message: string): ToolExecutionResult {

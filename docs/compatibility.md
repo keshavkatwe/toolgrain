@@ -63,6 +63,13 @@ transforms, async refinements, and `0`, `false`, and `null` payloads. All 93 MCP
 38 HTTP tests pass, as do source type checks and compiled declaration checks for
 valid text-only errors and rejected incompatible structured errors.
 
+Review fixes on 2026-10-19 treat undefined optional `mcpResult()` envelope and
+content fields, and undefined optional properties after output parsing, as absent.
+Undefined values inside unparsed structured data are still rejected. Text that
+serializes the original structured data is replaced by the parsed serialization.
+Tools and rich results are recognized across duplicate package copies through
+registered-symbol brands; spreads still lose the brand. MCP now passes 99 tests.
+
 ## Normal Codex setup
 
 Build the examples and configure the command or URL using normal MCP settings:

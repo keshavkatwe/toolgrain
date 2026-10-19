@@ -79,13 +79,13 @@ Confirmed semantics:
 ## Confirmed tool execution decisions
 
 - The separate `@toolgrain/core` workspace is removed. Tool definitions, the registry, execution, schema conversion, and result handling live together in `packages/mcp/src/tools/`; the registry is internal. Related tests live in `packages/mcp/test/tools/`.
-- `tool()` creates reusable, frozen definitions and preserves input inference. Registration requires these definitions; raw objects and modified spreads are rejected by types and at runtime.
+- `tool()` creates reusable, frozen definitions and preserves input inference. Registration requires these definitions; raw objects and modified spreads are rejected by types and at runtime. Tool and `mcpResult()` brands use structural method types and registered-symbol prototype markers, so duplicate compatible package copies interoperate.
 - `tool()` accepts optional `title`, `description`, `annotations`, `icons`, `_meta`, and Zod `output` directly. No MCP wrapper is needed.
 - Input validation uses asynchronous parsing; handlers receive parsed values, including defaults and transforms.
 - Optional output schemas constrain handler return types and asynchronously parse returned data, including defaults and transforms. Plain results are validated directly; any supplied `mcpResult()` structured content is validated, including error data. Error results may omit structured content and use text; output defaults do not create data for these errors. Invalid output becomes a tool error without structured data. Without an output schema, any JSON structured content is allowed.
 - Without an output schema, handler outputs remain unchanged before MCP result conversion. Calling a definition's `execute` property invokes the raw handler and bypasses all server validation and conversion.
 - Exposed names follow the recommended 1–128 ASCII letters/digits/underscore/hyphen/dot rules, enforced at server construction with `ToolNameError`.
-- `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Ordinary result-shaped objects remain data.
+- `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Undefined optional envelope/content fields and optional properties parsing to undefined are absent; undefined inside unparsed data is rejected. Output parsing replaces text that serialized the original structured data. Ordinary result-shaped objects remain data.
 - Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. No handler context or cooperative interruption yet.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 

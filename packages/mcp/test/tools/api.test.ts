@@ -587,6 +587,119 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
       finished.resolve(true);
       expect(await response).toBeUndefined();
     });
+    it("treats undefined optional envelope and output fields as absent", async () => {
+      const server = createServer({
+        name: "test",
+        version: "1",
+        tools: {
+          envelope: tool({
+            input: z.object({}),
+            execute: () =>
+              // JavaScript and non-exact optional types may pass undefined fields.
+              mcpResult({
+                content: [
+                  { type: "text", text: "ok", _meta: undefined },
+                  {
+                    type: "resource_link",
+                    uri: "file:///report.txt",
+                    name: "report",
+                    title: undefined,
+                  },
+                ],
+                isError: undefined,
+                structuredContent: undefined,
+                _meta: undefined,
+              } as never),
+          }),
+          optional: tool({
+            input: z.object({}),
+            output: z.object({
+              message: z.string(),
+              note: z.string().optional(),
+            }),
+            execute: () => ({ message: "hi", note: undefined }),
+          }),
+          data: tool({
+            input: z.object({}),
+            execute: () =>
+              mcpResult({
+                content: [],
+                structuredContent: { value: undefined },
+              } as never),
+          }),
+        },
+      });
+      expect(
+        await invoke(server, revision, "tools/call", { name: "envelope" }),
+      ).toHaveProperty("result.content", [
+        { type: "text", text: "ok" },
+        { type: "resource_link", uri: "file:///report.txt", name: "report" },
+      ]);
+      const envelope = await invoke(server, revision, "tools/call", {
+        name: "envelope",
+      });
+      expect(envelope).not.toHaveProperty("result.isError");
+      expect(envelope).not.toHaveProperty("result.structuredContent");
+      expect(
+        await invoke(server, revision, "tools/call", { name: "optional" }),
+      ).toMatchObject({
+        result: {
+          content: [{ type: "text", text: '{"message":"hi"}' }],
+          structuredContent: { message: "hi" },
+        },
+      });
+      // Undefined values inside structured content remain application data errors.
+      expect(
+        await invoke(server, revision, "tools/call", { name: "data" }),
+      ).toMatchObject({
+        result: {
+          isError: true,
+          content: [{ text: "Tool output must be a JSON value" }],
+        },
+      });
+    });
+
+    it("replaces raw structured text with the parsed serialization", async () => {
+      const server = createServer({
+        name: "test",
+        version: "1",
+        tools: {
+          parsed: tool({
+            input: z.object({}),
+            output: z.object({
+              count: z.string().transform(Number).pipe(z.number()),
+            }),
+            execute: () =>
+              mcpResult({
+                content: [
+                  { type: "text", text: "Summary" },
+                  {
+                    type: "text",
+                    text: JSON.stringify({ count: "2" }),
+                    annotations: { audience: ["assistant"] },
+                  },
+                ],
+                structuredContent: { count: "2" },
+              }),
+          }),
+        },
+      });
+      expect(
+        await invoke(server, revision, "tools/call", { name: "parsed" }),
+      ).toMatchObject({
+        result: {
+          content: [
+            { type: "text", text: "Summary" },
+            {
+              type: "text",
+              text: '{"count":2}',
+              annotations: { audience: ["assistant"] },
+            },
+          ],
+          structuredContent: { count: 2 },
+        },
+      });
+    });
   },
 );
 

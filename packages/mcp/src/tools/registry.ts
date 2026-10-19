@@ -1,4 +1,8 @@
-import { RegisteredTool, type ToolMetadata } from "./definition.js";
+import {
+  isRegisteredTool,
+  type RegisteredTool,
+  type ToolMetadata,
+} from "./definition.js";
 import { ToolInputError, UnknownToolError } from "./errors.js";
 
 export type ToolMap = Record<string, RegisteredTool>;
@@ -33,7 +37,7 @@ export function createRegistry<const Tools extends ToolMap>(
 ): Registry<Tools> {
   const entries = new Map(
     Object.entries(tools).map(([name, definition]) => {
-      if (!(definition instanceof RegisteredTool))
+      if (!isRegisteredTool(definition))
         throw new TypeError(
           `Tool ${JSON.stringify(name)} must be created with tool()`,
         );
