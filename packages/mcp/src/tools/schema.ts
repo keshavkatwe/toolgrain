@@ -1,7 +1,7 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import { z } from "zod";
+import { icon } from "../protocol/icon.js";
 import { object } from "../protocol/messages.js";
-import { icon } from "./content.js";
 import { TOOL_METADATA_KEYS } from "./definition.js";
 import { assertJSON } from "./json-value.js";
 import { validateToolName } from "./name.js";
