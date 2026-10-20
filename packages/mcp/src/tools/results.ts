@@ -14,7 +14,6 @@ export interface ToolExecutionResult {
 
 export function toolResult(value: unknown): ToolExecutionResult {
   if (isMcpResult(value)) return withStructuredText(readExplicit(value));
-  assertJSON(value);
   if (typeof value === "string")
     return { content: [{ type: "text", text: value }] };
   return structuredResult(value);
