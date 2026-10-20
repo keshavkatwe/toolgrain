@@ -5,6 +5,10 @@ import {
   type RequestId,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import type {
+  ClientCapabilities as LegacyClientCapabilities,
+  Implementation as LegacyImplementation,
+} from "@toolgrain/protocol/2025-06-18";
 
 type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -14,8 +18,10 @@ type DeepReadonly<T> = T extends readonly (infer Item)[]
 
 /** What the client reported about itself; unverified, so not a basis for security decisions. */
 export interface ToolClient {
-  readonly info?: DeepReadonly<Implementation>;
-  readonly capabilities?: DeepReadonly<ClientCapabilities>;
+  readonly info?: DeepReadonly<Implementation | LegacyImplementation>;
+  readonly capabilities?: DeepReadonly<
+    ClientCapabilities | LegacyClientCapabilities
+  >;
 }
 
 export interface ToolRequest {

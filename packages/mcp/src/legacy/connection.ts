@@ -1,6 +1,4 @@
 import {
-  type ClientCapabilities,
-  type Implementation,
   INVALID_REQUEST,
   type JSONRPCErrorResponse,
   LEGACY_PROTOCOL_VERSION,
@@ -8,6 +6,10 @@ import {
   type RequestId,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import type {
+  ClientCapabilities,
+  Implementation,
+} from "@toolgrain/protocol/2025-06-18";
 import type { Notification, Request } from "../protocol/messages.js";
 import { protocolError } from "../protocol/responses.js";
 import {

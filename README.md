@@ -123,7 +123,10 @@ const search = tool({
   `info` and `capabilities` the client reported, and `meta`, a copy of the
   request's `_meta`. Each request gets its own deeply frozen copies. Client info
   and capabilities are recursively readonly in the handler types, including
-  nested arrays. Modern requests carry client details on each request; legacy
+  nested arrays. Their types cover both supported protocol eras; fields that
+  differ between eras need guards, and checking `protocolVersion` alone does
+  not narrow them. Legacy details retain their reported values without
+  normalization. Modern requests carry client details on each request; legacy
   stdio uses those from `initialize`; legacy HTTP has none, so `client` is
   absent. Client details are self-reported and unverified, so don't base security
   decisions on them.
