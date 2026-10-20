@@ -35,7 +35,7 @@ export function initialize(
   return {
     protocolVersion: LEGACY_PROTOCOL_VERSION,
     capabilities: { tools: {} },
-    serverInfo: identity,
+    serverInfo: { ...identity },
     ...(instructions === undefined ? {} : { instructions }),
   };
 }

@@ -8,7 +8,7 @@ import { createRegistry } from "../../src/tools/registry.js";
 const ctx = toolContext();
 
 describe("tool execution", () => {
-  it("infers parsed inputs and applies defaults and transforms", async () => {
+  it("parses inputs and applies defaults and transforms", async () => {
     const execute = vi.fn((input: { count: number }) => input.count);
     const count = tool({
       input: z.object({ count: z.string().default("12").transform(Number) }),
@@ -17,9 +17,6 @@ describe("tool execution", () => {
     const registry = createRegistry({ count });
     expect(await registry.execute("count", {}, ctx)).toBe(12);
     expect(execute).toHaveBeenCalledExactlyOnceWith({ count: 12 }, ctx);
-    expectTypeOf(registry.execute("count", {}, ctx)).toEqualTypeOf<
-      Promise<number>
-    >();
   });
 
   it("supports async refinements and rejects invalid inputs before executing", async () => {
@@ -137,21 +134,24 @@ describe("registry", () => {
     expect(error).toMatchObject({ toolName: "missing" });
   });
 
-  it("infers per-name and dynamic outputs and rejects invalid handlers", () => {
+  it("uses unknown internal results and preserves tool inference", () => {
+    const number = tool({ input: z.number(), execute: async (value) => value });
     const registry = createRegistry({
       text: definition,
-      number: tool({ input: z.number(), execute: async (value) => value }),
+      number,
     });
     expectTypeOf(registry.execute("text", "hi", ctx)).toEqualTypeOf<
-      Promise<string>
+      Promise<unknown>
     >();
     expectTypeOf(registry.execute("number", 1, ctx)).toEqualTypeOf<
-      Promise<number>
+      Promise<unknown>
     >();
     const name: string = "text";
     expectTypeOf(registry.execute(name, "hi", ctx)).toEqualTypeOf<
-      Promise<string | number>
+      Promise<unknown>
     >();
+    expectTypeOf(definition.execute("hi", ctx)).toEqualTypeOf<string>();
+    expectTypeOf(number.execute(1, ctx)).toEqualTypeOf<Promise<number>>();
     tool({
       input: z.string(),
       execute(value) {
