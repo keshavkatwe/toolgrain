@@ -1,5 +1,5 @@
 import type { ContentBlock, MetaObject } from "@toolgrain/protocol";
-import type { z } from "zod";
+import * as core from "zod/v4/core";
 import { explicitResult } from "./content.js";
 import { type AssertJSONOptions, assertJSON } from "./json-value.js";
 import { isMcpResult, type McpResult } from "./rich-result.js";
@@ -14,7 +14,6 @@ export interface ToolExecutionResult {
 
 export function toolResult(value: unknown): ToolExecutionResult {
   if (isMcpResult(value)) return withStructuredText(readExplicit(value));
-  assertJSON(value);
   if (typeof value === "string")
     return { content: [{ type: "text", text: value }] };
   return structuredResult(value);
@@ -60,7 +59,7 @@ function withStructuredText(result: ToolExecutionResult): ToolExecutionResult {
 export async function resolveToolResult(
   name: string,
   value: unknown,
-  output?: z.ZodType,
+  output?: core.$ZodType,
 ): Promise<ToolExecutionResult> {
   if (!output) return toolResult(value);
   const explicit = isMcpResult(value) ? readExplicit(value) : undefined;
@@ -70,7 +69,8 @@ export async function resolveToolResult(
       `Output schema requires structuredContent for tool: ${name}`,
     );
   }
-  const parsed = await output.safeParseAsync(
+  const parsed = await core.safeParseAsync(
+    output,
     explicit ? explicit.structuredContent : value,
   );
   if (!parsed.success)

@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-19
+Updated: 2026-10-20
 
 ## Working agreement
 
@@ -74,20 +74,24 @@ Confirmed semantics:
 - Ordinary strings and JSON values are converted into MCP tool results.
 - `mcpResult()` explicitly marks rich MCP content and result metadata; plain objects remain application data.
 - Transport selection is explicit.
-- Zod 4 is the initial schema library. Independence from the MCP SDK does not mean zero dependencies.
+- Zod 4 is the initial schema library. Classic and Mini user schemas are accepted through `zod/v4/core`; internal protocol, metadata, and content validators remain Classic. Independence from the MCP SDK does not mean zero dependencies.
+- The MCP authoring API's minimum supported TypeScript version is 5.5.4 with strict mode; its Zod peer floor remains 4.0.0.
 
 ## Confirmed tool execution decisions
 
 - The separate `@toolgrain/core` workspace is removed. Tool definitions, the registry, execution, schema conversion, and result handling live together in `packages/mcp/src/tools/`; the registry is internal. Related tests live in `packages/mcp/test/tools/`.
+- The internal registry is non-generic: listings use general schema types and execution returns `Promise<unknown>`. Public `tool()` inference and schema checks remain unchanged; the registry still validates inputs, checks cancellation, and invokes the matching handler.
 - `tool()` creates reusable, frozen definitions and preserves input inference. Registration requires these definitions; raw objects and modified spreads are rejected by types and at runtime. Tool and `mcpResult()` brands use structural method types and registered-symbol prototype markers, so duplicate compatible package copies interoperate.
 - `tool()` accepts optional `title`, `description`, `annotations`, `icons`, `_meta`, and Zod `output` directly. No MCP wrapper is needed.
 - Input validation uses asynchronous parsing; handlers receive parsed values, including defaults and transforms.
 - Optional output schemas constrain handler return types and asynchronously parse returned data, including defaults and transforms. Plain results are validated directly; any supplied `mcpResult()` structured content is validated, including error data. Error results may omit structured content and use text; output defaults do not create data for these errors. Invalid output becomes a tool error without structured data. Without an output schema, any JSON structured content is allowed.
 - Without an output schema, handler outputs remain unchanged before MCP result conversion. Calling a definition's `execute` property invokes the raw handler and bypasses all server validation and conversion.
+- Ordinary non-string results are JSON-validated once in `structuredResult()` before serialization. Explicit results retain strict structured-content validation separately from omission-tolerant envelope validation.
 - Exposed names follow the recommended 1–128 ASCII letters/digits/underscore/hyphen/dot rules, enforced at server construction with `ToolNameError`.
 - `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Undefined optional envelope/content fields and optional properties parsing to undefined are absent; undefined inside unparsed data is rejected. Output parsing replaces text that serialized the original structured data. Ordinary result-shaped objects remain data.
 - Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. Handlers receive a `ToolContext`; see the handler context section below.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
+- MCP emits external JavaScript source maps and declaration maps and packages `src/**/*.ts` alongside `dist`. Public exports remain compiled files in `dist`; sources support debugging and editor navigation. Other libraries retain their existing output policies.
 
 ## Confirmed handler context design
 
@@ -95,6 +99,8 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 
 - Handlers receive a second argument, `execute(input, ctx)`, typed `ToolContext`. This is additive: handlers that take only `input` remain valid.
 - v0 `ctx` is `{ signal, request: { id, protocolVersion, client?, meta } }`. `signal` is an `AbortSignal`. `request.client` is `{ info?, capabilities? }` and is absent where the era and transport provide no client information (for example legacy HTTP). `request.meta` is a deeply frozen copy of the request's `_meta`. Each request gets its own deeply frozen copy of `client` too, so handlers cannot affect one another. Client details are self-reported and unverified. The shape is the same for stdio and HTTP and for both protocol eras.
+- Client info and capabilities have recursive readonly types, including nested arrays, matching their existing runtime freezing. `toolContext()` accepts mutable construction inputs and existing readonly client views. `AbortSignal` and unknown metadata values keep their existing types.
+- Client info and capabilities are typed as unions of the modern and legacy protocol types. Legacy details retain their reported values without normalization. `ToolRequest` stays a single shape, so checking `protocolVersion` does not narrow these unions; handlers must guard fields that differ between eras.
 - If the signal has aborted by the time input validation finishes, the handler is not started.
 - `ctx` is required in the handler type. Direct `execute` calls (for example in tests) build one with an exported `toolContext({ signal?, request? })` helper. It defaults each omitted or undefined field separately: id `0`, the modern revision, no client, and empty meta.
 - Docs and examples name the parameter `ctx` and the type `ToolContext`.
@@ -119,12 +125,15 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 - `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
 - The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
+- Response server identity (`name`, `version`) is copied per response in modern result metadata and legacy initialization, so callers cannot mutate other responses or the server's internal identity.
 - Modern requests carry version and client capabilities individually. Legacy stdio uses connection-scoped `initialize` / `notifications/initialized` negotiation and supports `ping`; modern requests remain independent and can interleave. Legacy initialization negotiates `2025-06-18` and never claims modern semantics through `initialize`.
 - Input schemas convert with Zod's input-mode JSON Schema 2020-12 conversion and require an object root. Output schemas use output-mode conversion. Fail unrepresentable schemas or invalid metadata at construction. Legacy listings retain supported metadata, omit icons, and advertise only object-root output schemas.
 - Strings become text without an output schema; declared outputs include parsed structured content plus serialized text. Other modern JSON values become structured content plus text. Legacy structured content contains only objects; other JSON values are text only. Reject unsupported output values as tool errors.
 - Input/output validation and handler failures are tool results with `isError`; unknown tools and invalid protocol messages use protocol errors.
 - Modern discovery/list results use `ttlMs: 0`, `cacheScope: "private"`; discovery advertises both supported revisions. Legacy result envelopes omit modern result/cache/server-info metadata. Tool lists are a single page; nonempty cursors are rejected.
 - Each MCP tool adapter reuses one internal registry. Cancellation suppresses pending responses and aborts the handler context signal; validation continues once registry execution starts, but a request cancelled during validation never starts its handler. Handlers stop early only if they observe the signal.
+- `ToolAdapter` is an explicit internal interface alongside `createToolAdapter()` in `tools/adapter.ts`. Dispatchers and handlers depend on that contract; it is not exported from the public package entry point.
+- `protocol/icon.ts` in MCP owns the shared icon validator used by modern client metadata, tool metadata, and resource links. It preserves loose-object validation; legacy icon omission stays in the legacy adapters.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
 - Keep revision-specific validation, dispatch, response shaping, and legacy negotiation in separate `modern/` and `legacy/` modules. Share tool execution, JSON normalization, schema conversion, envelope decoding, and transport lifecycle; era selection stays in thin composition modules. Modern modules must not depend on legacy modules. This separation preserves the public API and wire behavior while keeping legacy support removable.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
@@ -200,7 +209,7 @@ are intentionally unsupported.
 
 - `packages/repo-tools` (`@toolgrain/repo-tools`, private) owns repository
   verification, reporting, and inspection. Its `toolgrain-repo` command provides
-  `size`, `exports`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
+  `size`, `exports`, `mcp-compat`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
   `@toolgrain/repo-tools/http-example` is the shared example smoke test.
 - Libraries and HTTP examples declare it as a development dependency. The root
   does not, because a root dependency on an internal package invalidates every
@@ -229,6 +238,15 @@ are intentionally unsupported.
   schema cannot express; only their error objects are schema-checked.
 - `test/wire-types.test.ts` checks during `check-types` that hand-written Zod wire
   schemas match vendored protocol types, including nested field paths.
+- MCP's `test:package` runs `toolgrain-repo mcp-compat` before export checks. It
+  reuses `smoke/consumer.mts` with TypeScript 5.5.4 and the development compiler
+  against Zod 4.0.0 and the development version, checking declarations with
+  `skipLibCheck: false` and no ambient workspace types. The existing runtime
+  fixture runs under Node with `--enable-source-maps` for each Zod version and
+  checks a stack location in MCP's TypeScript source. Compiled MCP/protocol packages,
+  MCP sources, and the selected Zod version are copied into temporary directories to avoid
+  workspace resolution fallback. Exact minimum-version aliases live in
+  repo-tools as development tooling; verification performs no installations.
 
 ## Coverage verification
 
@@ -256,6 +274,12 @@ no checkout and does not execute repository code.
   `package-size.config.json` (found by walking up from the package), every compiled
   module and declaration in `dist`, explicit required protocol artifacts, and
   package-file boundaries. Declared export targets are checked by publint and attw.
+- MCP's size policy enables `sourceMaps`: both maps for every compiled module
+  and its TypeScript sources must be packed. Verification checks map JSON,
+  relative source targets, matching compiled files, and mapping comments in the
+  actual archive. Only existing `src/**/*.ts` files are allowed under this policy;
+  other packages keep their source-file restrictions. MCP's budgets are 59 KiB
+  packed and 258 KiB unpacked, retaining approximately 20% headroom after maps.
 - Library builds remove `dist` before compiling. Turbo cache restores do not
   remove extra files, so the size check also fails on any compiled `dist` module
   without a matching `src/**/*.ts` source; rerun `bun run build --force`. Reports include the complete inventory under each package's

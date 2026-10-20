@@ -15,7 +15,8 @@ import { expectTypeOf, it } from "vitest";
 import type { z } from "zod";
 import type { initializeParams } from "../src/legacy/messages.js";
 import type { metadata } from "../src/modern/metadata.js";
-import type { contentBlock, icon } from "../src/tools/content.js";
+import type { icon } from "../src/protocol/icon.js";
+import type { contentBlock } from "../src/tools/content.js";
 import type { toolAnnotations } from "../src/tools/schema.js";
 
 // Hand-written Zod wire schemas must stay aligned with the vendored protocol

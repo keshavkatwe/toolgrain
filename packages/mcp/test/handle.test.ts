@@ -1,4 +1,8 @@
-import { PROTOCOL_VERSION } from "@toolgrain/protocol";
+import {
+  LEGACY_PROTOCOL_VERSION,
+  PROTOCOL_VERSION,
+  type SupportedProtocolVersion,
+} from "@toolgrain/protocol";
 import { expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createServer, tool } from "../src/index.js";
@@ -42,6 +46,60 @@ it("handles independent messages and snapshots tool definitions", async () => {
   await server.close();
   await expect(server.handle(message())).rejects.toThrow("closed");
 });
+it.each([
+  [PROTOCOL_VERSION, PROTOCOL_VERSION],
+  [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION],
+  [LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION],
+  [LEGACY_PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION],
+] as const)(
+  "keeps existing and future identities isolated (%s → %s)",
+  async (source, target) => {
+    const expected = { name: "test", version: "1" };
+    const server = createServer({ ...expected, tools: {} });
+    let id = 0;
+    async function identity(protocolVersion: SupportedProtocolVersion) {
+      const response = await server.handle(
+        protocolVersion === PROTOCOL_VERSION
+          ? { ...message("server/discover"), id: ++id }
+          : {
+              jsonrpc: "2.0",
+              id: ++id,
+              method: "initialize",
+              params: {
+                protocolVersion,
+                capabilities: {},
+                clientInfo: { name: "client", version: "1" },
+              },
+            },
+        { protocolVersion },
+      );
+      if (!response || !("result" in response))
+        throw new Error("Expected successful response");
+      const info =
+        protocolVersion === PROTOCOL_VERSION
+          ? response.result._meta?.["io.modelcontextprotocol/serverInfo"]
+          : response.result.serverInfo;
+      if (
+        typeof info !== "object" ||
+        info === null ||
+        !("name" in info) ||
+        !("version" in info)
+      )
+        throw new Error("Expected server identity");
+      return info;
+    }
+    try {
+      const original = await identity(source);
+      const existing = await identity(target);
+      original.name = "changed";
+      original.version = "999";
+      expect(existing).toEqual(expected);
+      expect(await identity(target)).toEqual(expected);
+    } finally {
+      await server.close();
+    }
+  },
+);
 it("cancellation and server close suppress pending responses", async () => {
   for (const action of ["abort", "close"]) {
     const gate = deferred();

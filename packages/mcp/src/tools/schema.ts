@@ -1,7 +1,8 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import { z } from "zod";
+import * as core from "zod/v4/core";
+import { icon } from "../protocol/icon.js";
 import { object } from "../protocol/messages.js";
-import { icon } from "./content.js";
 import { TOOL_METADATA_KEYS } from "./definition.js";
 import { assertJSON } from "./json-value.js";
 import { validateToolName } from "./name.js";
@@ -52,7 +53,7 @@ export function describeTool(
   validateToolName(name);
   let schemaKind: "input" | "output" | "metadata" = "input";
   try {
-    const inputSchema = z.toJSONSchema(definition.input, {
+    const inputSchema = core.toJSONSchema(definition.input, {
       io: "input",
       target: "draft-2020-12",
     });
@@ -62,7 +63,7 @@ export function describeTool(
     const outputSchema =
       definition.output === undefined
         ? undefined
-        : z.toJSONSchema(definition.output, {
+        : core.toJSONSchema(definition.output, {
             io: "output",
             target: "draft-2020-12",
           });

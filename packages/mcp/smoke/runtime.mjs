@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { createServer, mcpResult, tool, toolContext } from "@toolgrain/mcp";
 import { LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
+import * as mini from "zod/v4/mini";
 
 let callbacks;
 let resolve;
 const versions = [];
+const clients = [];
 const response = new Promise((yes) => {
   resolve = yes;
 });
@@ -20,11 +22,17 @@ const server = createServer({
       output: z.object({ message: z.string() }),
       execute: ({ name }, ctx) => {
         versions.push(ctx.request.protocolVersion);
+        clients.push(ctx.request.client);
         return mcpResult({
           content: [],
           structuredContent: { message: `Hello, ${name}!` },
         });
       },
+    }),
+    miniGreet: tool({
+      input: mini.object({ name: mini._default(mini.string(), "Mini") }),
+      output: mini.object({ message: mini.string() }),
+      execute: ({ name }) => ({ message: `Hello, ${name}!` }),
     }),
   },
 });
@@ -72,7 +80,80 @@ assert.deepEqual(legacy.result.content, [
   { type: "text", text: '{"message":"Hello, Legacy!"}' },
 ]);
 assert.deepEqual(versions, [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]);
+for (const protocolVersion of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
+  const result = await server.handle(
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: {
+        name: "miniGreet",
+        ...(protocolVersion === PROTOCOL_VERSION
+          ? {
+              _meta: {
+                "io.modelcontextprotocol/protocolVersion": protocolVersion,
+                "io.modelcontextprotocol/clientCapabilities": {},
+              },
+            }
+          : {}),
+      },
+    },
+    { protocolVersion },
+  );
+  assert.deepEqual(result.result.structuredContent, {
+    message: "Hello, Mini!",
+  });
+}
+const legacyClient = {
+  info: { name: "legacy", version: "1", icons: "legacy extension" },
+  capabilities: { elicitation: { form: null }, sampling: { tools: false } },
+};
+const initialization = new Promise((yes) => {
+  resolve = yes;
+});
+callbacks.onMessage({
+  jsonrpc: "2.0",
+  id: 4,
+  method: "initialize",
+  params: {
+    protocolVersion: LEGACY_PROTOCOL_VERSION,
+    clientInfo: legacyClient.info,
+    capabilities: legacyClient.capabilities,
+  },
+});
+assert.equal(
+  (await initialization).result.protocolVersion,
+  LEGACY_PROTOCOL_VERSION,
+);
+callbacks.onMessage({ jsonrpc: "2.0", method: "notifications/initialized" });
+const legacyCall = new Promise((yes) => {
+  resolve = yes;
+});
+callbacks.onMessage({
+  jsonrpc: "2.0",
+  id: 5,
+  method: "tools/call",
+  params: { name: "greet", arguments: { name: "Legacy client" } },
+});
+assert.deepEqual((await legacyCall).result.structuredContent, {
+  message: "Hello, Legacy client!",
+});
+const client = clients.at(-1);
+assert.deepEqual(client, legacyClient);
+assert.notEqual(client.info, legacyClient.info);
+assert.notEqual(client.capabilities, legacyClient.capabilities);
+assert.ok(Object.isFrozen(client.info));
+assert.ok(Object.isFrozen(client.capabilities.elicitation));
 const direct = toolContext({ request: { id: "smoke" } });
 assert.equal(direct.request.id, "smoke");
 assert.equal(direct.signal.aborted, false);
 await server.close();
+
+assert.throws(
+  () => createServer({ name: "invalid", version: "1", tools: { bad: {} } }),
+  (error) => {
+    assert.match(error.message, /must be created with tool\(\)/);
+    assert.match(error.stack, /[/\\]src[/\\]tools[/\\]registry\.ts:\d+:\d+/);
+    return true;
+  },
+);

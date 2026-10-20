@@ -36,6 +36,32 @@ const server = createServer({
 await server.listen(stdio());
 ```
 
+Input and output schemas can use Zod 4 Classic or Zod Mini, including mixed
+definitions. Handler inputs still infer the parsed type, and declared outputs
+check the handler's return type before output parsing. For example, Mini users
+can define the same tool with its functional schema API:
+
+```ts
+import * as mini from "zod/v4/mini";
+
+const greet = tool({
+  input: mini.object({ name: mini.string().check(mini.minLength(1)) }),
+  output: mini.object({ message: mini.string() }),
+  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+});
+```
+
+Toolgrain consumes user schemas through `zod/v4/core`. Its internal wire and
+metadata validators continue using Classic.
+
+The MCP authoring API supports TypeScript 5.5.4 or later with `strict` enabled.
+Supported Zod versions follow the `^4.0.0` peer range.
+
+MCP packages JavaScript source maps, declaration maps, and their original
+TypeScript sources for debugging and editor navigation. Public imports still
+resolve to compiled files in `dist`. For mapped Node stack traces, start your
+application with `node --enable-source-maps app.js`.
+
 Registration keys supply exposed names: 1–128 ASCII letters, digits, underscores,
 hyphens, or dots. Names are case-sensitive. Definitions are reusable across
 servers, and registrations must be created with `tool()`; raw objects and modified
@@ -95,10 +121,15 @@ const search = tool({
   returns or throws afterwards is discarded.
 - `ctx.request` holds `id`, `protocolVersion`, an optional `client` with the
   `info` and `capabilities` the client reported, and `meta`, a copy of the
-  request's `_meta`. Each request gets its own deeply frozen copies. Modern
-  requests carry client details on each request; legacy stdio uses those from
-  `initialize`; legacy HTTP has none, so `client` is absent. Client details are
-  self-reported and unverified, so don't base security decisions on them.
+  request's `_meta`. Each request gets its own deeply frozen copies. Client info
+  and capabilities are recursively readonly in the handler types, including
+  nested arrays. Their types cover both supported protocol eras; fields that
+  differ between eras need guards, and checking `protocolVersion` alone does
+  not narrow them. Legacy details retain their reported values without
+  normalization. Modern requests carry client details on each request; legacy
+  stdio uses those from `initialize`; legacy HTTP has none, so `client` is
+  absent. Client details are self-reported and unverified, so don't base security
+  decisions on them.
 - If the request is cancelled while its input is still being validated, the
   handler is not started.
 - Cancellation is cooperative. A handler that ignores `ctx.signal` keeps running
@@ -462,6 +493,14 @@ requests and pushes to `main`. The workflow reads the Bun version from
 `package.json`. It also runs type checks, library coverage, uninstrumented example smoke tests, builds, and a compiled-package import and
 declaration smoke check using Node 24.20.0.
 
+MCP package verification reuses its compiled consumer and runtime fixtures in
+isolated temporary directories. It checks TypeScript 5.5.4 and the development
+compiler against both Zod 4.0.0 and the development Zod version, including Classic
+and Mini inference and rejected definitions. Runtime checks run once per Zod
+version under Node with source maps enabled and check a TypeScript stack location.
+The isolated MCP copy includes its sources. Pinned compatibility dependencies are development tooling;
+verification requires no additional downloads or workspace dependency changes.
+
 ### Coverage checks
 
 `bun run test:coverage` runs through Turborepo, building each workspace before
@@ -509,6 +548,13 @@ Missing required files and unexpected package files fail the check. Intentional 
 requires reviewing and updating the relevant budget. Size checks run uncached
 to inspect the actual package contents on every run. They depend on the libraries'
 own builds and still run when an unrelated application build fails.
+
+MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaration
+maps, and the TypeScript sources in the archive. Verification rejects malformed
+maps, missing or incorrect source targets, and missing mapping comments. Packaged
+sources are limited to existing `src/**/*.ts` files; other libraries retain their
+existing restrictions. MCP's budgets are 59 KiB packed and 258 KiB unpacked,
+allowing approximately 20% growth above the build with maps and sources.
 
 `bun run test:audit` queries Bun's advisory service once for the complete
 `bun.lock`, then attributes known advisories to each workspace using its locked

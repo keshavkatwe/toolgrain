@@ -1,17 +1,11 @@
 import { z } from "zod";
+import { icon } from "../protocol/icon.js";
 import { object } from "../protocol/messages.js";
 
 const annotations = z.looseObject({
   audience: z.array(z.enum(["user", "assistant"])).optional(),
   priority: z.number().min(0).max(1).optional(),
   lastModified: z.string().optional(),
-});
-
-export const icon = z.looseObject({
-  src: z.string(),
-  mimeType: z.string().optional(),
-  sizes: z.array(z.string()).optional(),
-  theme: z.enum(["light", "dark"]).optional(),
 });
 
 const common = z.looseObject({

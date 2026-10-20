@@ -7,8 +7,33 @@ import {
   tool,
   toolContext,
 } from "@toolgrain/mcp";
-import { type DiscoverResult, PROTOCOL_VERSION } from "@toolgrain/protocol";
+import {
+  type DiscoverResult,
+  LEGACY_PROTOCOL_VERSION,
+  PROTOCOL_VERSION,
+} from "@toolgrain/protocol";
+import type {
+  ClientCapabilities as LegacyClientCapabilities,
+  Implementation as LegacyImplementation,
+} from "@toolgrain/protocol/2025-06-18";
 import { z } from "zod";
+import * as mini from "zod/v4/mini";
+
+const miniInput = mini.object({
+  count: mini.pipe(mini._default(mini.string(), "2"), mini.transform(Number)),
+});
+const miniTool = tool({
+  input: miniInput,
+  output: mini.object({ count: mini.string() }),
+  execute: ({ count }) => ({ count: count.toFixed() }),
+});
+const preservedMiniInput: typeof miniInput = miniTool.input;
+const miniReturn: { count: string } = miniTool.execute(
+  { count: 2 },
+  toolContext(),
+);
+void preservedMiniInput;
+void miniReturn;
 
 let callbacks: TransportCallbacks | undefined;
 const transport: Transport = {
@@ -31,6 +56,7 @@ const server = createServer({
   name: "smoke",
   version: "1.0",
   tools: {
+    mini: miniTool,
     greet: tool({
       title: "Greeting",
       annotations: { readOnlyHint: true },
@@ -72,6 +98,14 @@ const discovery: DiscoverResult = {
 void discovery;
 
 function rejectedDefinitions() {
+  const wrongError = () =>
+    mcpResult({ content: [], isError: true, structuredContent: "wrong" });
+  // @ts-expect-error Compiled declarations infer Mini's parsed input type.
+  tool({ input: miniInput, execute: ({ count }: { count: string }) => count });
+  // @ts-expect-error Compiled declarations check Mini output schemas.
+  tool({ input: miniInput, output: mini.number(), execute: () => "wrong" });
+  // @ts-expect-error Compiled declarations check Mini structured error results.
+  tool({ input: miniInput, output: mini.number(), execute: wrongError });
   // @ts-expect-error Compiled declarations preserve schema/handler checking.
   tool({ input: z.string(), execute: (value: number) => value });
   // @ts-expect-error Compiled declarations preserve output schema checking.
@@ -82,13 +116,8 @@ function rejectedDefinitions() {
   mcpResult({ content: [], structuredContent: new Date() });
   // @ts-expect-error Compiled declarations reject non-JSON structured error content.
   mcpResult({ content: [], isError: true, structuredContent: new Date() });
-  tool({
-    input: z.object({}),
-    // @ts-expect-error Compiled declarations reject invalid structured error data.
-    output: z.number(),
-    execute: () =>
-      mcpResult({ content: [], isError: true, structuredContent: "wrong" }),
-  });
+  // @ts-expect-error Compiled declarations reject invalid structured error data.
+  tool({ input: z.object({}), output: z.number(), execute: wrongError });
   createServer({
     name: "invalid",
     version: "1",
@@ -100,7 +129,72 @@ function rejectedDefinitions() {
 }
 void rejectedDefinitions;
 
-const direct: ToolContext = toolContext({ request: { id: "smoke" } });
+const mutableClient = {
+  info: {
+    name: "client",
+    version: "1",
+    icons: [{ src: "icon.png", sizes: ["48x48"] }],
+  },
+  capabilities: { elicitation: { form: {} } },
+};
+const direct: ToolContext = toolContext({
+  request: { id: "smoke", client: mutableClient },
+});
+toolContext({ request: direct.request });
 const directVersion: "2026-07-28" | "2025-06-18" =
   direct.request.protocolVersion;
 void directVersion;
+
+const legacyInfo: LegacyImplementation = { name: "legacy", version: "1" };
+const legacyCapabilities: LegacyClientCapabilities = {
+  roots: { listChanged: true },
+  sampling: { tools: false },
+  elicitation: { form: null },
+};
+toolContext({
+  request: {
+    protocolVersion: LEGACY_PROTOCOL_VERSION,
+    client: { info: legacyInfo, capabilities: legacyCapabilities },
+  },
+});
+
+function rejectedContextMutations(ctx: ToolContext) {
+  const client = ctx.request.client;
+  if (client?.info) {
+    // @ts-expect-error Compiled declarations expose readonly client fields.
+    client.info.name = "changed";
+    if ("icons" in client.info) {
+      // @ts-expect-error Compiled declarations expose readonly nested arrays.
+      client.info.icons?.[0]?.sizes?.push("96x96");
+    }
+  }
+  const capabilities = client?.capabilities;
+  if (capabilities?.experimental) {
+    // @ts-expect-error Compiled declarations expose readonly records in both eras.
+    capabilities.experimental["com.example/test"] = {};
+  }
+  if (capabilities && "extensions" in capabilities) {
+    const extension = capabilities.extensions?.["com.example/test"];
+    if (extension) {
+      // @ts-expect-error Compiled declarations expose deeply readonly capabilities.
+      extension["com.example/enabled"] = true;
+    }
+  }
+}
+void rejectedContextMutations;
+
+function rejectedClientAssumptions(ctx: ToolContext) {
+  const name: string | undefined = ctx.request.client?.info?.name;
+  void name;
+  // @ts-expect-error Legacy client information does not declare icons.
+  ctx.request.client?.info?.icons;
+  // @ts-expect-error Legacy elicitation does not declare a form field.
+  ctx.request.client?.capabilities?.elicitation?.form;
+  if (ctx.request.protocolVersion === PROTOCOL_VERSION) {
+    // @ts-expect-error ToolRequest stays one shape; checking the version does not narrow info.
+    ctx.request.client?.info?.icons;
+    // @ts-expect-error ToolRequest stays one shape; checking the version does not narrow capabilities.
+    ctx.request.client?.capabilities?.sampling?.tools;
+  }
+}
+void rejectedClientAssumptions;

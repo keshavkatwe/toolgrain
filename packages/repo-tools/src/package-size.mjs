@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { Archive } from "bun";
 
 export function checkSize(
@@ -35,22 +35,34 @@ export function checkSize(
       budget.requiredFiles.some((path) => typeof path !== "string" || !path))
   )
     throw new Error("Invalid required package files");
+  if (budget.sourceMaps !== undefined && typeof budget.sourceMaps !== "boolean")
+    throw new Error("Invalid sourceMaps policy");
+  const sources = new Set(sourceFiles ?? []);
+  const modules = [
+    "dist/index.js",
+    "dist/index.d.ts",
+    ...compiledFiles.map((path) => path.replace(/\.map$/, "")),
+  ];
   const requiredFiles = [
     ...new Set([
-      "dist/index.js",
-      "dist/index.d.ts",
+      ...modules,
       ...compiledFiles,
+      ...(budget.sourceMaps
+        ? [
+            ...modules.map((path) => `${path}.map`),
+            ...(sourceFiles ?? []).filter((path) => path.endsWith(".ts")),
+          ]
+        : []),
       ...(budget.requiredFiles ?? []),
     ]),
   ].sort();
   // Turbo restores cached outputs without removing extra files, so a compiled
   // module can outlive its source. Libraries compile src/**/*.ts into dist.
   if (sourceFiles) {
-    const sources = new Set(sourceFiles);
     for (const path of compiledFiles) {
       const source = path
         .replace(/^dist\//, "src/")
-        .replace(/\.(?:d\.ts|js)$/, ".ts");
+        .replace(/\.(?:d\.ts|js)(?:\.map)?$/, ".ts");
       if (!sources.has(source))
         errors.push(
           `Stale build output without source: ${path}; run bun run build --force`,
@@ -71,6 +83,11 @@ export function checkSize(
       ) &&
       !/^dist\/vendor\/(?:2026-07-28|2025-06-18)\/(?:schema\.ts|LICENSE|provenance\.json)$/.test(
         file.path,
+      ) &&
+      !(
+        budget.sourceMaps &&
+        /^src\/(?:[^./\\][^/\\]*\/)*[^./\\][^/\\]*\.ts$/.test(file.path) &&
+        sources.has(file.path)
       )
     )
       errors.push(`Unexpected package file: ${file.path}`);
@@ -85,6 +102,59 @@ export function checkSize(
     errors,
     status: errors.length ? "failed" : "passed",
   };
+}
+
+/** This tsc build emits one relative TypeScript source per JavaScript/declaration map. */
+export function checkSourceMaps(contents) {
+  const errors = [];
+  for (const [path, text] of contents) {
+    if (!/^dist\/.*\.(?:js|d\.ts)\.map$/.test(path)) continue;
+    const compiled = path.slice(0, -4);
+    if (!contents.has(compiled)) {
+      errors.push(`Source map has no compiled file: ${path}`);
+      continue;
+    }
+    let map;
+    try {
+      map = JSON.parse(text);
+    } catch {
+      errors.push(`Invalid source map JSON: ${path}`);
+      continue;
+    }
+    if (
+      map?.version !== 3 ||
+      map.file !== posix.basename(compiled) ||
+      (map.sourceRoot !== undefined && map.sourceRoot !== "") ||
+      !Array.isArray(map.sources) ||
+      map.sources.length !== 1 ||
+      typeof map.sources[0] !== "string" ||
+      posix.isAbsolute(map.sources[0]) ||
+      !Array.isArray(map.names) ||
+      !map.names.every((name) => typeof name === "string") ||
+      typeof map.mappings !== "string"
+    ) {
+      errors.push(`Invalid source map: ${path}`);
+      continue;
+    }
+    const source = posix.normalize(
+      posix.join(posix.dirname(path), map.sources[0]),
+    );
+    const expected = compiled
+      .replace(/^dist\//, "src/")
+      .replace(/\.(?:d\.ts|js)$/, ".ts");
+    if (source !== expected)
+      errors.push(`Unexpected source map target: ${path} -> ${source}`);
+    else if (!contents.has(source))
+      errors.push(`Missing source map target: ${path} -> ${source}`);
+    if (
+      !contents
+        .get(compiled)
+        .trimEnd()
+        .endsWith(`//# sourceMappingURL=${posix.basename(path)}`)
+    )
+      errors.push(`Missing source map reference: ${compiled}`);
+  }
+  return errors;
 }
 
 /** Find repository policy from the package directory, as package scripts run there. */
@@ -129,7 +199,7 @@ export async function main() {
     // declarations that are referenced by an exported entry point.
     const compiledFiles = readdirSync("dist", { recursive: true })
       .map((path) => `dist/${path.replaceAll("\\", "/")}`)
-      .filter((path) => /\.(?:js|d\.ts)$/.test(path));
+      .filter((path) => /\.(?:js|d\.ts)(?:\.map)?$/.test(path));
     const sourceFiles = existsSync("src")
       ? readdirSync("src", { recursive: true }).map(
           (path) => `src/${path.replaceAll("\\", "/")}`,
@@ -145,6 +215,18 @@ export async function main() {
         sourceFiles,
       ),
     };
+    if (budgets[manifest.name].sourceMaps) {
+      const contents = new Map(
+        await Promise.all(
+          [...entries].map(async ([path, file]) => [
+            path.replace(/^package\//, ""),
+            await file.text(),
+          ]),
+        ),
+      );
+      report.errors.push(...checkSourceMaps(contents));
+      report.status = report.errors.length ? "failed" : "passed";
+    }
   } catch (error) {
     report = { status: "error", errors: [error.message] };
   } finally {

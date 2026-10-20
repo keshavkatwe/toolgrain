@@ -12,8 +12,9 @@
     ]
   },
   "@toolgrain/mcp": {
-    "packedBytes": 19456,
-    "unpackedBytes": 98304
+    "packedBytes": 60416,
+    "unpackedBytes": 264192,
+    "sourceMaps": true
   },
   "@toolgrain/http": {
     "packedBytes": 9216,

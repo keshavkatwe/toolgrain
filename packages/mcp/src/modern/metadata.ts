@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { icon } from "../protocol/icon.js";
+import { object } from "../protocol/messages.js";
 
-const object = z.record(z.string(), z.unknown());
 const capabilityObject = z.record(z.string(), z.json());
 const requestId = z.union([z.string(), z.number().finite()]);
 const capabilities = z.looseObject({
@@ -26,16 +27,7 @@ const implementation = z.looseObject({
   title: z.string().optional(),
   description: z.string().optional(),
   websiteUrl: z.string().optional(),
-  icons: z
-    .array(
-      z.looseObject({
-        src: z.string(),
-        mimeType: z.string().optional(),
-        sizes: z.array(z.string()).optional(),
-        theme: z.enum(["light", "dark"]).optional(),
-      }),
-    )
-    .optional(),
+  icons: z.array(icon).optional(),
 });
 export const metadata = z.looseObject({
   "io.modelcontextprotocol/protocolVersion": z.string(),

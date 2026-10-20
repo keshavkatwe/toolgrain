@@ -1,8 +1,14 @@
 import {
+  type ClientCapabilities,
+  type Implementation,
   LEGACY_PROTOCOL_VERSION,
   PROTOCOL_VERSION,
   type RequestId,
 } from "@toolgrain/protocol";
+import type {
+  ClientCapabilities as LegacyClientCapabilities,
+  Implementation as LegacyImplementation,
+} from "@toolgrain/protocol/2025-06-18";
 import { expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
 import {
@@ -141,6 +147,84 @@ it("gives legacy stdio handlers the client from initialization", async () => {
     capabilities: { elicitation: {} },
   });
 });
+
+it.each(["modern", "legacy"] as const)(
+  "preserves %s client fields and isolates their frozen copies",
+  async (era) => {
+    const { contexts, tools } = recorder();
+    const { server, transport } = await listen(tools);
+    const info = {
+      ...clientInfo,
+      icons: era === "modern" ? [{ src: "client.png" }] : "legacy extension",
+    };
+    const capabilities = {
+      elicitation: { form: era === "modern" ? {} : null },
+      sampling: { tools: era === "modern" ? {} : false },
+      experimental: { "com.example/test": { values: ["original"] } },
+    };
+    const params =
+      era === "modern"
+        ? {
+            _meta: {
+              ...modernMeta,
+              "io.modelcontextprotocol/clientInfo": info,
+              "io.modelcontextprotocol/clientCapabilities": capabilities,
+            },
+          }
+        : {};
+    if (era === "legacy") {
+      transport.receive({
+        jsonrpc: "2.0",
+        id: 0,
+        method: "initialize",
+        params: {
+          protocolVersion: LEGACY_PROTOCOL_VERSION,
+          clientInfo: info,
+          capabilities,
+        },
+      });
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(1));
+      expect(transport.messages[0]).toHaveProperty("result");
+      transport.receive({
+        jsonrpc: "2.0",
+        method: "notifications/initialized",
+      });
+    }
+
+    const before = transport.messages.length;
+    for (const id of [1, 2]) {
+      transport.receive(call(params, id));
+      await vi.waitFor(() =>
+        expect(transport.messages).toHaveLength(before + id),
+      );
+      expect(transport.messages.at(-1)).toMatchObject({
+        result: { content: [{ type: "text", text: "done" }] },
+      });
+    }
+
+    const first = contexts[0]?.request.client;
+    const second = contexts[1]?.request.client;
+    expect(first).toEqual({ info, capabilities });
+    expect(second).toEqual(first);
+    expect(first?.info).not.toBe(info);
+    expect(first?.capabilities).not.toBe(capabilities);
+    expect(second).not.toBe(first);
+    expect(second?.info).not.toBe(first?.info);
+    expect(second?.capabilities).not.toBe(first?.capabilities);
+    const extension = first?.capabilities?.experimental?.["com.example/test"];
+    const values = Reflect.get(extension ?? {}, "values");
+    expect(values).not.toBe(
+      capabilities.experimental["com.example/test"].values,
+    );
+    expect(Object.isFrozen(first?.info)).toBe(true);
+    expect(Object.isFrozen(first?.capabilities?.elicitation)).toBe(true);
+    expect(Object.isFrozen(extension)).toBe(true);
+    expect(Object.isFrozen(values)).toBe(true);
+    expect(Reflect.set(values, "0", "changed")).toBe(false);
+    expect(second).toEqual({ info, capabilities });
+    await server.close();
+  },
+);
 
 it("aborts the signal when a stdio client cancels the request", async () => {
   const release = deferred();
@@ -284,4 +368,91 @@ it("types the handler context and keeps input-only handlers valid", () => {
   const inputOnly = tool({ input: z.object({}), execute: () => "ok" });
   // @ts-expect-error Direct calls must supply a context.
   inputOnly.execute({});
+});
+
+it("rejects mutations of nested client data at compile time", () => {
+  tool({
+    input: z.object({}),
+    execute(_input, ctx) {
+      const client = ctx.request.client;
+      if (client?.info) {
+        expectTypeOf(client.info.name).toEqualTypeOf<string>();
+        // @ts-expect-error Client information is frozen at runtime.
+        client.info.name = "changed";
+        if ("icons" in client.info) {
+          // @ts-expect-error Client icon arrays are frozen at runtime.
+          client.info.icons?.push({ src: "other.png" });
+          const icon = client.info.icons?.[0];
+          if (icon) {
+            // @ts-expect-error Nested icon objects are frozen at runtime.
+            icon.src = "changed.png";
+            // @ts-expect-error Nested icon size arrays are frozen at runtime.
+            icon.sizes?.push("96x96");
+          }
+        }
+      }
+      const capabilities = client?.capabilities;
+      if (capabilities?.experimental) {
+        // @ts-expect-error Experimental capability records are frozen in both eras.
+        capabilities.experimental["com.example/test"] = {};
+      }
+      if (capabilities && "extensions" in capabilities) {
+        const extension = capabilities.extensions?.["com.example/test"];
+        if (extension) {
+          // @ts-expect-error Capability records are deeply frozen at runtime.
+          extension["com.example/enabled"] = true;
+        }
+      }
+      return "ok";
+    },
+  });
+});
+
+it("accepts both client eras and requires guards for fields that differ", () => {
+  const legacyInfo: LegacyImplementation = clientInfo;
+  const legacyCapabilities: LegacyClientCapabilities = {
+    roots: { listChanged: true },
+    sampling: { tools: false },
+    elicitation: { form: null },
+  };
+  const modernInfo: Implementation = {
+    ...clientInfo,
+    icons: [{ src: "client.png", sizes: ["48x48"] }],
+  };
+  const modernCapabilities: ClientCapabilities = {
+    sampling: { tools: {} },
+    elicitation: { form: {} },
+    extensions: { "com.example/test": {} },
+  };
+  for (const client of [
+    { info: legacyInfo, capabilities: legacyCapabilities },
+    { info: modernInfo, capabilities: modernCapabilities },
+  ]) {
+    const ctx = toolContext({ request: { client } });
+    // Existing readonly views remain valid construction inputs.
+    toolContext({ request: ctx.request });
+  }
+
+  tool({
+    input: z.object({}),
+    execute(_input, { request }) {
+      if (request.client?.info) {
+        expectTypeOf(request.client.info.name).toEqualTypeOf<string>();
+        expectTypeOf(request.client.info.title).toEqualTypeOf<
+          string | undefined
+        >();
+      }
+      // @ts-expect-error Legacy client information does not declare icons.
+      request.client?.info?.icons;
+      // @ts-expect-error Legacy sampling does not declare a tools field.
+      request.client?.capabilities?.sampling?.tools;
+      if (request.protocolVersion === PROTOCOL_VERSION) {
+        // @ts-expect-error ToolRequest does not correlate the version with client info.
+        request.client?.info?.icons;
+        // @ts-expect-error ToolRequest does not correlate the version with capabilities.
+        request.client?.capabilities?.elicitation?.form;
+      }
+      return "ok";
+    },
+  });
 });

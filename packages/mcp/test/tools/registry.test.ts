@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
+import * as core from "zod/v4/core";
 import { toolContext } from "../../src/tools/context.js";
 import { tool } from "../../src/tools/definition.js";
 import { ToolInputError, UnknownToolError } from "../../src/tools/errors.js";
@@ -8,7 +9,7 @@ import { createRegistry } from "../../src/tools/registry.js";
 const ctx = toolContext();
 
 describe("tool execution", () => {
-  it("infers parsed inputs and applies defaults and transforms", async () => {
+  it("parses inputs and applies defaults and transforms", async () => {
     const execute = vi.fn((input: { count: number }) => input.count);
     const count = tool({
       input: z.object({ count: z.string().default("12").transform(Number) }),
@@ -17,16 +18,14 @@ describe("tool execution", () => {
     const registry = createRegistry({ count });
     expect(await registry.execute("count", {}, ctx)).toBe(12);
     expect(execute).toHaveBeenCalledExactlyOnceWith({ count: 12 }, ctx);
-    expectTypeOf(registry.execute("count", {}, ctx)).toEqualTypeOf<
-      Promise<number>
-    >();
   });
 
   it("supports async refinements and rejects invalid inputs before executing", async () => {
     const execute = vi.fn((value: string) => value);
+    const input = z.string().refine(async (value) => value === "ok");
     const registry = createRegistry({
       checked: tool({
-        input: z.string().refine(async (value) => value === "ok"),
+        input,
         execute,
       }),
     });
@@ -37,8 +36,11 @@ describe("tool execution", () => {
     if (!(error instanceof ToolInputError))
       throw new Error("Expected input error");
     expect(error.toolName).toBe("checked");
-    expect(error.cause).toBeInstanceOf(z.ZodError);
-    expect(error.issues).toBe((error.cause as z.ZodError).issues);
+    expect(error.cause).toBeInstanceOf(core.$ZodError);
+    expect(error.issues).toBe((error.cause as core.$ZodError).issues);
+    const classic = await input.safeParseAsync("bad");
+    expect(classic.success).toBe(false);
+    if (!classic.success) expect(error.issues).toEqual(classic.error.issues);
     expect(execute).not.toHaveBeenCalled();
     expect(await registry.execute("checked", "ok", ctx)).toBe("ok");
     expect(execute).toHaveBeenCalledOnce();
@@ -137,21 +139,24 @@ describe("registry", () => {
     expect(error).toMatchObject({ toolName: "missing" });
   });
 
-  it("infers per-name and dynamic outputs and rejects invalid handlers", () => {
+  it("uses unknown internal results and preserves tool inference", () => {
+    const number = tool({ input: z.number(), execute: async (value) => value });
     const registry = createRegistry({
       text: definition,
-      number: tool({ input: z.number(), execute: async (value) => value }),
+      number,
     });
     expectTypeOf(registry.execute("text", "hi", ctx)).toEqualTypeOf<
-      Promise<string>
+      Promise<unknown>
     >();
     expectTypeOf(registry.execute("number", 1, ctx)).toEqualTypeOf<
-      Promise<number>
+      Promise<unknown>
     >();
     const name: string = "text";
     expectTypeOf(registry.execute(name, "hi", ctx)).toEqualTypeOf<
-      Promise<string | number>
+      Promise<unknown>
     >();
+    expectTypeOf(definition.execute("hi", ctx)).toEqualTypeOf<string>();
+    expectTypeOf(number.execute(1, ctx)).toEqualTypeOf<Promise<number>>();
     tool({
       input: z.string(),
       execute(value) {

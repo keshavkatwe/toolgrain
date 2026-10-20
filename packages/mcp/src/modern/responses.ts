@@ -18,7 +18,7 @@ export function successResponse(
       ...result,
       _meta: {
         ...result._meta,
-        "io.modelcontextprotocol/serverInfo": identity,
+        "io.modelcontextprotocol/serverInfo": { ...identity },
       },
     },
   };
