@@ -63,6 +63,10 @@ export function main() {
         cpSync(join(source, "dist"), join(destination, "dist"), {
           recursive: true,
         });
+        if (name === "@toolgrain/mcp")
+          cpSync(join(source, "src"), join(destination, "src"), {
+            recursive: true,
+          });
       }
       cpSync(schema.directory, join(temporary, "node_modules/zod"), {
         recursive: true,
@@ -88,7 +92,13 @@ export function main() {
           },
         }),
       );
-      if (!run(`Zod ${schema.version} runtime`, ["runtime.mjs"], temporary))
+      if (
+        !run(
+          `Zod ${schema.version} runtime`,
+          ["--enable-source-maps", "runtime.mjs"],
+          temporary,
+        )
+      )
         passed = false;
       for (const compiler of compilers) {
         if (

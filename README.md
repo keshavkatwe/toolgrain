@@ -57,6 +57,11 @@ metadata validators continue using Classic.
 The MCP authoring API supports TypeScript 5.5.4 or later with `strict` enabled.
 Supported Zod versions follow the `^4.0.0` peer range.
 
+MCP packages JavaScript source maps, declaration maps, and their original
+TypeScript sources for debugging and editor navigation. Public imports still
+resolve to compiled files in `dist`. For mapped Node stack traces, start your
+application with `node --enable-source-maps app.js`.
+
 Registration keys supply exposed names: 1–128 ASCII letters, digits, underscores,
 hyphens, or dots. Names are case-sensitive. Definitions are reusable across
 servers, and registrations must be created with `tool()`; raw objects and modified
@@ -489,7 +494,8 @@ MCP package verification reuses its compiled consumer and runtime fixtures in
 isolated temporary directories. It checks TypeScript 5.5.4 and the development
 compiler against both Zod 4.0.0 and the development Zod version, including Classic
 and Mini inference and rejected definitions. Runtime checks run once per Zod
-version under Node. Pinned compatibility dependencies are development tooling;
+version under Node with source maps enabled and check a TypeScript stack location.
+The isolated MCP copy includes its sources. Pinned compatibility dependencies are development tooling;
 verification requires no additional downloads or workspace dependency changes.
 
 ### Coverage checks
@@ -539,6 +545,13 @@ Missing required files and unexpected package files fail the check. Intentional 
 requires reviewing and updating the relevant budget. Size checks run uncached
 to inspect the actual package contents on every run. They depend on the libraries'
 own builds and still run when an unrelated application build fails.
+
+MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaration
+maps, and the TypeScript sources in the archive. Verification rejects malformed
+maps, missing or incorrect source targets, and missing mapping comments. Packaged
+sources are limited to existing `src/**/*.ts` files; other libraries retain their
+existing restrictions. MCP's budgets are 59 KiB packed and 258 KiB unpacked,
+allowing approximately 20% growth above the build with maps and sources.
 
 `bun run test:audit` queries Bun's advisory service once for the complete
 `bun.lock`, then attributes known advisories to each workspace using its locked

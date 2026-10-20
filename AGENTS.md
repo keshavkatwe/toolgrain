@@ -91,6 +91,7 @@ Confirmed semantics:
 - `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Undefined optional envelope/content fields and optional properties parsing to undefined are absent; undefined inside unparsed data is rejected. Output parsing replaces text that serialized the original structured data. Ordinary result-shaped objects remain data.
 - Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. Handlers receive a `ToolContext`; see the handler context section below.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
+- MCP emits external JavaScript source maps and declaration maps and packages `src/**/*.ts` alongside `dist`. Public exports remain compiled files in `dist`; sources support debugging and editor navigation. Other libraries retain their existing output policies.
 
 ## Confirmed handler context design
 
@@ -240,8 +241,9 @@ are intentionally unsupported.
   reuses `smoke/consumer.mts` with TypeScript 5.5.4 and the development compiler
   against Zod 4.0.0 and the development version, checking declarations with
   `skipLibCheck: false` and no ambient workspace types. The existing runtime
-  fixture runs under Node for each Zod version. Compiled MCP/protocol packages
-  and the selected Zod version are copied into temporary directories to avoid
+  fixture runs under Node with `--enable-source-maps` for each Zod version and
+  checks a stack location in MCP's TypeScript source. Compiled MCP/protocol packages,
+  MCP sources, and the selected Zod version are copied into temporary directories to avoid
   workspace resolution fallback. Exact minimum-version aliases live in
   repo-tools as development tooling; verification performs no installations.
 
@@ -271,6 +273,12 @@ no checkout and does not execute repository code.
   `package-size.config.json` (found by walking up from the package), every compiled
   module and declaration in `dist`, explicit required protocol artifacts, and
   package-file boundaries. Declared export targets are checked by publint and attw.
+- MCP's size policy enables `sourceMaps`: both maps for every compiled module
+  and its TypeScript sources must be packed. Verification checks map JSON,
+  relative source targets, matching compiled files, and mapping comments in the
+  actual archive. Only existing `src/**/*.ts` files are allowed under this policy;
+  other packages keep their source-file restrictions. MCP's budgets are 59 KiB
+  packed and 258 KiB unpacked, retaining approximately 20% headroom after maps.
 - Library builds remove `dist` before compiling. Turbo cache restores do not
   remove extra files, so the size check also fails on any compiled `dist` module
   without a matching `src/**/*.ts` source; rerun `bun run build --force`. Reports include the complete inventory under each package's

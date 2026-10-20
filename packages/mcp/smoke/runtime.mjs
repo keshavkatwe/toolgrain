@@ -106,3 +106,12 @@ const direct = toolContext({ request: { id: "smoke" } });
 assert.equal(direct.request.id, "smoke");
 assert.equal(direct.signal.aborted, false);
 await server.close();
+
+assert.throws(
+  () => createServer({ name: "invalid", version: "1", tools: { bad: {} } }),
+  (error) => {
+    assert.match(error.message, /must be created with tool\(\)/);
+    assert.match(error.stack, /[/\\]src[/\\]tools[/\\]registry\.ts:\d+:\d+/);
+    return true;
+  },
+);

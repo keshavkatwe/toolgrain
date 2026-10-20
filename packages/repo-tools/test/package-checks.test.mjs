@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { parseAudit } from "../src/audit.mjs";
-import { checkSize } from "../src/package-size.mjs";
+import { checkSize, checkSourceMaps } from "../src/package-size.mjs";
 
 const repo = new URL("../../../", import.meta.url);
 const cli = new URL("../src/cli.mjs", import.meta.url).pathname;
@@ -101,6 +101,123 @@ test("enforces both size budgets, expected artifacts and package file boundaries
       "Stale build output without source: dist/removed.js; run bun run build --force",
     ],
   );
+});
+
+test("mapped packages require both map types and sources without widening other package boundaries", () => {
+  const compiled = ["dist/index.js", "dist/index.d.ts"];
+  const paths = [
+    ...compiled,
+    ...compiled.map((path) => `${path}.map`),
+    "src/index.ts",
+  ];
+  const files = paths.map((path) => ({ path, bytes: 1 }));
+  const budget = { packedBytes: 100, unpackedBytes: 100, sourceMaps: true };
+  const sources = ["src/index.ts"];
+  assert.equal(checkSize(files, 1, budget, compiled, sources).status, "passed");
+  assert.throws(
+    () => checkSize(files, 1, { ...budget, sourceMaps: "yes" }),
+    /Invalid sourceMaps policy/,
+  );
+  for (const path of paths.slice(2)) {
+    const report = checkSize(
+      files.filter((file) => file.path !== path),
+      1,
+      budget,
+      compiled,
+      sources,
+    );
+    assert.ok(report.errors.includes(`Missing required package file: ${path}`));
+  }
+  for (const path of [
+    "src/.env.ts",
+    "src/../secret.ts",
+    "src/index.js",
+    "test/index.ts",
+    "src/unknown.ts",
+  ]) {
+    const report = checkSize(
+      [...files, { path, bytes: 1 }],
+      1,
+      budget,
+      compiled,
+      sources,
+    );
+    assert.ok(report.errors.includes(`Unexpected package file: ${path}`));
+  }
+  const stale = checkSize(
+    files,
+    1,
+    budget,
+    [...compiled, "dist/removed.js.map"],
+    sources,
+  );
+  assert.ok(
+    stale.errors.includes(
+      "Stale build output without source: dist/removed.js.map; run bun run build --force",
+    ),
+  );
+  assert.ok(
+    stale.errors.includes("Missing required package file: dist/removed.js"),
+  );
+});
+
+test("source map validation rejects malformed maps, wrong targets and missing sources or references", () => {
+  for (const extension of ["js", "d.ts"]) {
+    const compiled = `dist/tools/example.${extension}`;
+    const path = `${compiled}.map`;
+    const source = "src/tools/example.ts";
+    const map = {
+      version: 3,
+      file: `example.${extension}`,
+      sourceRoot: "",
+      sources: ["../../src/tools/example.ts"],
+      names: [],
+      mappings: "AAAA",
+    };
+    const contents = new Map([
+      [compiled, `export {};\n//# sourceMappingURL=example.${extension}.map\n`],
+      [path, JSON.stringify(map)],
+      [source, "export {};\n"],
+    ]);
+    assert.deepEqual(checkSourceMaps(contents), []);
+    for (const invalid of [
+      null,
+      { ...map, version: 2 },
+      { ...map, file: "wrong.js" },
+      { ...map, sourceRoot: "https://example.com/" },
+      { ...map, sources: [] },
+      { ...map, mappings: [] },
+    ]) {
+      const broken = new Map(contents).set(path, JSON.stringify(invalid));
+      assert.deepEqual(checkSourceMaps(broken), [
+        `Invalid source map: ${path}`,
+      ]);
+    }
+    assert.deepEqual(checkSourceMaps(new Map(contents).set(path, "{")), [
+      `Invalid source map JSON: ${path}`,
+    ]);
+    const wrong = new Map(contents).set(
+      path,
+      JSON.stringify({ ...map, sources: ["../../src/other.ts"] }),
+    );
+    assert.deepEqual(checkSourceMaps(wrong), [
+      `Unexpected source map target: ${path} -> src/other.ts`,
+    ]);
+    const missingSource = new Map(contents);
+    missingSource.delete(source);
+    assert.deepEqual(checkSourceMaps(missingSource), [
+      `Missing source map target: ${path} -> ${source}`,
+    ]);
+    const missingCompiled = new Map(contents);
+    missingCompiled.delete(compiled);
+    assert.deepEqual(checkSourceMaps(missingCompiled), [
+      `Source map has no compiled file: ${path}`,
+    ]);
+    assert.deepEqual(
+      checkSourceMaps(new Map(contents).set(compiled, "export {};\n")),
+      [`Missing source map reference: ${compiled}`],
+    );
+  }
 });
 
 function fixture(run) {
@@ -217,6 +334,75 @@ test("packed protocol archives must retain internal modules and both revisions' 
   });
 });
 
+test("packed MCP archives retain maps and sources and reject dangling or invalid map targets", () => {
+  fixture(({ root, write }) => {
+    const paths = [];
+    for (const stem of ["index", "tools/example"]) {
+      const source = `src/${stem}.ts`;
+      paths.push(source);
+      write(source, "export {};\n");
+      for (const extension of ["js", "d.ts"]) {
+        const compiled = `dist/${stem}.${extension}`;
+        const file = `${stem.split("/").at(-1)}.${extension}`;
+        const map = {
+          version: 3,
+          file,
+          sourceRoot: "",
+          sources: [`${stem.includes("/") ? "../../" : "../"}${source}`],
+          names: [],
+          mappings: "AAAA",
+        };
+        paths.push(compiled, `${compiled}.map`);
+        write(compiled, `export {};\n//# sourceMappingURL=${file}.map\n`);
+        write(`${compiled}.map`, map);
+      }
+    }
+    const execute = (files) => {
+      write("package.json", {
+        name: "@toolgrain/mcp",
+        version: "0.0.0",
+        private: true,
+        files,
+      });
+      const result = spawnSync(process.execPath, [cli, "size"], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 60_000,
+      });
+      const report = JSON.parse(
+        readFileSync(join(root, "reports/size.json"), "utf8"),
+      );
+      assert.equal(
+        result.status,
+        report.status === "passed" ? 0 : 1,
+        result.stderr,
+      );
+      return report;
+    };
+    assert.equal(execute(["dist", "src/**/*.ts"]).status, "passed");
+    for (const path of paths.filter(
+      (path) => path.endsWith(".map") || path.startsWith("src/"),
+    )) {
+      const report = execute(paths.filter((included) => included !== path));
+      assert.ok(
+        report.errors.includes(`Missing required package file: ${path}`),
+      );
+      if (path.startsWith("src/"))
+        assert.ok(
+          report.errors.some((error) =>
+            error.startsWith("Missing source map target:"),
+          ),
+        );
+    }
+    write("dist/index.js.map", "{");
+    assert.ok(
+      execute(["dist", "src/**/*.ts"]).errors.includes(
+        "Invalid source map JSON: dist/index.js.map",
+      ),
+    );
+  });
+});
+
 test("MCP compatibility checks isolate Zod versions and fail on consumer or runtime regressions", {
   timeout: 30_000,
 }, () => {
@@ -244,6 +430,7 @@ test("MCP compatibility checks isolate Zod versions and fail on consumer or runt
       "packages/mcp/dist/index.d.ts",
       'export declare const schema: import("zod").ZodString;export declare const version: string;',
     );
+    write("packages/mcp/src/index.ts", "export {};\n");
     const protocol = "packages/mcp/node_modules/@toolgrain/protocol";
     write(`${protocol}/package.json`, {
       name: "@toolgrain/protocol",
@@ -268,9 +455,11 @@ test("MCP compatibility checks isolate Zod versions and fail on consumer or runt
     ].join("\n");
     const runtime = [
       'import assert from "node:assert/strict";',
+      'import {readFileSync} from "node:fs";',
       'import {schema,version} from "@toolgrain/mcp";',
       "assert.equal(process.versions.bun, undefined);",
       'assert.equal(schema.parse("ok"), "ok");',
+      'assert.equal(readFileSync(new URL("../src/index.ts", import.meta.resolve("@toolgrain/mcp")), "utf8"), "export {};\\n");',
       'console.log("Resolved Zod " + version);',
     ].join("\n");
     write("packages/mcp/smoke/consumer.mts", consumer);
@@ -342,7 +531,7 @@ test("library size reports still run after an unrelated application build fails"
         readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8"),
       );
     const library = {
-      name: "@toolgrain/mcp",
+      name: "@toolgrain/http",
       version: "0.0.0",
       private: true,
       files: ["dist"],
@@ -354,7 +543,7 @@ test("library size reports still run after an unrelated application build fails"
     const app = {
       name: "@test/broken-app",
       version: "0.0.0",
-      dependencies: { "@toolgrain/mcp": "workspace:*" },
+      dependencies: { "@toolgrain/http": "workspace:*" },
       scripts: { build: "node -e 'process.exit(1)'" },
     };
     write("packages/library/package.json", library);
@@ -372,7 +561,10 @@ test("library size reports still run after an unrelated application build fails"
         "apps/broken": app,
       },
       packages: {
-        "@toolgrain/mcp": entry("@toolgrain/mcp", "workspace:packages/library"),
+        "@toolgrain/http": entry(
+          "@toolgrain/http",
+          "workspace:packages/library",
+        ),
         "@test/broken-app": entry("@test/broken-app", "workspace:apps/broken"),
       },
     });
