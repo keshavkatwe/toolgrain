@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type * as core from "zod/v4/core";
 
 export class UnknownToolError extends Error {
   constructor(public readonly toolName: string) {
@@ -8,11 +8,11 @@ export class UnknownToolError extends Error {
 }
 
 export class ToolInputError extends Error {
-  readonly issues: z.ZodError["issues"];
+  readonly issues: core.$ZodError["issues"];
 
   constructor(
     public readonly toolName: string,
-    cause: z.ZodError,
+    cause: core.$ZodError,
   ) {
     super(`Invalid input for tool: ${toolName}`, { cause });
     this.name = "ToolInputError";

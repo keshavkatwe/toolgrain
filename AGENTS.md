@@ -74,7 +74,7 @@ Confirmed semantics:
 - Ordinary strings and JSON values are converted into MCP tool results.
 - `mcpResult()` explicitly marks rich MCP content and result metadata; plain objects remain application data.
 - Transport selection is explicit.
-- Zod 4 is the initial schema library. Independence from the MCP SDK does not mean zero dependencies.
+- Zod 4 is the initial schema library. Classic and Mini user schemas are accepted through `zod/v4/core`; internal protocol, metadata, and content validators remain Classic. Independence from the MCP SDK does not mean zero dependencies.
 
 ## Confirmed tool execution decisions
 

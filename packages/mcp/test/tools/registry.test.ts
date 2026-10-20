@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
+import * as core from "zod/v4/core";
 import { toolContext } from "../../src/tools/context.js";
 import { tool } from "../../src/tools/definition.js";
 import { ToolInputError, UnknownToolError } from "../../src/tools/errors.js";
@@ -21,9 +22,10 @@ describe("tool execution", () => {
 
   it("supports async refinements and rejects invalid inputs before executing", async () => {
     const execute = vi.fn((value: string) => value);
+    const input = z.string().refine(async (value) => value === "ok");
     const registry = createRegistry({
       checked: tool({
-        input: z.string().refine(async (value) => value === "ok"),
+        input,
         execute,
       }),
     });
@@ -34,8 +36,11 @@ describe("tool execution", () => {
     if (!(error instanceof ToolInputError))
       throw new Error("Expected input error");
     expect(error.toolName).toBe("checked");
-    expect(error.cause).toBeInstanceOf(z.ZodError);
-    expect(error.issues).toBe((error.cause as z.ZodError).issues);
+    expect(error.cause).toBeInstanceOf(core.$ZodError);
+    expect(error.issues).toBe((error.cause as core.$ZodError).issues);
+    const classic = await input.safeParseAsync("bad");
+    expect(classic.success).toBe(false);
+    if (!classic.success) expect(error.issues).toEqual(classic.error.issues);
     expect(execute).not.toHaveBeenCalled();
     expect(await registry.execute("checked", "ok", ctx)).toBe("ok");
     expect(execute).toHaveBeenCalledOnce();

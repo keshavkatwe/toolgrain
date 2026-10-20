@@ -1,5 +1,5 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
-import type { z } from "zod";
+import type * as core from "zod/v4/core";
 import type { ToolContext } from "./context.js";
 import type { IsJsonCompatible, JsonCompatible } from "./json-value.js";
 import type { McpResult } from "./rich-result.js";
@@ -18,14 +18,14 @@ export type ToolMetadata = Pick<
 >;
 
 export interface ToolDefinition<
-  Schema extends z.ZodType,
+  Schema extends core.$ZodType,
   Result,
-  Output extends z.ZodType = never,
+  Output extends core.$ZodType = never,
 > extends ToolMetadata {
   readonly input: Schema;
   readonly output?: Output;
   /** Raw handler; server invocation performs validation and result conversion. */
-  readonly execute: (input: z.output<Schema>, ctx: ToolContext) => Result;
+  readonly execute: (input: core.output<Schema>, ctx: ToolContext) => Result;
 }
 
 // Registered symbols let duplicate package copies recognize each other's tools.
@@ -33,8 +33,8 @@ const TOOL_BRAND = Symbol.for("@toolgrain/mcp/tool@1");
 
 /** Internal erased type for heterogeneous, schema-checked registrations. */
 export abstract class RegisteredTool {
-  abstract readonly input: z.ZodType;
-  abstract readonly output?: z.ZodType;
+  abstract readonly input: core.$ZodType;
+  abstract readonly output?: core.$ZodType;
   abstract readonly execute: (input: never, ctx: ToolContext) => unknown;
   abstract readonly title?: string;
   abstract readonly description?: string;
@@ -61,11 +61,11 @@ export function isRegisteredTool(value: unknown): value is RegisteredTool {
   );
 }
 
-export class Tool<Schema extends z.ZodType, Result> extends RegisteredTool {
+export class Tool<Schema extends core.$ZodType, Result> extends RegisteredTool {
   declare readonly input: Schema;
-  declare readonly output?: z.ZodType;
+  declare readonly output?: core.$ZodType;
   declare readonly execute: (
-    input: z.output<Schema>,
+    input: core.output<Schema>,
     ctx: ToolContext,
   ) => Result;
   declare readonly title?: string;
@@ -74,7 +74,7 @@ export class Tool<Schema extends z.ZodType, Result> extends RegisteredTool {
   declare readonly icons?: NonNullable<ProtocolTool["icons"]>;
   declare readonly _meta?: NonNullable<ProtocolTool["_meta"]>;
 
-  constructor(definition: ToolDefinition<Schema, Result, z.ZodType>) {
+  constructor(definition: ToolDefinition<Schema, Result, core.$ZodType>) {
     super();
     this.input = definition.input;
     this.execute = definition.execute;
@@ -87,9 +87,9 @@ export class Tool<Schema extends z.ZodType, Result> extends RegisteredTool {
   }
 }
 
-type OutputResult<Output extends z.ZodType> =
-  | z.input<Output>
-  | McpResult<z.input<Output>>;
+type OutputResult<Output extends core.$ZodType> =
+  | core.input<Output>
+  | McpResult<core.input<Output>>;
 
 type JsonSafeOutput<Result> =
   Result extends PromiseLike<infer Resolved>
@@ -100,19 +100,19 @@ type JsonSafeOutput<Result> =
         : never
       : JsonCompatible<Result>;
 
-type ToolDefinitionWithoutOutput<Schema extends z.ZodType, Result> = Omit<
+type ToolDefinitionWithoutOutput<Schema extends core.$ZodType, Result> = Omit<
   ToolDefinition<Schema, Result>,
   "execute"
 > & {
   readonly execute: (
-    input: z.output<Schema>,
+    input: core.output<Schema>,
     ctx: ToolContext,
   ) => Result & JsonSafeOutput<Result>;
 };
 
 export function tool<
-  Schema extends z.ZodType,
-  Output extends z.ZodType,
+  Schema extends core.$ZodType,
+  Output extends core.$ZodType,
   Result extends
     | OutputResult<NoInfer<Output>>
     | PromiseLike<OutputResult<NoInfer<Output>>>,
@@ -121,12 +121,12 @@ export function tool<
     readonly output: Output;
   },
 ): Tool<Schema, Result>;
-export function tool<Schema extends z.ZodType, Result>(
+export function tool<Schema extends core.$ZodType, Result>(
   definition: ToolDefinitionWithoutOutput<Schema, Result>,
 ): Tool<Schema, Result>;
 /** Define a reusable MCP tool. Its execute property remains the raw handler. */
-export function tool<Schema extends z.ZodType, Result>(
-  definition: ToolDefinition<Schema, Result, z.ZodType>,
+export function tool<Schema extends core.$ZodType, Result>(
+  definition: ToolDefinition<Schema, Result, core.$ZodType>,
 ): Tool<Schema, Result> {
   return new Tool(definition);
 }

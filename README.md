@@ -36,6 +36,24 @@ const server = createServer({
 await server.listen(stdio());
 ```
 
+Input and output schemas can use Zod 4 Classic or Zod Mini, including mixed
+definitions. Handler inputs still infer the parsed type, and declared outputs
+check the handler's return type before output parsing. For example, Mini users
+can define the same tool with its functional schema API:
+
+```ts
+import * as mini from "zod/v4/mini";
+
+const greet = tool({
+  input: mini.object({ name: mini.string().check(mini.minLength(1)) }),
+  output: mini.object({ message: mini.string() }),
+  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+});
+```
+
+Toolgrain consumes user schemas through `zod/v4/core`. Its internal wire and
+metadata validators continue using Classic.
+
 Registration keys supply exposed names: 1–128 ASCII letters, digits, underscores,
 hyphens, or dots. Names are case-sensitive. Definitions are reusable across
 servers, and registrations must be created with `tool()`; raw objects and modified

@@ -9,6 +9,23 @@ import {
 } from "@toolgrain/mcp";
 import { type DiscoverResult, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
+import * as mini from "zod/v4/mini";
+
+const miniInput = mini.object({
+  count: mini.pipe(mini._default(mini.string(), "2"), mini.transform(Number)),
+});
+const miniTool = tool({
+  input: miniInput,
+  output: mini.object({ count: mini.string() }),
+  execute: ({ count }) => ({ count: count.toFixed() }),
+});
+const preservedMiniInput: typeof miniInput = miniTool.input;
+const miniReturn: { count: string } = miniTool.execute(
+  { count: 2 },
+  toolContext(),
+);
+void preservedMiniInput;
+void miniReturn;
 
 let callbacks: TransportCallbacks | undefined;
 const transport: Transport = {
@@ -31,6 +48,7 @@ const server = createServer({
   name: "smoke",
   version: "1.0",
   tools: {
+    mini: miniTool,
     greet: tool({
       title: "Greeting",
       annotations: { readOnlyHint: true },
@@ -72,6 +90,17 @@ const discovery: DiscoverResult = {
 void discovery;
 
 function rejectedDefinitions() {
+  // @ts-expect-error Compiled declarations infer Mini's parsed input type.
+  tool({ input: miniInput, execute: ({ count }: { count: string }) => count });
+  // @ts-expect-error Compiled declarations check Mini output schemas.
+  tool({ input: miniInput, output: mini.number(), execute: () => "wrong" });
+  tool({
+    input: miniInput,
+    // @ts-expect-error Compiled declarations check Mini structured error results.
+    output: mini.number(),
+    execute: () =>
+      mcpResult({ content: [], isError: true, structuredContent: "wrong" }),
+  });
   // @ts-expect-error Compiled declarations preserve schema/handler checking.
   tool({ input: z.string(), execute: (value: number) => value });
   // @ts-expect-error Compiled declarations preserve output schema checking.

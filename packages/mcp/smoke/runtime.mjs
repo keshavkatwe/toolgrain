@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createServer, mcpResult, tool, toolContext } from "@toolgrain/mcp";
 import { LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
+import * as mini from "zod/v4/mini";
 
 let callbacks;
 let resolve;
@@ -25,6 +26,11 @@ const server = createServer({
           structuredContent: { message: `Hello, ${name}!` },
         });
       },
+    }),
+    miniGreet: tool({
+      input: mini.object({ name: mini._default(mini.string(), "Mini") }),
+      output: mini.object({ message: mini.string() }),
+      execute: ({ name }) => ({ message: `Hello, ${name}!` }),
     }),
   },
 });
@@ -72,6 +78,30 @@ assert.deepEqual(legacy.result.content, [
   { type: "text", text: '{"message":"Hello, Legacy!"}' },
 ]);
 assert.deepEqual(versions, [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]);
+for (const protocolVersion of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
+  const result = await server.handle(
+    {
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: {
+        name: "miniGreet",
+        ...(protocolVersion === PROTOCOL_VERSION
+          ? {
+              _meta: {
+                "io.modelcontextprotocol/protocolVersion": protocolVersion,
+                "io.modelcontextprotocol/clientCapabilities": {},
+              },
+            }
+          : {}),
+      },
+    },
+    { protocolVersion },
+  );
+  assert.deepEqual(result.result.structuredContent, {
+    message: "Hello, Mini!",
+  });
+}
 const direct = toolContext({ request: { id: "smoke" } });
 assert.equal(direct.request.id, "smoke");
 assert.equal(direct.signal.aborted, false);

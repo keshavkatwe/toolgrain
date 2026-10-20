@@ -1,3 +1,4 @@
+import * as core from "zod/v4/core";
 import type { ToolContext } from "./context.js";
 import {
   isRegisteredTool,
@@ -40,7 +41,7 @@ export function createRegistry(tools: ToolMap): Registry {
     async execute(name, input, ctx) {
       const definition = entries.get(name);
       if (!definition) throw new UnknownToolError(name);
-      const parsed = await definition.input.safeParseAsync(input);
+      const parsed = await core.safeParseAsync(definition.input, input);
       if (!parsed.success) throw new ToolInputError(name, parsed.error);
       // A request cancelled during validation never starts its handler.
       ctx.signal.throwIfAborted();
