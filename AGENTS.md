@@ -96,6 +96,7 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 
 - Handlers receive a second argument, `execute(input, ctx)`, typed `ToolContext`. This is additive: handlers that take only `input` remain valid.
 - v0 `ctx` is `{ signal, request: { id, protocolVersion, client?, meta } }`. `signal` is an `AbortSignal`. `request.client` is `{ info?, capabilities? }` and is absent where the era and transport provide no client information (for example legacy HTTP). `request.meta` is a deeply frozen copy of the request's `_meta`. Each request gets its own deeply frozen copy of `client` too, so handlers cannot affect one another. Client details are self-reported and unverified. The shape is the same for stdio and HTTP and for both protocol eras.
+- Client info and capabilities have recursive readonly types, including nested arrays, matching their existing runtime freezing. `toolContext()` accepts mutable construction inputs and existing readonly client views. `AbortSignal` and unknown metadata values keep their existing types.
 - If the signal has aborted by the time input validation finishes, the handler is not started.
 - `ctx` is required in the handler type. Direct `execute` calls (for example in tests) build one with an exported `toolContext({ signal?, request? })` helper. It defaults each omitted or undefined field separately: id `0`, the modern revision, no client, and empty meta.
 - Docs and examples name the parameter `ctx` and the type `ToolContext`.

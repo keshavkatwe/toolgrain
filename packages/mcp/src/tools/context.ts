@@ -6,10 +6,16 @@ import {
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 
+type DeepReadonly<T> = T extends readonly (infer Item)[]
+  ? readonly DeepReadonly<Item>[]
+  : T extends object
+    ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
+    : T;
+
 /** What the client reported about itself; unverified, so not a basis for security decisions. */
 export interface ToolClient {
-  readonly info?: Implementation;
-  readonly capabilities?: ClientCapabilities;
+  readonly info?: DeepReadonly<Implementation>;
+  readonly capabilities?: DeepReadonly<ClientCapabilities>;
 }
 
 export interface ToolRequest {
@@ -68,8 +74,8 @@ export function createToolContext(
 
 /** Omit absent fields so the client matches its optional-property types. */
 export function toolClient(
-  info: Implementation | undefined,
-  capabilities: ClientCapabilities | undefined,
+  info: ToolClient["info"],
+  capabilities: ToolClient["capabilities"],
 ): ToolClient {
   return {
     ...(info === undefined ? {} : { info }),

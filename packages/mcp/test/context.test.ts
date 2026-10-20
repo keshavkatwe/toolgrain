@@ -285,3 +285,36 @@ it("types the handler context and keeps input-only handlers valid", () => {
   // @ts-expect-error Direct calls must supply a context.
   inputOnly.execute({});
 });
+
+it("rejects mutations of nested client data at compile time", () => {
+  tool({
+    input: z.object({}),
+    execute(_input, ctx) {
+      const client = ctx.request.client;
+      if (client?.info) {
+        expectTypeOf(client.info.name).toEqualTypeOf<string>();
+        // @ts-expect-error Client information is frozen at runtime.
+        client.info.name = "changed";
+        // @ts-expect-error Client icon arrays are frozen at runtime.
+        client.info.icons?.push({ src: "other.png" });
+        const icon = client.info.icons?.[0];
+        if (icon) {
+          // @ts-expect-error Nested icon objects are frozen at runtime.
+          icon.src = "changed.png";
+          // @ts-expect-error Nested icon size arrays are frozen at runtime.
+          icon.sizes?.push("96x96");
+        }
+      }
+      const elicitation = client?.capabilities?.elicitation;
+      if (elicitation) {
+        // @ts-expect-error Nested capabilities are frozen at runtime.
+        elicitation.form = {};
+        if (elicitation.form) {
+          // @ts-expect-error Capability records are deeply frozen at runtime.
+          elicitation.form["com.example/enabled"] = true;
+        }
+      }
+      return "ok";
+    },
+  });
+});

@@ -100,7 +100,33 @@ function rejectedDefinitions() {
 }
 void rejectedDefinitions;
 
-const direct: ToolContext = toolContext({ request: { id: "smoke" } });
+const mutableClient = {
+  info: {
+    name: "client",
+    version: "1",
+    icons: [{ src: "icon.png", sizes: ["48x48"] }],
+  },
+  capabilities: { elicitation: { form: {} } },
+};
+const direct: ToolContext = toolContext({
+  request: { id: "smoke", client: mutableClient },
+});
+toolContext({ request: direct.request });
 const directVersion: "2026-07-28" | "2025-06-18" =
   direct.request.protocolVersion;
 void directVersion;
+
+function rejectedContextMutations(ctx: ToolContext) {
+  const client = ctx.request.client;
+  if (client?.info) {
+    // @ts-expect-error Compiled declarations expose readonly client fields.
+    client.info.name = "changed";
+    // @ts-expect-error Compiled declarations expose readonly nested arrays.
+    client.info.icons?.[0]?.sizes?.push("96x96");
+  }
+  if (client?.capabilities?.elicitation) {
+    // @ts-expect-error Compiled declarations expose readonly nested capabilities.
+    client.capabilities.elicitation.form = {};
+  }
+}
+void rejectedContextMutations;

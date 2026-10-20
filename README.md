@@ -95,10 +95,12 @@ const search = tool({
   returns or throws afterwards is discarded.
 - `ctx.request` holds `id`, `protocolVersion`, an optional `client` with the
   `info` and `capabilities` the client reported, and `meta`, a copy of the
-  request's `_meta`. Each request gets its own deeply frozen copies. Modern
-  requests carry client details on each request; legacy stdio uses those from
-  `initialize`; legacy HTTP has none, so `client` is absent. Client details are
-  self-reported and unverified, so don't base security decisions on them.
+  request's `_meta`. Each request gets its own deeply frozen copies. Client info
+  and capabilities are recursively readonly in the handler types, including
+  nested arrays. Modern requests carry client details on each request; legacy
+  stdio uses those from `initialize`; legacy HTTP has none, so `client` is
+  absent. Client details are self-reported and unverified, so don't base security
+  decisions on them.
 - If the request is cancelled while its input is still being validated, the
   handler is not started.
 - Cancellation is cooperative. A handler that ignores `ctx.signal` keeps running
