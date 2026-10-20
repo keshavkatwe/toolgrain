@@ -90,17 +90,14 @@ const discovery: DiscoverResult = {
 void discovery;
 
 function rejectedDefinitions() {
+  const wrongError = () =>
+    mcpResult({ content: [], isError: true, structuredContent: "wrong" });
   // @ts-expect-error Compiled declarations infer Mini's parsed input type.
   tool({ input: miniInput, execute: ({ count }: { count: string }) => count });
   // @ts-expect-error Compiled declarations check Mini output schemas.
   tool({ input: miniInput, output: mini.number(), execute: () => "wrong" });
-  tool({
-    input: miniInput,
-    // @ts-expect-error Compiled declarations check Mini structured error results.
-    output: mini.number(),
-    execute: () =>
-      mcpResult({ content: [], isError: true, structuredContent: "wrong" }),
-  });
+  // @ts-expect-error Compiled declarations check Mini structured error results.
+  tool({ input: miniInput, output: mini.number(), execute: wrongError });
   // @ts-expect-error Compiled declarations preserve schema/handler checking.
   tool({ input: z.string(), execute: (value: number) => value });
   // @ts-expect-error Compiled declarations preserve output schema checking.
@@ -111,13 +108,8 @@ function rejectedDefinitions() {
   mcpResult({ content: [], structuredContent: new Date() });
   // @ts-expect-error Compiled declarations reject non-JSON structured error content.
   mcpResult({ content: [], isError: true, structuredContent: new Date() });
-  tool({
-    input: z.object({}),
-    // @ts-expect-error Compiled declarations reject invalid structured error data.
-    output: z.number(),
-    execute: () =>
-      mcpResult({ content: [], isError: true, structuredContent: "wrong" }),
-  });
+  // @ts-expect-error Compiled declarations reject invalid structured error data.
+  tool({ input: z.object({}), output: z.number(), execute: wrongError });
   createServer({
     name: "invalid",
     version: "1",

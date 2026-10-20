@@ -75,6 +75,7 @@ Confirmed semantics:
 - `mcpResult()` explicitly marks rich MCP content and result metadata; plain objects remain application data.
 - Transport selection is explicit.
 - Zod 4 is the initial schema library. Classic and Mini user schemas are accepted through `zod/v4/core`; internal protocol, metadata, and content validators remain Classic. Independence from the MCP SDK does not mean zero dependencies.
+- The MCP authoring API's minimum supported TypeScript version is 5.5.4 with strict mode; its Zod peer floor remains 4.0.0.
 
 ## Confirmed tool execution decisions
 
@@ -206,7 +207,7 @@ are intentionally unsupported.
 
 - `packages/repo-tools` (`@toolgrain/repo-tools`, private) owns repository
   verification, reporting, and inspection. Its `toolgrain-repo` command provides
-  `size`, `exports`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
+  `size`, `exports`, `mcp-compat`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
   `@toolgrain/repo-tools/http-example` is the shared example smoke test.
 - Libraries and HTTP examples declare it as a development dependency. The root
   does not, because a root dependency on an internal package invalidates every
@@ -235,6 +236,14 @@ are intentionally unsupported.
   schema cannot express; only their error objects are schema-checked.
 - `test/wire-types.test.ts` checks during `check-types` that hand-written Zod wire
   schemas match vendored protocol types, including nested field paths.
+- MCP's `test:package` runs `toolgrain-repo mcp-compat` before export checks. It
+  reuses `smoke/consumer.mts` with TypeScript 5.5.4 and the development compiler
+  against Zod 4.0.0 and the development version, checking declarations with
+  `skipLibCheck: false` and no ambient workspace types. The existing runtime
+  fixture runs under Node for each Zod version. Compiled MCP/protocol packages
+  and the selected Zod version are copied into temporary directories to avoid
+  workspace resolution fallback. Exact minimum-version aliases live in
+  repo-tools as development tooling; verification performs no installations.
 
 ## Coverage verification
 

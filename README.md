@@ -54,6 +54,9 @@ const greet = tool({
 Toolgrain consumes user schemas through `zod/v4/core`. Its internal wire and
 metadata validators continue using Classic.
 
+The MCP authoring API supports TypeScript 5.5.4 or later with `strict` enabled.
+Supported Zod versions follow the `^4.0.0` peer range.
+
 Registration keys supply exposed names: 1–128 ASCII letters, digits, underscores,
 hyphens, or dots. Names are case-sensitive. Definitions are reusable across
 servers, and registrations must be created with `tool()`; raw objects and modified
@@ -481,6 +484,13 @@ GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
 requests and pushes to `main`. The workflow reads the Bun version from
 `package.json`. It also runs type checks, library coverage, uninstrumented example smoke tests, builds, and a compiled-package import and
 declaration smoke check using Node 24.20.0.
+
+MCP package verification reuses its compiled consumer and runtime fixtures in
+isolated temporary directories. It checks TypeScript 5.5.4 and the development
+compiler against both Zod 4.0.0 and the development Zod version, including Classic
+and Mini inference and rejected definitions. Runtime checks run once per Zod
+version under Node. Pinned compatibility dependencies are development tooling;
+verification requires no additional downloads or workspace dependency changes.
 
 ### Coverage checks
 

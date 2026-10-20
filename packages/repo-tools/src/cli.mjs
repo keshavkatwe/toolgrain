@@ -10,6 +10,10 @@ const commands = {
     "./package-exports.mjs",
     "Lint this package's exports with publint and attw",
   ],
+  "mcp-compat": [
+    "./mcp-compatibility.mjs",
+    "Check MCP consumers with minimum and development TypeScript/Zod versions",
+  ],
   audit: ["./audit.mjs", "Audit the Bun lockfile and write reports/audit.json"],
   "ci-report": [
     "./ci-report.mjs",

@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -213,6 +214,99 @@ test("packed protocol archives must retain internal modules and both revisions' 
       ).errors,
       ["Missing required package file: dist/shared.js"],
     );
+  });
+});
+
+test("MCP compatibility checks isolate Zod versions and fail on consumer or runtime regressions", {
+  timeout: 30_000,
+}, () => {
+  fixture(({ root, write }) => {
+    const directory = join(root, "packages/mcp");
+    const temporary = join(root, "temporary");
+    mkdirSync(temporary);
+    write(
+      "tsconfig.base.json",
+      readFileSync(new URL("tsconfig.base.json", repo), "utf8"),
+    );
+    write("packages/mcp/package.json", {
+      name: "@toolgrain/mcp",
+      type: "module",
+      exports: {
+        ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
+      },
+      peerDependencies: { zod: "^4.0.0" },
+    });
+    write(
+      "packages/mcp/dist/index.js",
+      'import {createRequire} from "node:module";import {z} from "zod";export const schema=z.string();export const version=createRequire(import.meta.url)("zod/package.json").version;',
+    );
+    write(
+      "packages/mcp/dist/index.d.ts",
+      'export declare const schema: import("zod").ZodString;export declare const version: string;',
+    );
+    const protocol = "packages/mcp/node_modules/@toolgrain/protocol";
+    write(`${protocol}/package.json`, {
+      name: "@toolgrain/protocol",
+      type: "module",
+    });
+    write(`${protocol}/dist/index.js`, "export {};\n");
+    for (const name of ["typescript", "zod"])
+      symlinkSync(
+        new URL(`packages/mcp/node_modules/${name}`, repo).pathname,
+        join(directory, "node_modules", name),
+        "dir",
+      );
+    write(
+      "packages/mcp/smoke/tsconfig.json",
+      readFileSync(new URL("packages/mcp/smoke/tsconfig.json", repo), "utf8"),
+    );
+    const consumer = [
+      'import {schema} from "@toolgrain/mcp";',
+      'const value: string = schema.parse("ok");',
+      "// @ts-expect-error Consumer errors must still be rejected.",
+      "const invalid: number = value;",
+    ].join("\n");
+    const runtime = [
+      'import assert from "node:assert/strict";',
+      'import {schema,version} from "@toolgrain/mcp";',
+      "assert.equal(process.versions.bun, undefined);",
+      'assert.equal(schema.parse("ok"), "ok");',
+      'console.log("Resolved Zod " + version);',
+    ].join("\n");
+    write("packages/mcp/smoke/consumer.mts", consumer);
+    write("packages/mcp/smoke/runtime.mjs", runtime);
+    const execute = () =>
+      spawnSync(process.execPath, [cli, "mcp-compat"], {
+        cwd: directory,
+        encoding: "utf8",
+        timeout: 20_000,
+        env: { ...process.env, TMPDIR: temporary },
+      });
+    const passed = execute();
+    assert.equal(passed.status, 0, `${passed.stdout}\n${passed.stderr}`);
+    const currentZod = JSON.parse(
+      readFileSync(new URL("packages/mcp/node_modules/zod/package.json", repo)),
+    ).version;
+    for (const version of ["4.0.0", currentZod]) {
+      assert.ok(passed.stdout.includes(`Resolved Zod ${version}`));
+      assert.ok(passed.stdout.includes(`TypeScript 5.5.4 / Zod ${version}`));
+    }
+    write(
+      "packages/mcp/smoke/consumer.mts",
+      `${consumer}\nconst regression: boolean = schema.parse("ok");`,
+    );
+    const types = execute();
+    assert.equal(types.status, 1);
+    assert.match(types.stdout, /not assignable to type 'boolean'/);
+    write("packages/mcp/smoke/consumer.mts", consumer);
+    write(
+      "packages/mcp/smoke/runtime.mjs",
+      `${runtime}\nthrow new Error("fixture runtime failure");`,
+    );
+    const execution = execute();
+    assert.equal(execution.status, 1);
+    assert.match(execution.stderr, /fixture runtime failure/);
+    assert.deepEqual(readdirSync(temporary), []);
   });
 });
 
