@@ -13,7 +13,7 @@ import { errorResponse as legacyErrorResponse } from "./legacy/responses.js";
 import { createModernDispatcher } from "./modern/dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { validateVersionContext } from "./protocol/version-metadata.js";
-import type { createToolAdapter } from "./tools/adapter.js";
+import type { ToolAdapter } from "./tools/adapter.js";
 import type { ToolClient } from "./tools/context.js";
 
 /** Per-request execution state supplied by the connection or independent caller. */
@@ -31,7 +31,7 @@ export type Dispatcher = (
 
 /** Compose the two protocol adapters around one execution registry. */
 export function createDispatcher(
-  tools: ReturnType<typeof createToolAdapter>,
+  tools: ToolAdapter,
   identity: Implementation,
   instructions?: string,
 ): Dispatcher {

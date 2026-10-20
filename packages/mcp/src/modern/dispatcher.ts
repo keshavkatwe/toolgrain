@@ -12,14 +12,14 @@ import {
 import type { RequestScope } from "../dispatcher.js";
 import type { Request } from "../protocol/messages.js";
 import { ProtocolError } from "../protocol/responses.js";
-import type { createToolAdapter } from "../tools/adapter.js";
+import type { ToolAdapter } from "../tools/adapter.js";
 import { createToolContext, toolClient } from "../tools/context.js";
 import { callTool, discover, listTools } from "./handlers.js";
 import { metadata } from "./metadata.js";
 import { successResponse } from "./responses.js";
 
 export function createModernDispatcher(
-  tools: ReturnType<typeof createToolAdapter>,
+  tools: ToolAdapter,
   identity: Implementation,
   instructions?: string,
 ) {

@@ -9,7 +9,7 @@ import type { RequestScope } from "../dispatcher.js";
 import type { Request } from "../protocol/messages.js";
 import { ProtocolError } from "../protocol/responses.js";
 import { hasProtocolVersionMetadata } from "../protocol/version-metadata.js";
-import type { createToolAdapter } from "../tools/adapter.js";
+import type { ToolAdapter } from "../tools/adapter.js";
 import { createToolContext } from "../tools/context.js";
 import { callTool, initialize, listTools, ping } from "./handlers.js";
 import { successResponse } from "./responses.js";
@@ -28,7 +28,7 @@ export function usesLegacyProtocol(
 }
 
 export function createLegacyDispatcher(
-  tools: ReturnType<typeof createToolAdapter>,
+  tools: ToolAdapter,
   identity: Implementation,
   instructions?: string,
 ) {

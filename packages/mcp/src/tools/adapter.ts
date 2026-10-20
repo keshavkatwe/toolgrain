@@ -1,3 +1,4 @@
+import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import type { ToolContext } from "./context.js";
 import { ToolInputError } from "./errors.js";
 import { createRegistry, type ToolMap } from "./registry.js";
@@ -8,7 +9,17 @@ import {
 } from "./results.js";
 import { describeTool } from "./schema.js";
 
-export function createToolAdapter(tools: ToolMap) {
+export interface ToolAdapter {
+  has(name: string): boolean;
+  list(): ProtocolTool[];
+  execute(
+    name: string,
+    input: unknown,
+    ctx: ToolContext,
+  ): Promise<ToolExecutionResult | undefined>;
+}
+
+export function createToolAdapter(tools: ToolMap): ToolAdapter {
   const registry = createRegistry(tools);
   const entries = registry.list();
   const names = new Set(entries.map(({ name }) => name));
