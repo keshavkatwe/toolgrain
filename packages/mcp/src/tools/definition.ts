@@ -14,7 +14,7 @@ export const TOOL_METADATA_KEYS = [
 
 export type ToolMetadata = Pick<
   ProtocolTool,
-  "title" | "description" | "annotations" | "icons" | "_meta"
+  (typeof TOOL_METADATA_KEYS)[number]
 >;
 
 export interface ToolDefinition<
