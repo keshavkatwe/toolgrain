@@ -74,9 +74,11 @@ bun run inspect http://127.0.0.1:4000/mcp
 
 ## Clerk authorization and Inspector
 
-This workspace also has a protected entry point with `greet` and `whoAmI` tools.
-The protected variant uses `@toolgrain/clerk`, and `whoAmI` reads the inferred,
-verified identity through `useAuth(ctx)`. Both tools require an OAuth access token.
+The complete protected example lives in [src/clerk.ts](src/clerk.ts): Clerk key
+configuration, the `greet` and `whoAmI` tool definitions, MCP server creation, and
+Elysia startup are together in one file for learning. It uses `@toolgrain/clerk`,
+and `whoAmI` reads the inferred, verified identity through `useAuth(ctx)`. Both
+tools require an OAuth access token.
 It listens on `http://127.0.0.1:3007/mcp`, so it can run alongside the regular
 example. Root `bun run dev` continues to start the regular example on port 3003.
 

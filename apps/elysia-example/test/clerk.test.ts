@@ -5,7 +5,6 @@ import {
 } from "@toolgrain/protocol";
 import { exportJWK, generateKeyPair, type JWTPayload, SignJWT } from "jose";
 import { afterEach, expect, it, vi } from "vitest";
-import { clerkApp } from "../src/clerk-app.js";
 
 const domain = "sample-app.clerk.accounts.dev";
 const issuer = `https://${domain}`;
@@ -100,13 +99,20 @@ function request(
     }),
   });
 }
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
 
 it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
   "protects both tools and exposes Clerk JWT and opaque identities in %s",
   async (revision) => {
     const fetcher = mockClerk();
-    const { app, server } = clerkApp(options);
+    vi.stubEnv("CLERK_PUBLISHABLE_KEY", options.publishableKey);
+    vi.stubEnv("CLERK_SECRET_KEY", options.secretKey);
+    vi.stubEnv("MCP_RESOURCE", "");
+    const { app, server } = await import("../src/clerk.js");
     try {
       const metadata = await app.handle(
         new Request(
