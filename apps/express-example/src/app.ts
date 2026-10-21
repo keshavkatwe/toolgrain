@@ -19,7 +19,7 @@ export function expressApp(): { app: Express; server: Server } {
       }),
     },
   });
-  app.all("/mcp", createNodeHttpHandler(server));
+  app.use(createNodeHttpHandler(server));
   app.use(express.json());
   return { app, server };
 }

@@ -49,8 +49,10 @@ from library coverage and retains each workspace's test report.
 The MCP revision is `2026-07-28`, with JSON responses. Clients must send the
 protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
-SSE and Clerk/OAuth are separate work. Toolgrain packages are private workspace
-packages, so this example currently runs from this repository.
+SSE remains separate work. Optional JWT/Clerk authorization and automatic public
+metadata are described in [authorization](../../docs/authorization.md). Toolgrain
+packages are private workspace packages, so this example currently runs from this
+repository.
 
 ## MCP Inspector
 

@@ -12,7 +12,11 @@ import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
 import { createToolAdapter } from "./tools/adapter.js";
 import type { ToolMap } from "./tools/registry.js";
-import type { Transport } from "./transport.js";
+import {
+  isRequestTransport,
+  type RequestTransport,
+  type Transport,
+} from "./transport.js";
 
 export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   name: string;
@@ -40,7 +44,7 @@ export interface Server {
     accessToken: string,
     options: { resource: string; signal?: AbortSignal },
   ): Promise<AuthScope>;
-  listen(transport: Transport): Promise<void>;
+  listen(transport: Transport | RequestTransport): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -83,8 +87,10 @@ export function createServer<const Tools extends ToolMap>(
       },
     };
   };
-  return {
+  const server: Server = {
     async listen(transport) {
+      if (isRequestTransport(transport))
+        return connection.listenRequests(transport, server);
       if (authorization.metadata())
         throw new Error(
           "Auth-configured servers require HTTP and cannot listen on a message transport",
@@ -140,4 +146,5 @@ export function createServer<const Tools extends ToolMap>(
       return connection.close();
     },
   };
+  return server;
 }

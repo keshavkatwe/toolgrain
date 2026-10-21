@@ -26,6 +26,16 @@ const makeProvider = (
 ): AuthProvider => ({ type, authorizationServers: [issuer], verify });
 
 function setup(provider = makeProvider()) {
+  const options = {
+    allowedHosts: [
+      "api.example.com",
+      "one.example.com",
+      "two.example.com",
+      "untrusted.example.com",
+      "bad.example.com",
+      "internal.example.com",
+    ],
+  };
   const execute = vi.fn(
     (_input: object, ctx: ToolContext) => useAuth(ctx).userId,
   );
@@ -38,8 +48,8 @@ function setup(provider = makeProvider()) {
   return {
     server,
     execute,
-    handle: createHttpHandler(server),
-    metadata: createProtectedResourceMetadataHandler(server),
+    handle: createHttpHandler(server, options),
+    metadata: createProtectedResourceMetadataHandler(server, options),
   };
 }
 

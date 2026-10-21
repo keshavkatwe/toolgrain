@@ -327,12 +327,27 @@ see the [compatibility report](./docs/compatibility.md) for exact tested version
 `Request` → `Promise<Response>` handler. `@toolgrain/node` provides
 `createNodeHttpHandler(server, options?)` for Node `IncomingMessage` and
 `ServerResponse`. Both share the same HTTP implementation; neither depends on a
-web framework. HTTP handlers are mounted directly, without `server.listen()`.
+web framework. For a standalone Node listener, use:
+
+```ts
+import { http } from "@toolgrain/node";
+
+await server.listen(http({ port: 3000, path: "/mcp" }));
+// await server.close(); // Stops the owned listener and active requests.
+```
+
+For an existing application, mount a combined handler at its root. It routes the
+configured MCP endpoint (default `/mcp`) and automatically serves public protected
+resource metadata when auth is configured. `allowedHosts` defaults to loopback
+hosts; configure exact public authorities for deployment. The framework owns its
+listener and calls `server.close()` during shutdown.
 
 ```ts
 import { createHttpHandler } from "@toolgrain/http";
 
 const handler = createHttpHandler(server, {
+  path: "/mcp",
+  allowedHosts: ["api.example.com"],
   allowedOrigins: ["https://example.com"],
   maxMessageBytes: 1024 * 1024,
 });
@@ -347,7 +362,7 @@ export const DELETE = handler;
 import { createNodeHttpHandler } from "@toolgrain/node";
 
 // Express: mount before express.json() or other body-consuming middleware.
-app.all("/mcp", createNodeHttpHandler(server));
+app.use(createNodeHttpHandler(server));
 ```
 
 The public factories compose focused internal modules. HTTP separates option
@@ -396,8 +411,9 @@ the existing tool execution semantics.
 
 An absent Origin is allowed. A present Origin must exactly match an entry in
 `allowedOrigins`, which defaults to an empty list. This is independent of CORS and
-authentication: applications own browser preflight handling, access checks,
-routing, TLS, binding addresses, and HTTP-server shutdown. Set explicit origins
+authentication: applications own browser preflight handling, TLS, deployment
+configuration, and framework HTTP-server shutdown. Toolgrain owns MCP routing,
+host validation, and optional JWT/Clerk verification. Set explicit origins
 when using a browser client. The plain Node example binds to `127.0.0.1`.
 
 The MCP server exposes `handle(message, { signal?, protocolVersion? })` for independent decoded
@@ -406,7 +422,8 @@ The HTTP adapter passes the validated revision per request; direct legacy
 callers supply `protocolVersion: LEGACY_PROTOCOL_VERSION` after initialization.
 Request processing shares dispatch/error conversion with stdio. `close()` is
 terminal and suppresses pending results across both paths; attached-transport EOF
-also closes the server. The HTTP listener remains application-owned.
+also closes the server. A listener attached through `http()` closes with the MCP
+server; externally mounted handlers leave the listener application-owned.
 
 Run the plain Node example after building:
 

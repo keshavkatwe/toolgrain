@@ -21,8 +21,8 @@
     "unpackedBytes": 38912
   },
   "@toolgrain/node": {
-    "packedBytes": 7168,
-    "unpackedBytes": 25600
+    "packedBytes": 9216,
+    "unpackedBytes": 31744
   },
   "@toolgrain/jwt": {
     "packedBytes": 5120,

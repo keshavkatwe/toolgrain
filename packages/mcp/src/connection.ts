@@ -11,20 +11,30 @@ import { decode } from "./protocol/decode.js";
 import type { Request } from "./protocol/messages.js";
 import { protocolError } from "./protocol/responses.js";
 import type { Server } from "./server.js";
-import type { Transport, TransportCallbacks } from "./transport.js";
+import type {
+  RequestTransport,
+  Transport,
+  TransportCallbacks,
+} from "./transport.js";
 
 export function createConnection(
   dispatch: Dispatcher,
   onError?: (error: unknown) => void,
   onClose?: () => void,
-): Pick<Server, "listen" | "close"> {
+): ConnectionLifecycle {
   return new Connection(dispatch, onError, onClose);
 }
 
+interface ConnectionLifecycle {
+  listen(transport: Transport): Promise<void>;
+  listenRequests(transport: RequestTransport, server: Server): Promise<void>;
+  close(): Promise<void>;
+}
+
 /** Owns transport attachment, serialized writes, and connection shutdown. */
-class Connection implements Pick<Server, "listen" | "close"> {
+class Connection implements ConnectionLifecycle {
   private state: "idle" | "starting" | "listening" | "closed" = "idle";
-  private transport: Transport | undefined;
+  private transport: Transport | RequestTransport | undefined;
   private closePromise: Promise<void> | undefined;
   private writes = Promise.resolve();
   private readonly requests = createPendingRequests(() => this.isOpen());
@@ -37,7 +47,24 @@ class Connection implements Pick<Server, "listen" | "close"> {
   ) {}
 
   // Public methods remain safe to call detached from the returned server.
-  readonly listen = async (transport: Transport): Promise<void> => {
+  readonly listen = (transport: Transport): Promise<void> =>
+    this.attach(transport, () => transport.start(this.transportCallbacks));
+
+  readonly listenRequests = (
+    transport: RequestTransport,
+    server: Server,
+  ): Promise<void> =>
+    this.attach(transport, () =>
+      transport.start(server, {
+        onError: this.transportCallbacks.onError,
+        onClose: this.transportCallbacks.onClose,
+      }),
+    );
+
+  private readonly attach = async (
+    transport: Transport | RequestTransport,
+    start: () => Promise<void>,
+  ): Promise<void> => {
     if (this.state !== "idle")
       throw new Error(
         "Server can only attach one transport and cannot restart after closing",
@@ -45,7 +72,7 @@ class Connection implements Pick<Server, "listen" | "close"> {
     this.state = "starting";
     this.transport = transport;
     try {
-      await transport.start(this.transportCallbacks);
+      await start();
       if (!this.isOpen()) throw new Error("Transport closed during startup");
       this.state = "listening";
     } catch (error) {
@@ -112,7 +139,13 @@ class Connection implements Pick<Server, "listen" | "close"> {
     isActive: () => boolean = () => this.isOpen(),
   ): Promise<void> {
     const write = this.writes.then(async () => {
-      if (this.isOpen() && isActive()) await this.transport?.send(message);
+      if (
+        this.isOpen() &&
+        isActive() &&
+        this.transport &&
+        "send" in this.transport
+      )
+        await this.transport.send(message);
     });
     this.writes = write.catch((error) => this.terminate(error));
     return this.writes;

@@ -19,6 +19,6 @@ export function honoApp() {
     },
   });
   const handler = createHttpHandler(server);
-  app.all("/mcp", (c) => handler(c.req.raw));
+  app.all("*", (c) => handler(c.req.raw));
   return { app, server };
 }

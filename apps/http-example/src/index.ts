@@ -1,6 +1,5 @@
-import { createServer as createHttpServer } from "node:http";
 import { createServer, tool } from "@toolgrain/mcp";
-import { createNodeHttpHandler } from "@toolgrain/node";
+import { http } from "@toolgrain/node";
 import { z } from "zod";
 
 const server = createServer({
@@ -17,20 +16,12 @@ const server = createServer({
     }),
   },
 });
-const handler = createNodeHttpHandler(server);
-const http = createHttpServer((request, response) => {
-  if (request.url?.split("?")[0] !== "/mcp") {
-    response.writeHead(404).end();
-    return;
-  }
-  void handler(request, response);
-});
-http.listen(Number(process.env.PORT ?? 3000), "127.0.0.1", () =>
-  console.error("MCP endpoint: http://127.0.0.1:3000/mcp"),
+const transport = http({ port: Number(process.env.PORT ?? 3000) });
+await server.listen(transport);
+console.error(
+  `MCP endpoint: http://127.0.0.1:${transport.address()?.port}/mcp`,
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const)
   process.once(signal, () => {
     void server.close();
-    http.close();
-    http.closeAllConnections();
   });

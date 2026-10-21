@@ -61,7 +61,7 @@ it("waits for writable backpressure", async () => {
   const { input, output, handler } = fixture();
   Object.assign(input, {
     method: "POST",
-    rawHeaders: ["Content-Type", "text/plain"],
+    rawHeaders: ["Host", "localhost", "Content-Type", "text/plain"],
   });
   output.write.mockImplementation(() => {
     queueMicrotask(() => output.emit("drain"));
@@ -75,7 +75,7 @@ it("handles abort while waiting for writable backpressure", async () => {
   const { input, output, handler } = fixture();
   Object.assign(input, {
     method: "POST",
-    rawHeaders: ["Content-Type", "text/plain"],
+    rawHeaders: ["Host", "localhost", "Content-Type", "text/plain"],
   });
   output.write.mockImplementation(() => {
     queueMicrotask(() => output.emit("close"));

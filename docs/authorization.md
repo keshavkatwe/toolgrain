@@ -110,63 +110,125 @@ contains plain identity data; credentials and SDK token-getter methods are not
 exposed. Scopes are available to application code but Toolgrain v0 does not
 implement per-tool scope policies.
 
-## HTTP mounting and resource inference
+## Standalone Node HTTP
 
-`createHttpHandler(server)` returns `(request: Request) => Promise<Response>`.
-`createProtectedResourceMetadataHandler(server)` returns a separate public
-GET/HEAD handler. Mount it at the standard well-known path for your MCP endpoint:
+`http()` from `@toolgrain/node` owns the HTTP listener, routing, host validation,
+and shutdown. It works with both public and auth-configured servers:
 
 ```ts
-import {
-  createHttpHandler,
-  createProtectedResourceMetadataHandler,
-} from "@toolgrain/http";
+import { http } from "@toolgrain/node";
 import { server } from "./server.js";
 
-const mcp = createHttpHandler(server);
-const metadata = createProtectedResourceMetadataHandler(server);
+const transport = http({ port: 3007, path: "/mcp" });
+await server.listen(transport);
+console.log(transport.address());
 
-// Called by your hosting platform after host/proxy validation.
-export function handle(request: Request) {
-  const path = new URL(request.url).pathname;
-  if (path === "/mcp") return mcp(request);
-  if (path === "/.well-known/oauth-protected-resource/mcp")
-    return metadata(request);
-  return Promise.resolve(new Response(null, { status: 404 }));
-}
+// Your application decides when to stop, including process signal handling.
+// await server.close();
 ```
 
+The default bind hostname is `127.0.0.1`, port is `3000`, and endpoint path is
+`/mcp`. Port `0` requests an available port; `transport.address()` returns a copied
+Node address after startup and undefined before startup or after shutdown.
+Default accepted hosts are `localhost`, `127.0.0.1`, and `[::1]` on the actual
+listening port. `hostname` controls the bind address; `allowedHosts` separately
+controls accepted request authorities. Closing the server aborts active requests
+and verification, stops the listener, and closes its connections. Startup failures
+release the listener too. The transport does not install global process handlers.
+
+When auth is configured, Toolgrain automatically serves public GET/HEAD metadata
+at `/.well-known/oauth-protected-resource/mcp`. Custom paths, root paths, and
+significant trailing slashes produce their corresponding metadata paths. An
+explicit provider `resource` determines the advertised public metadata path.
+Unmatched routes return 404; a server without auth exposes no resource metadata.
+
+## Combined handlers for existing applications
+
+`createHttpHandler(server, options?)` returns
+`(request: Request) => Promise<Response>` and includes the same MCP routing,
+public metadata, host validation, and authentication. Mount it at the application
+root so that both the endpoint and well-known metadata path reach it. A framework
+mount that strips `/mcp` from the Request URL is unsuitable for this combined
+handler.
+
+For example, Elysia on Bun can mount the handler without consuming the body:
+
+```ts
+import { createHttpHandler } from "@toolgrain/http";
+import { Elysia } from "elysia";
+import { server } from "./server.js";
+
+const handler = createHttpHandler(server, {
+  path: "/mcp",
+  allowedHosts: ["localhost:3003", "127.0.0.1:3003"],
+});
+
+new Elysia()
+  .get("/health", () => ({ status: "ok" }))
+  .mount(handler)
+  .onStop(() => server.close())
+  .listen({ hostname: "127.0.0.1", port: 3003 });
+```
+
+`createNodeHttpHandler(server, options?)` from `@toolgrain/node` provides the
+same combined handler for Node IncomingMessage/ServerResponse. Mount it at the
+root before body parsing middleware. These handler factories leave listener
+ownership with the application. Separate
+`createProtectedResourceMetadataHandler(server, { allowedHosts? })` and
+`createNodeProtectedResourceMetadataHandler(server, { allowedHosts? })` remain
+available for frameworks that require explicit filesystem or route registration.
+They apply host validation too; the hosting platform must route the public
+well-known path to them.
+
+## Host validation and resource inference
+
+Handlers accept `path`, `allowedHosts`, `allowedOrigins`, and `maxMessageBytes`.
+Paths default to `/mcp` and must be absolute URL paths without query strings,
+fragments, whitespace, or dot-segment normalization. `allowedHosts` contains exact
+hostnames or IP addresses, optionally with ports, for example
+`["api.example.com", "[::1]:3003"]`. Matching normalizes case and standard URL
+ports; wildcards, schemes, and paths are rejected. An empty list rejects every
+host. Configured arrays are copied. Both the request URL authority and any
+supplied Host header must be allowed. When a framework normalizes the URL host
+(for example Next.js using localhost for loopback), the validated Host header
+preserves the actual resource authority. Disallowed hosts receive 403 before
+routing, authentication, or body parsing, including on metadata requests.
+
+Standalone `http()` derives exact local authorities from the listening port.
+Existing-application handlers default to the three loopback hostnames on any
+port because they do not own the listener. Set `allowedHosts` for production or
+to restrict development to a particular port. `allowedOrigins` separately checks
+the browser Origin header on MCP requests; it is not a host allowlist or a CORS
+implementation.
+
 For `https://api.example.com/mcp`, the inferred resource is
-`https://api.example.com/mcp`. Ordinary query parameters are excluded. Paths and
-significant trailing slashes are preserved; a root resource uses the origin
-without `/`. The metadata handler derives the corresponding endpoint from its
-well-known path, so it does not require a prior authenticated request. No global
-first-request origin is cached. Metadata, authentication challenges, and token
-audience verification use the same resource.
+`https://api.example.com/mcp`. Query parameters are excluded. Paths and significant
+trailing slashes are preserved; a root resource uses the origin without `/`.
+Metadata works before any authenticated request; no first-request origin is
+cached. Metadata, challenges, and token audience verification use the same
+resource.
 
-**The hosting application must validate allowed hosts before invoking either
-handler and supply the correct public request URL.** `allowedOrigins` controls
-the browser's `Origin` header; it is not a host allowlist. A URL reconstructed
-from an unchecked `Host` or client-supplied forwarded header is not a trusted
-resource identifier. Trusted proxy middleware must reject unexpected hosts and
-normalize external scheme, host, and path when proxies rewrite them.
+Applications still supply deployment configuration and trusted proxy
+normalization. Node uses the actual Host, target, port, and direct TLS scheme and
+ignores Forwarded and X-Forwarded-* headers. If a trusted proxy rewrites the
+external scheme, host, or path, supply a normalized public Web Request (including
+its Host header), or configure a canonical provider resource:
 
-Both adapters accept an optional explicit `resource` override, for example
-`jwt({ issuer, resource: "https://api.example.com/mcp" })` or
-`clerk({ publishableKey, secretKey, resource: "https://api.example.com/mcp" })`.
-Use that when your public canonical URL cannot be supplied by the hosting
-platform or when several aliases identify one resource. URLs use HTTPS;
-HTTP loopback URLs are accepted for development. Configured auth URLs cannot
-contain credentials, query strings, fragments, or whitespace.
+```ts
+clerk({
+  publishableKey,
+  secretKey,
+  resource: "https://api.example.com/mcp",
+});
+```
 
-For Node, mount `createNodeHttpHandler(server)` and
-`createNodeProtectedResourceMetadataHandler(server)` from `@toolgrain/node`
-before body parsing. The adapter preserves the actual target, host, port, and
-direct TLS scheme. It ignores `Forwarded` and `X-Forwarded-*`; use the explicit
-resource override or a normalized Web Request from trusted middleware behind a
-rewriting proxy. Applications continue to own TLS, routing, CORS, and shutdown.
-The [JWT example](../apps/jwt-example/README.md) demonstrates direct Node HTTP,
-host validation, separate metadata routing, and both protocol revisions.
+The JWT adapter accepts the same optional `resource` override. Configure
+`allowedHosts` for the authorities that reach the handler; a resource override
+does not disable host validation. Auth URLs require HTTPS, with HTTP loopback
+exceptions for development. Configured auth URLs reject credentials, queries,
+fragments, and whitespace. Applications continue to own TLS, CORS, and any
+framework listener. The [JWT example](../apps/jwt-example/README.md) demonstrates
+managed Node HTTP and both protocol revisions.
 
 ## Request behavior
 
@@ -193,9 +255,9 @@ integration. Shared JWT discovery/key fetches may finish for other requests;
 Clerk's backend SDK may finish its in-flight request. Late identities and handler
 results are discarded. Tool execution remains cooperatively cancellable.
 
-An auth-configured server rejects `listen(transport)` before starting the
-transport: this authorization API is HTTP-only. Stdio servers continue using
-their process/environment trust model.
+An auth-configured server accepts request transports such as `http()` and rejects
+message transports such as `stdio()` before startup. This authorization API is
+HTTP-only; stdio servers use their process/environment trust model.
 
 ## Custom providers and direct invocation
 

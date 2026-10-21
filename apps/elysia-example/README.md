@@ -27,7 +27,7 @@ The start command defaults to port 3003; set `PORT` to override it.
 | `build` | `bun build --target=bun --outdir=dist src/index.ts` |
 | `start` | `bun run dist/index.js` |
 
-`src/app.ts` uses Elysia's `.mount("/mcp", handler)` so its body parser does not consume MCP input. `src/index.ts` calls `.listen()` on Bun; The tool and MCP server definitions are inline in `src/app.ts`. Both development and production run on Bun.
+`src/app.ts` uses Elysia's `.mount(handler)` at the root so its body parser does not consume MCP input. `src/index.ts` calls `.listen()` on Bun; The tool and MCP server definitions are inline in `src/app.ts`. Both development and production run on Bun.
 
 The app imports Toolgrain's compiled workspace packages. Root `bun run dev` watches
 those packages and runs every example's own development command; HTTP development
@@ -49,8 +49,10 @@ from library coverage and retains each workspace's test report.
 The MCP revision is `2026-07-28`, with JSON responses. Clients must send the
 protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
-SSE and Clerk/OAuth are separate work. Toolgrain packages are private workspace
-packages, so this example currently runs from this repository.
+SSE remains separate work. Optional JWT/Clerk authorization and automatic public
+metadata are described in [authorization](../../docs/authorization.md). Toolgrain
+packages are private workspace packages, so this example currently runs from this
+repository.
 
 ## MCP Inspector
 

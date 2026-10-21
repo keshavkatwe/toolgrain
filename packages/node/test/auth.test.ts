@@ -38,10 +38,9 @@ it("preserves the actual endpoint for authentication and public metadata over re
       }),
     },
   });
-  const handler = createNodeHttpHandler(server);
-  const metadata = createNodeProtectedResourceMetadataHandler(server);
+  const handler = createNodeHttpHandler(server, { path: "/public/mcp" });
   const http = httpServer((req, res) => {
-    void (req.url?.startsWith("/.well-known/") ? metadata : handler)(req, res);
+    void handler(req, res);
   });
   await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
@@ -103,6 +102,54 @@ it("preserves the actual endpoint for authentication and public metadata over re
   } finally {
     http.closeAllConnections();
     await new Promise<void>((resolve) => http.close(() => resolve()));
+    await server.close();
+  }
+});
+
+it("retains separately mounted metadata with the same host validation", async () => {
+  const server = createServer({
+    name: "metadata",
+    version: "1",
+    tools: {},
+    auth: {
+      type: Symbol.for("node-metadata-test"),
+      authorizationServers: ["https://auth.example.com"],
+      async verify() {
+        return {};
+      },
+    },
+  });
+  const metadata = createNodeProtectedResourceMetadataHandler(server, {
+    allowedHosts: ["localhost"],
+  });
+  const listener = httpServer((req, res) => {
+    void metadata(req, res);
+  });
+  await new Promise<void>((resolve) =>
+    listener.listen(0, "127.0.0.1", resolve),
+  );
+  try {
+    const origin = `http://127.0.0.1:${(listener.address() as AddressInfo).port}`;
+    const result = await new Promise<number | undefined>((resolve, reject) => {
+      const req = sendHttp(
+        `${origin}/.well-known/oauth-protected-resource/mcp`,
+        { headers: { Host: "localhost" } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode);
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(result).toBe(200);
+    expect(
+      (await fetch(`${origin}/.well-known/oauth-protected-resource/mcp`))
+        .status,
+    ).toBe(403);
+  } finally {
+    listener.closeAllConnections();
+    await new Promise<void>((resolve) => listener.close(() => resolve()));
     await server.close();
   }
 });

@@ -36,3 +36,18 @@ const message = {
 await transport.send(message);
 assert.equal(output.read().toString(), `${JSON.stringify(message)}\n`);
 await transport.close();
+
+const { http } = await import("@toolgrain/node");
+const hosted = createServer({
+  name: "listener-smoke",
+  version: "1",
+  tools: {},
+});
+const listener = http({ port: 0 });
+await hosted.listen(listener);
+assert.equal(
+  (await fetch(`http://127.0.0.1:${listener.address().port}/mcp`)).status,
+  405,
+);
+await hosted.close();
+assert.equal(listener.address(), undefined);

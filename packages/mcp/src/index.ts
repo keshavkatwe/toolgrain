@@ -29,4 +29,8 @@ export type {
 } from "./tools/rich-result.js";
 export { mcpResult } from "./tools/rich-result.js";
 export { ToolSchemaError } from "./tools/schema.js";
-export type { Transport, TransportCallbacks } from "./transport.js";
+export type {
+  RequestTransport,
+  Transport,
+  TransportCallbacks,
+} from "./transport.js";

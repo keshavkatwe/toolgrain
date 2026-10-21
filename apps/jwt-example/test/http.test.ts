@@ -142,7 +142,7 @@ it("authenticates both protocol revisions through a compiled Node process", asyn
           req.end(body);
         },
       );
-      expect(invalidHost).toBe(400);
+      expect(invalidHost).toBe(403);
     }
   } finally {
     child.kill("SIGTERM");

@@ -6,11 +6,16 @@ import {
 import type { Server } from "@toolgrain/mcp";
 import { nodeHttpHandler } from "./http-handler.js";
 
-/** Mount before body parsing middleware. Does not own or close the HTTP listener. */
+/** Mount at the root before body parsing. Does not own the HTTP listener. */
 export function createNodeHttpHandler(server: Server, options?: HttpOptions) {
   return nodeHttpHandler(createHttpHandler(server, options));
 }
 
-export function createNodeProtectedResourceMetadataHandler(server: Server) {
-  return nodeHttpHandler(createProtectedResourceMetadataHandler(server));
+export function createNodeProtectedResourceMetadataHandler(
+  server: Server,
+  options?: Pick<HttpOptions, "allowedHosts">,
+) {
+  return nodeHttpHandler(
+    createProtectedResourceMetadataHandler(server, options),
+  );
 }

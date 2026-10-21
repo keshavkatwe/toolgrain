@@ -1,7 +1,8 @@
 # JWT authorization example
 
-A standalone `whoAmI` tool, protected Node HTTP endpoint, public resource
-metadata, and automatic issuer/JWKS discovery. No MCP SDK dependency.
+A standalone `whoAmI` tool, protected Node HTTP endpoint using
+`server.listen(http({ port }))`, automatic public metadata routing and host
+validation, and issuer/JWKS discovery. No MCP SDK dependency.
 
 From the repository root, run `bun install --frozen-lockfile` and `bun run build`.
 Then:

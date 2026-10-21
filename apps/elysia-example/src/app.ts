@@ -18,6 +18,6 @@ export function elysiaApp() {
     },
   });
   const handler = createHttpHandler(server);
-  const app = new Elysia().onStop(() => server.close()).mount("/mcp", handler);
+  const app = new Elysia().onStop(() => server.close()).mount(handler);
   return { app, server };
 }

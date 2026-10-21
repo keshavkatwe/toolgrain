@@ -1,4 +1,6 @@
 import type { Server } from "@toolgrain/mcp";
+import { hostValidator } from "../hosts.js";
+import type { HttpOptions } from "../options.js";
 import {
   metadataPrefix,
   requestResource,
@@ -6,13 +8,20 @@ import {
 } from "./resource.js";
 
 /** Mount publicly at the standard well-known route corresponding to the MCP endpoint. */
-export function createProtectedResourceMetadataHandler(server: Server) {
+export function createProtectedResourceMetadataHandler(
+  server: Server,
+  options: Pick<HttpOptions, "allowedHosts"> = {},
+) {
   const metadata = server.getAuthMetadata();
   if (!metadata)
     throw new Error(
       "Protected resource metadata requires an auth-configured server",
     );
+  const validateHost = hostValidator(options.allowedHosts);
   return async (request: Request): Promise<Response> => {
+    const rejection = validateHost(request);
+    if (rejection instanceof Response) return rejection;
+    request = rejection;
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response(null, {
         status: 405,
