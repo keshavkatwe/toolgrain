@@ -9,6 +9,7 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   UNSUPPORTED_PROTOCOL_VERSION,
 } from "@toolgrain/protocol";
+import type { ContextRegistry } from "../context/registry.js";
 import type { RequestScope } from "../dispatcher.js";
 import type { Request } from "../protocol/messages.js";
 import { ProtocolError } from "../protocol/responses.js";
@@ -22,6 +23,7 @@ export function createModernDispatcher(
   tools: ToolAdapter,
   identity: Implementation,
   instructions?: string,
+  providers?: ContextRegistry,
 ) {
   return async (
     request: Request,
@@ -63,6 +65,7 @@ export function createModernDispatcher(
               meta: params._meta ?? {},
             },
             scope.auth,
+            providers,
           ),
         );
         break;

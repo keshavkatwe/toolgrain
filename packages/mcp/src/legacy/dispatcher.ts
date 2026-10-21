@@ -5,6 +5,7 @@ import {
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 import type { JSONRPCResponse, Result } from "@toolgrain/protocol/2025-06-18";
+import type { ContextRegistry } from "../context/registry.js";
 import type { RequestScope } from "../dispatcher.js";
 import type { Request } from "../protocol/messages.js";
 import { ProtocolError } from "../protocol/responses.js";
@@ -31,6 +32,7 @@ export function createLegacyDispatcher(
   tools: ToolAdapter,
   identity: Implementation,
   instructions?: string,
+  providers?: ContextRegistry,
 ) {
   return async (
     request: Request,
@@ -58,6 +60,7 @@ export function createLegacyDispatcher(
               meta: params._meta ?? {},
             },
             scope.auth,
+            providers,
           ),
         );
         break;

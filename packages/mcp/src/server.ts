@@ -7,6 +7,8 @@ import { createAuthorization } from "./auth/authorization.js";
 import { AuthError } from "./auth/errors.js";
 import type { AuthMetadata, AuthProvider, AuthScope } from "./auth/types.js";
 import { createConnection } from "./connection.js";
+import type { RegisteredContextProvider } from "./context/definition.js";
+import { createContextRegistry } from "./context/registry.js";
 import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
@@ -25,6 +27,7 @@ export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   instructions?: string;
   onError?: (error: unknown) => void;
   auth?: AuthProvider;
+  context?: readonly RegisteredContextProvider[];
 }
 
 export interface HandleOptions {
@@ -58,6 +61,7 @@ export function createServer<const Tools extends ToolMap>(
     tools,
     { name: options.name, version: options.version },
     options.instructions,
+    createContextRegistry(options.context),
   );
   let closed = false;
   const running = new Set<AbortController>();

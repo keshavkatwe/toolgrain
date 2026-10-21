@@ -293,5 +293,6 @@ Calling `handle` without a valid scope on a protected server is rejected.
 `execute` bypasses server authorization and validation; test protected execution
 through `authorize` and `handle` instead.
 
-Generic context providers and their agreed lazy dependency resolution remain a
-separate feature. Authorization is eagerly verified; `useAuth(ctx)` does no work.
+[Lazy context providers](./context.md) can read `useAuth(ctx)` and depend on other
+providers through inferred async accessors. Authorization is still eagerly
+verified before context resolution; synchronous `useAuth(ctx)` does no work.

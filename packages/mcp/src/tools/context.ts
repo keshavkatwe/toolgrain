@@ -11,6 +11,12 @@ import type {
 } from "@toolgrain/protocol/2025-06-18";
 import { attachAuth } from "../auth/context.js";
 import type { AuthIdentity } from "../auth/types.js";
+import type { RegisteredContextProvider } from "../context/definition.js";
+import {
+  type ContextRegistry,
+  createContextRegistry,
+} from "../context/registry.js";
+import { createContextScope } from "../context/scope.js";
 
 type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -44,6 +50,7 @@ export interface ToolContext {
 export interface ToolContextOptions {
   signal?: AbortSignal;
   request?: Partial<ToolRequest>;
+  context?: readonly RegisteredContextProvider[];
 }
 
 /** Build a context for calling a definition's `execute` directly, for example in tests. */
@@ -55,12 +62,17 @@ export function toolContext(options: ToolContextOptions = {}): ToolContext {
     client,
     meta = {},
   } = options.request ?? {};
-  return createToolContext(options.signal ?? new AbortController().signal, {
-    id,
-    protocolVersion,
-    ...(client === undefined ? {} : { client }),
-    meta,
-  });
+  return createToolContext(
+    options.signal ?? new AbortController().signal,
+    {
+      id,
+      protocolVersion,
+      ...(client === undefined ? {} : { client }),
+      meta,
+    },
+    undefined,
+    createContextRegistry(options.context),
+  );
 }
 
 /** Each request gets its own deeply frozen copies, so handlers cannot affect one another. */
@@ -68,8 +80,9 @@ export function createToolContext(
   signal: AbortSignal,
   { client, ...request }: ToolRequest,
   auth?: AuthIdentity,
+  providers: ContextRegistry = createContextRegistry(),
 ): ToolContext {
-  return attachAuth(
+  const ctx = attachAuth(
     {
       signal,
       request: Object.freeze({
@@ -84,6 +97,7 @@ export function createToolContext(
     },
     auth,
   );
+  return createContextScope(ctx, providers);
 }
 
 /** Omit absent fields so the client matches its optional-property types. */

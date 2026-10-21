@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { createServer, mcpResult, tool, toolContext } from "@toolgrain/mcp";
+import {
+  createContext,
+  createServer,
+  mcpResult,
+  tool,
+  toolContext,
+} from "@toolgrain/mcp";
 import { LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { z } from "zod";
 import * as mini from "zod/v4/mini";
@@ -157,3 +163,59 @@ assert.throws(
     return true;
   },
 );
+
+let providerCalls = 0;
+const databaseContext = createContext({
+  name: "db",
+  resolve: () => ({ count: ++providerCalls }),
+});
+const serviceContext = createContext({
+  name: "services",
+  resolve: (ctx) => databaseContext.use(ctx),
+});
+const providerServer = createServer({
+  name: "context",
+  version: "1",
+  context: [serviceContext, databaseContext],
+  tools: {
+    read: tool({
+      input: z.object({}),
+      async execute(_input, ctx) {
+        const [a, b] = await Promise.all([
+          serviceContext.use(ctx),
+          databaseContext.use(ctx),
+        ]);
+        assert.equal(a, b);
+        return a;
+      },
+    }),
+  },
+});
+for (const revision of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
+  const response = await providerServer.handle(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: "read",
+        ...(revision === PROTOCOL_VERSION
+          ? {
+              _meta: {
+                "io.modelcontextprotocol/protocolVersion": revision,
+                "io.modelcontextprotocol/clientCapabilities": {},
+              },
+            }
+          : {}),
+      },
+    },
+    { protocolVersion: revision },
+  );
+  assert.deepEqual(response.result.structuredContent, { count: providerCalls });
+}
+assert.equal(providerCalls, 2);
+const substituted = toolContext({
+  context: [databaseContext.provide(() => ({ count: 99 })), serviceContext],
+});
+assert.deepEqual(await serviceContext.use(substituted), { count: 99 });
+await providerServer.close();

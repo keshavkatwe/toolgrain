@@ -10,7 +10,8 @@ same tool definitions. All packages are private and unpublished.
 
 See [project decisions](./AGENTS.md) and
 [client compatibility verification](./docs/compatibility.md), and
-[JWT/Clerk authorization](./docs/authorization.md).
+[JWT/Clerk authorization](./docs/authorization.md), and
+[lazy context providers](./docs/context.md).
 
 ## Authoring API
 
@@ -147,6 +148,37 @@ import { toolContext } from "@toolgrain/mcp";
 
 await search.execute({ query: "mcp" }, toolContext());
 ```
+
+### Lazy context providers
+
+Use inferred accessors for application dependencies while keeping tools standalone:
+
+```ts
+import { createContext } from "@toolgrain/mcp";
+
+const database = createContext({
+  name: "database",
+  resolve: () => sharedDatabase, // Your application-owned client or pool.
+});
+const useDatabase = database.use;
+
+const services = createContext({
+  name: "services",
+  async resolve(ctx) {
+    const db = await useDatabase(ctx);
+    return { findUser: (id: string) => db.findUser(id, ctx.signal) };
+  },
+});
+const useServices = services.use;
+```
+
+Register `context: [services, database]` on `createServer()`, in any order.
+Handlers call `await useServices(ctx)`. Only accessed factories run; each tool
+call caches its provider promises and values. Use
+`database.provide(() => testDatabase)` for a typed server/test override, and
+`toolContext({ context: [...] })` for direct calls. Context values retain their
+original identity and applications own resource cleanup. See the
+[context guide](./docs/context.md) for a full example, cancellation, and errors.
 
 ### Rich results
 
