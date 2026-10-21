@@ -14,6 +14,7 @@ Smoke tests verify metadata, schema discovery, and execution in both protocol er
 | [Express](./express-example/README.md) | tsx watcher + Express | 3001 |
 | [Hono](./hono-example/README.md) | tsx watcher + Hono Node adapter | 3002 |
 | [Elysia](./elysia-example/README.md) | Bun watch + Elysia | 3003 |
+| [Elysia + Clerk](./elysia-example/README.md#clerk-authorization-and-inspector) | `dev:clerk` + protected Elysia | 3007 |
 | [Next.js](./nextjs-example/README.md) | next dev / next build / next start | 3005 |
 | [JWT authorization](./jwt-example/README.md) | tsx watcher + protected Node HTTP | 3006 |
 | [Stdio](./stdio-example/) | TypeScript watch build; separate Inspector launch | — |
@@ -29,5 +30,7 @@ CI runs both tasks and publishes test results for every workspace.
 
 The unauthenticated HTTP examples also have `bun run inspect`. Start its dev server first, then
 run Inspector in a second terminal in the same example directory. The launcher
-pins Inspector 2.11.0 and modern protocol mode. Override the URL with
+pins Inspector 2.11.0 and modern protocol mode. The Elysia Clerk variant has
+`dev:clerk` / `inspect:clerk` scripts for testing OAuth login and `whoAmI`;
+configure its local keys and OAuth client as described in its README. Override the URL with
 `bun run inspect http://127.0.0.1:4000/mcp` when using a different port.

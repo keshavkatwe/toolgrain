@@ -14,15 +14,18 @@
       "name": "@toolgrain/elysia-example",
       "version": "0.0.0",
       "dependencies": {
+        "@toolgrain/clerk": "workspace:*",
         "@toolgrain/http": "workspace:*",
         "@toolgrain/mcp": "workspace:*",
         "elysia": "1.4.30",
         "zod": "4.6.7",
       },
       "devDependencies": {
+        "@toolgrain/protocol": "workspace:*",
         "@toolgrain/repo-tools": "workspace:*",
         "@types/bun": "1.3.14",
         "@types/node": "24.10.0",
+        "jose": "6.2.13",
         "typescript": "7.0.2",
         "vitest": "5.0.4",
       },

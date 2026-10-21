@@ -105,6 +105,9 @@ Get both keys from the same Clerk application/environment's API keys page. No
 and its issuer. Configure OAuth applications and client onboarding in Clerk for
 the MCP clients you intend to support. See [Clerk's OAuth guide](https://clerk.com/docs/guides/configure/auth-strategies/oauth/how-clerk-implements-oauth).
 
+For a runnable framework application and Inspector OAuth setup, see the
+[Elysia Clerk example](../apps/elysia-example/README.md#clerk-authorization-and-inspector).
+
 Only OAuth access tokens for your resource are accepted. JWT OAuth tokens are
 verified against the Clerk issuer's signing keys; opaque `oat_` tokens are
 verified with Clerk's backend SDK and checked for audience, revocation, and

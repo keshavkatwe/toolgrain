@@ -4,25 +4,31 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun build --target=bun --outdir=dist src/index.ts",
+    "build": "bun build --target=bun --outdir=dist src/index.ts src/clerk.ts",
     "check-types": "tsc --noEmit",
     "start": "bun run dist/index.js",
     "dev": "bun --watch run src/index.ts",
     "test": "vitest run",
     "test:examples": "vitest run",
-    "inspect": "toolgrain-repo inspect-http http://127.0.0.1:3003/mcp"
+    "inspect": "toolgrain-repo inspect-http http://127.0.0.1:3003/mcp",
+    "dev:clerk": "bun --watch run src/clerk.ts",
+    "start:clerk": "bun run dist/clerk.js",
+    "inspect:clerk": "toolgrain-repo inspect-http http://127.0.0.1:3007/mcp"
   },
   "dependencies": {
     "@toolgrain/mcp": "workspace:*",
     "zod": "4.6.7",
     "@toolgrain/http": "workspace:*",
-    "elysia": "1.4.30"
+    "elysia": "1.4.30",
+    "@toolgrain/clerk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "7.0.2",
     "@types/node": "24.10.0",
     "vitest": "5.0.4",
     "@types/bun": "1.3.14",
-    "@toolgrain/repo-tools": "workspace:*"
+    "@toolgrain/repo-tools": "workspace:*",
+    "jose": "6.2.13",
+    "@toolgrain/protocol": "workspace:*"
   }
 }
