@@ -9,7 +9,8 @@ MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
 same tool definitions. All packages are private and unpublished.
 
 See [project decisions](./AGENTS.md) and
-[client compatibility verification](./docs/compatibility.md).
+[client compatibility verification](./docs/compatibility.md), and
+[JWT/Clerk authorization](./docs/authorization.md).
 
 ## Authoring API
 
@@ -365,8 +366,8 @@ and JSON serialization are shared.
 HTTP supports revisions `2026-07-28` and `2025-06-18`: independent POST requests
 and JSON responses. Legacy initialization is supported without issuing session
 IDs or keeping global client negotiation state. There is no GET event stream or
-resumption. SSE, progress, subscriptions, OAuth/Clerk, and request identity context
-are separate work. Requests must advertise both `application/json` and
+resumption. SSE, progress, and subscriptions remain separate work. See
+[authorization](./docs/authorization.md) for JWT/Clerk and request identities. Requests must advertise both `application/json` and
 `text/event-stream` in Accept even though this implementation returns JSON.
 
 Every modern POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
@@ -506,7 +507,7 @@ verification requires no additional downloads or workspace dependency changes.
 `bun run test:coverage` runs through Turborepo, building each workspace before
 its tests. MCP, Node, and HTTP use Vitest V8 coverage over every `src/**/*.ts`
 file, including files not imported by tests. Thresholds apply separately to
-statements, branches, functions, and lines in each package: 95% for MCP, Node, and HTTP. A test failure or missed threshold fails CI.
+statements, branches, functions, and lines in each package: 95% for MCP, Node, HTTP, JWT, and Clerk. A test failure or missed threshold fails CI.
 
 Protocol runs its vendored-schema integrity test without instrumenting upstream
 code. Examples run their real-process integration tests through `bun run test:examples`,
@@ -531,7 +532,7 @@ the Actions summary and downloadable artifact. Reports link to the run logs.
 
 ### Package size and dependency auditing
 
-`bun run test:size` builds and checks the four library packages through Turbo.
+`bun run test:size` builds and checks the six library packages through Turbo.
 Each check packs the workspace with Bun 1.3.14 into a temporary directory,
 without running lifecycle scripts or publishing anything. It measures compressed
 tarball bytes, unpacked file bytes, and file count, and writes the complete file
@@ -553,7 +554,7 @@ MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaratio
 maps, and the TypeScript sources in the archive. Verification rejects malformed
 maps, missing or incorrect source targets, and missing mapping comments. Packaged
 sources are limited to existing `src/**/*.ts` files; other libraries retain their
-existing restrictions. MCP's budgets are 59 KiB packed and 258 KiB unpacked,
+existing restrictions. MCP's budgets are 69 KiB packed and 296 KiB unpacked,
 allowing approximately 20% growth above the build with maps and sources.
 
 `bun run test:audit` queries Bun's advisory service once for the complete

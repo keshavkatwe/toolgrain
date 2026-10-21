@@ -1,3 +1,14 @@
+export { createAuthAccessor } from "./auth/context.js";
+export type { AuthErrorCode } from "./auth/errors.js";
+export { AuthError, isAuthError } from "./auth/errors.js";
+export type {
+  AuthMetadata,
+  AuthProvider,
+  AuthReadonly,
+  AuthScope,
+  AuthVerifyOptions,
+} from "./auth/types.js";
+export { authUrl as validateAuthUrl } from "./auth/url.js";
 export type { HandleOptions, Server, ServerOptions } from "./server.js";
 export { createServer } from "./server.js";
 export type {

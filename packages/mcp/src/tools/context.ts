@@ -9,6 +9,8 @@ import type {
   ClientCapabilities as LegacyClientCapabilities,
   Implementation as LegacyImplementation,
 } from "@toolgrain/protocol/2025-06-18";
+import { attachAuth } from "../auth/context.js";
+import type { AuthIdentity } from "../auth/types.js";
 
 type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -65,17 +67,23 @@ export function toolContext(options: ToolContextOptions = {}): ToolContext {
 export function createToolContext(
   signal: AbortSignal,
   { client, ...request }: ToolRequest,
+  auth?: AuthIdentity,
 ): ToolContext {
-  return Object.freeze({
-    signal,
-    request: Object.freeze({
-      ...request,
-      ...(client === undefined
-        ? {}
-        : { client: frozenCopy(toolClient(client.info, client.capabilities)) }),
-      meta: frozenCopy(request.meta),
-    }),
-  });
+  return attachAuth(
+    {
+      signal,
+      request: Object.freeze({
+        ...request,
+        ...(client === undefined
+          ? {}
+          : {
+              client: frozenCopy(toolClient(client.info, client.capabilities)),
+            }),
+        meta: frozenCopy(request.meta),
+      }),
+    },
+    auth,
+  );
 }
 
 /** Omit absent fields so the client matches its optional-property types. */

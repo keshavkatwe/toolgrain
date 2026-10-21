@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { requestBody } from "./http-body.js";
+import { requestUrl } from "./http-url.js";
 
 export class ConsumedRequestError extends Error {
   constructor() {
@@ -38,7 +39,7 @@ export async function handleNodeRequest(
       signal,
       ...(body ? { body, duplex: "half" as const } : {}),
     };
-    return await handle(new Request("http://localhost/mcp", init));
+    return await handle(new Request(requestUrl(input), init));
   } finally {
     await body?.cancel().catch(() => {});
   }

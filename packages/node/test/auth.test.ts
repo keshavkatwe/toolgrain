@@ -1,0 +1,108 @@
+import { createServer as httpServer, request as sendHttp } from "node:http";
+import type { AddressInfo } from "node:net";
+import {
+  AuthError,
+  createAuthAccessor,
+  createServer,
+  tool,
+} from "@toolgrain/mcp";
+import { expect, it } from "vitest";
+import { z } from "zod";
+import {
+  createNodeHttpHandler,
+  createNodeProtectedResourceMetadataHandler,
+} from "../src/index.js";
+
+it("preserves the actual endpoint for authentication and public metadata over real HTTP", async () => {
+  const type = Symbol.for("node-test/auth");
+  const useAuth = createAuthAccessor<{ userId: string }>(type);
+  let expectedResource = "";
+  const server = createServer({
+    name: "auth",
+    version: "1",
+    auth: {
+      type,
+      authorizationServers: ["https://auth.example.com"],
+      async verify(token, { resource }) {
+        if (token !== "valid" || resource !== expectedResource)
+          throw new AuthError("invalid_token");
+        return { userId: "alice" };
+      },
+    },
+    tools: {
+      who: tool({
+        input: z.object({}),
+        execute(_input, ctx) {
+          return useAuth(ctx).userId;
+        },
+      }),
+    },
+  });
+  const handler = createNodeHttpHandler(server);
+  const metadata = createNodeProtectedResourceMetadataHandler(server);
+  const http = httpServer((req, res) => {
+    void (req.url?.startsWith("/.well-known/") ? metadata : handler)(req, res);
+  });
+  await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
+  const origin = `http://127.0.0.1:${(http.address() as AddressInfo).port}`;
+  expectedResource = `${origin}/public/mcp`;
+  try {
+    const info = await fetch(
+      `${origin}/.well-known/oauth-protected-resource/public/mcp`,
+    );
+    expect(info.status).toBe(200);
+    expect(await info.json()).toHaveProperty("resource", expectedResource);
+    const headers = {
+      "Content-Type": "application/json",
+      Accept: "application/json, text/event-stream",
+      "MCP-Protocol-Version": "2025-06-18",
+      Authorization: "Bearer valid",
+      "X-Forwarded-Host": "evil.example.com",
+      "X-Forwarded-Proto": "https",
+    };
+    const body = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "who" },
+    });
+    const result = await fetch(expectedResource, {
+      method: "POST",
+      headers,
+      body,
+    });
+    expect(result.status).toBe(200);
+    expect(await result.json()).toHaveProperty(
+      "result.content.0.text",
+      "alice",
+    );
+    expect(
+      (
+        await fetch(expectedResource, {
+          method: "POST",
+          headers: { ...headers, Authorization: "Bearer invalid" },
+          body,
+        })
+      ).status,
+    ).toBe(401);
+    const invalidHost = await new Promise<number | undefined>(
+      (resolve, reject) => {
+        const req = sendHttp(
+          expectedResource,
+          { method: "POST", headers: { ...headers, Host: "bad:port" } },
+          (res) => {
+            res.resume();
+            resolve(res.statusCode);
+          },
+        );
+        req.on("error", reject);
+        req.end(body);
+      },
+    );
+    expect(invalidHost).toBe(400);
+  } finally {
+    http.closeAllConnections();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+    await server.close();
+  }
+});

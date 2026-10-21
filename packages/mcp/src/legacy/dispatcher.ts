@@ -49,12 +49,16 @@ export function createLegacyDispatcher(
         break;
       case "tools/call":
         result = await callTool(request.params, tools, (params) =>
-          createToolContext(scope.signal, {
-            id: request.id,
-            protocolVersion: LEGACY_PROTOCOL_VERSION,
-            ...(scope.client === undefined ? {} : { client: scope.client }),
-            meta: params._meta ?? {},
-          }),
+          createToolContext(
+            scope.signal,
+            {
+              id: request.id,
+              protocolVersion: LEGACY_PROTOCOL_VERSION,
+              ...(scope.client === undefined ? {} : { client: scope.client }),
+              meta: params._meta ?? {},
+            },
+            scope.auth,
+          ),
         );
         break;
       default:

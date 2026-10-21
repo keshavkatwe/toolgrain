@@ -15,6 +15,7 @@ Smoke tests verify metadata, schema discovery, and execution in both protocol er
 | [Hono](./hono-example/README.md) | tsx watcher + Hono Node adapter | 3002 |
 | [Elysia](./elysia-example/README.md) | Bun watch + Elysia | 3003 |
 | [Next.js](./nextjs-example/README.md) | next dev / next build / next start | 3005 |
+| [JWT authorization](./jwt-example/README.md) | tsx watcher + protected Node HTTP | 3006 |
 | [Stdio](./stdio-example/) | TypeScript watch build; separate Inspector launch | — |
 
 Start with `bun install --frozen-lockfile` and `bun run build` from the repository
@@ -26,7 +27,7 @@ is tested through its own start command; stdio uses its existing subprocess test
 `bun run test:coverage` measures library coverage and verifies protocol integrity.
 CI runs both tasks and publishes test results for every workspace.
 
-Every HTTP example also has `bun run inspect`. Start its dev server first, then
+The unauthenticated HTTP examples also have `bun run inspect`. Start its dev server first, then
 run Inspector in a second terminal in the same example directory. The launcher
 pins Inspector 2.11.0 and modern protocol mode. Override the URL with
 `bun run inspect http://127.0.0.1:4000/mcp` when using a different port.

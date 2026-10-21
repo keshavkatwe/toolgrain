@@ -7,7 +7,13 @@ import { createNodeHttpHandler } from "../src/index.js";
 
 function fixture() {
   const input = new PassThrough() as unknown as IncomingMessage;
-  Object.assign(input, { rawHeaders: [], method: "GET" });
+  Object.assign(input, {
+    rawHeaders: ["Host", "localhost"],
+    headers: { host: "localhost" },
+    socket: {},
+    url: "/mcp",
+    method: "GET",
+  });
   const output = Object.assign(new EventEmitter(), {
     writableFinished: false,
     destroyed: false,

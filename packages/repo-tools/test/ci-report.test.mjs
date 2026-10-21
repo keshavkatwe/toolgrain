@@ -23,7 +23,7 @@ function fixture(run) {
       typeof data === "string" ? data : JSON.stringify(data),
     );
   };
-  for (const name of ["mcp", "node", "http"]) {
+  for (const name of ["mcp", "node", "http", "jwt", "clerk"]) {
     write(
       `packages/${name}/vitest.config.ts`,
       "statements: 95, branches: 95, functions: 95, lines: 95",

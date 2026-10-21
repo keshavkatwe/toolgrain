@@ -11,8 +11,8 @@ These items are proposals for discussion, with no timelines or implementation co
 - Documentation and quickstarts using Docusaurus, hosted on GitHub Pages — platform selected; implementation deferred.
 - Versioning, changelogs, and release verification.
 - Initial npm release.
-- Handler execution context and cooperative cancellation — v0 implemented (see `AGENTS.md`); progress, elicitation, and identity remain later work.
-- Authentication integration and per-request identity.
+- Handler execution context and cooperative cancellation — v0 implemented (see `AGENTS.md`); progress and elicitation remain later work.
+- HTTP authorization and per-request identity — JWT and Clerk implemented (see `docs/authorization.md`); per-tool scope policies and lazy context providers remain later work.
 - Resources support.
 - Prompts support.
 - SSE streaming and progress notifications.
