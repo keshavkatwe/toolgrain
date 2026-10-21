@@ -4,7 +4,7 @@ import {
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 import { exportJWK, generateKeyPair, type JWTPayload, SignJWT } from "jose";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const domain = "sample-app.clerk.accounts.dev";
 const issuer = `https://${domain}`;
@@ -99,6 +99,19 @@ function request(
     }),
   });
 }
+let application: typeof import("../src/clerk.js");
+let fetcher: ReturnType<typeof mockClerk>;
+
+// Cold Clerk/Elysia imports can exceed five seconds on shared CI runners.
+// Give setup its own budget while keeping request assertions at the default timeout.
+beforeEach(async () => {
+  fetcher = mockClerk();
+  vi.stubEnv("CLERK_PUBLISHABLE_KEY", options.publishableKey);
+  vi.stubEnv("CLERK_SECRET_KEY", options.secretKey);
+  vi.stubEnv("MCP_RESOURCE", "");
+  application = await import("../src/clerk.js");
+}, 15000);
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -108,11 +121,7 @@ afterEach(() => {
 it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
   "protects both tools and exposes Clerk JWT and opaque identities in %s",
   async (revision) => {
-    const fetcher = mockClerk();
-    vi.stubEnv("CLERK_PUBLISHABLE_KEY", options.publishableKey);
-    vi.stubEnv("CLERK_SECRET_KEY", options.secretKey);
-    vi.stubEnv("MCP_RESOURCE", "");
-    const { app, server } = await import("../src/clerk.js");
+    const { app, server } = application;
     try {
       const metadata = await app.handle(
         new Request(
