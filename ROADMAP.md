@@ -12,7 +12,8 @@ These items are proposals for discussion, with no timelines or implementation co
 - Versioning, changelogs, and release verification.
 - Initial npm release.
 - Handler execution context and cooperative cancellation — v0 implemented (see `AGENTS.md`); progress and elicitation remain later work.
-- HTTP authorization and per-request identity — JWT and Clerk implemented (see `docs/authorization.md`); per-tool scope policies and lazy context providers remain later work.
+- HTTP authorization and per-request identity — JWT and Clerk implemented (see `docs/authorization.md`); per-tool scope policies remain later work.
+- Lazy context providers — request-cached inferred accessors and typed overrides implemented (see `docs/context.md`); resource cleanup and lifecycle hooks remain later work.
 - Resources support.
 - Prompts support.
 - SSE streaming and progress notifications.

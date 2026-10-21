@@ -1,4 +1,6 @@
 import {
+  type ContextProvider,
+  createContext,
   createServer,
   mcpResult,
   type ToolContext,
@@ -198,3 +200,50 @@ function rejectedClientAssumptions(ctx: ToolContext) {
   }
 }
 void rejectedClientAssumptions;
+
+const databaseContext = createContext({
+  name: "database",
+  resolve: (ctx) => ({
+    requestId: ctx.request.id,
+    query: (id: number) => id.toFixed(),
+  }),
+});
+const useDatabase = databaseContext.use;
+const serviceContext = createContext({
+  name: "services",
+  async resolve(ctx) {
+    const db = await useDatabase(ctx);
+    return { read: () => db.query(1) };
+  },
+});
+const inferredContext: ContextProvider<{ read: () => string }> = serviceContext;
+const overriddenContext = databaseContext.provide(async () => ({
+  requestId: "test",
+  query: () => "fake",
+}));
+const providerContext: ToolContext = toolContext({
+  context: [serviceContext, overriddenContext],
+});
+const inferredValue: { read: () => string } =
+  await serviceContext.use(providerContext);
+createServer({
+  name: "context",
+  version: "1",
+  tools: {},
+  context: [serviceContext, databaseContext],
+});
+void inferredContext;
+void inferredValue;
+function rejectedContextProviders() {
+  // @ts-expect-error Compiled declarations preserve inferred override types.
+  databaseContext.provide(() => ({ requestId: 1, query: () => 2 }));
+  // @ts-expect-error Raw providers cannot bypass opaque registration.
+  toolContext({ context: [{ name: "raw", resolve: () => 1 }] });
+  // @ts-expect-error Context access is always asynchronous.
+  const eager: { read: () => string } = serviceContext.use(toolContext());
+  void eager;
+  // @ts-expect-error Compiled declarations keep override contracts invariant.
+  const widened: ContextProvider<unknown> = databaseContext;
+  void widened;
+}
+void rejectedContextProviders;

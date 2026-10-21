@@ -9,6 +9,8 @@ export type {
   AuthVerifyOptions,
 } from "./auth/types.js";
 export { authUrl as validateAuthUrl } from "./auth/url.js";
+export type { ContextProvider } from "./context/definition.js";
+export { createContext } from "./context/definition.js";
 export type { HandleOptions, Server, ServerOptions } from "./server.js";
 export { createServer } from "./server.js";
 export type {

@@ -6,6 +6,7 @@ import {
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 import type { AuthIdentity } from "./auth/types.js";
+import type { ContextRegistry } from "./context/registry.js";
 import {
   createLegacyDispatcher,
   usesLegacyProtocol,
@@ -36,9 +37,20 @@ export function createDispatcher(
   tools: ToolAdapter,
   identity: Implementation,
   instructions?: string,
+  providers?: ContextRegistry,
 ): Dispatcher {
-  const legacy = createLegacyDispatcher(tools, identity, instructions);
-  const modern = createModernDispatcher(tools, identity, instructions);
+  const legacy = createLegacyDispatcher(
+    tools,
+    identity,
+    instructions,
+    providers,
+  );
+  const modern = createModernDispatcher(
+    tools,
+    identity,
+    instructions,
+    providers,
+  );
   return (request, scope, protocolVersion) => {
     validateVersionContext(request, protocolVersion);
     return usesLegacyProtocol(request, protocolVersion)
