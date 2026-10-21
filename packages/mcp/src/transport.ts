@@ -9,7 +9,7 @@ export interface TransportCallbacks {
   onClose(): void;
 }
 
-/** Adapters own UTF-8 framing, JSON decoding, and stream cleanup. */
+/** Single-use adapters own UTF-8 framing, JSON decoding, and stream cleanup. */
 export interface Transport {
   readonly mode?: "message";
   start(callbacks: TransportCallbacks): Promise<void>;
@@ -17,7 +17,7 @@ export interface Transport {
   close(): Promise<void>;
 }
 
-/** Request transports own listeners and use the server's per-request authorization bridge. */
+/** Single-use request transports own listeners and use per-request authorization. */
 export interface RequestTransport {
   readonly mode: "request";
   start(

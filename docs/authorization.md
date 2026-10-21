@@ -52,7 +52,10 @@ key rotation. The defaults allow RS256 and ES256. Override `algorithms` with
 supported asymmetric algorithms; symmetric algorithms and `none` are rejected.
 Tokens require a valid signature, the configured issuer, a matching resource
 audience, and `exp`. Expiration and any `nbf` are checked. Standard claim types
-are checked before exposure. `iss`, `aud`, and `exp` are required; `sub`, `iat`,
+are checked before exposure. Audience arrays contain only strings; `exp`, `iat`,
+and `nbf` must be finite numbers when present. Unsupported JWT critical headers
+are invalid tokens (401); signing-key retrieval/import failures remain provider
+errors (503). `iss`, `aud`, and `exp` are required; `sub`, `iat`,
 `nbf`, and `jti` are optional. Other claims have type `unknown`.
 
 JWT verification does not issue tokens or implement login, consent, OAuth client
@@ -134,7 +137,11 @@ Default accepted hosts are `localhost`, `127.0.0.1`, and `[::1]` on the actual
 listening port. `hostname` controls the bind address; `allowedHosts` separately
 controls accepted request authorities. Closing the server aborts active requests
 and verification, stops the listener, and closes its connections. Startup failures
-release the listener too. The transport does not install global process handlers.
+release the listener too. `server.listen()` claims each transport instance for
+its first server; that instance can be attached only once. Rejected reuse leaves the owning server running and
+the other server free to attach a fresh transport. Ownership is shared across
+compatible package copies and supports frozen custom transports. The transport
+does not install global process handlers.
 
 When auth is configured, Toolgrain automatically serves public GET/HEAD metadata
 at `/.well-known/oauth-protected-resource/mcp`. Custom paths, root paths, and
@@ -149,7 +156,10 @@ Unmatched routes return 404; a server without auth exposes no resource metadata.
 public metadata, host validation, and authentication. Mount it at the application
 root so that both the endpoint and well-known metadata path reach it. A framework
 mount that strips `/mcp` from the Request URL is unsuitable for this combined
-handler.
+handler. The returned `HttpHandler` also provides `matches(pathname)` for
+framework middleware to identify the MCP and configured metadata paths before
+consuming the request body. A Hono middleware can call
+`handler.matches(c.req.path) ? handler(c.req.raw) : next()`.
 
 For example, Elysia on Bun can mount the handler without consuming the body:
 
@@ -172,8 +182,11 @@ new Elysia()
 
 `createNodeHttpHandler(server, options?)` from `@toolgrain/node` provides the
 same combined handler for Node IncomingMessage/ServerResponse. Mount it at the
-root before body parsing middleware. These handler factories leave listener
-ownership with the application. Separate
+root before body parsing middleware. When Express supplies `next`, unmatched
+paths are delegated immediately, with their request bodies untouched. Matched MCP
+requests keep their authentication, protocol, and error responses, including 404
+protocol errors. Without a middleware continuation, unmatched paths return 404.
+These handler factories leave listener ownership with the application. Separate
 `createProtectedResourceMetadataHandler(server, { allowedHosts? })` and
 `createNodeProtectedResourceMetadataHandler(server, { allowedHosts? })` remain
 available for frameworks that require explicit filesystem or route registration.

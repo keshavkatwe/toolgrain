@@ -71,3 +71,9 @@ For a different port or production URL, override the endpoint:
 ```sh
 bun run inspect http://127.0.0.1:4000/mcp
 ```
+
+## Composing application routes
+
+The middleware uses `handler.matches(c.req.path)` for MCP and metadata paths and
+calls `next()` for other routes. Health and JSON echo routes can be registered
+after it; their bodies remain available to Hono.

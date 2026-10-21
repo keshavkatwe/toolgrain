@@ -100,21 +100,32 @@ export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
     authorizationServers: Object.freeze([issuer]),
     async verify(token, { signal, resource: requested }) {
       signal.throwIfAborted();
+      let keyRequested = false;
       try {
-        const { payload } = await jwtVerify(token, await keys(), {
-          issuer,
-          audience: resource ?? requested,
-          algorithms,
-          requiredClaims: ["iss", "aud", "exp"],
-        });
+        const resolve = await keys();
+        const { payload } = await jwtVerify(
+          token,
+          (header, signature) => {
+            keyRequested = true;
+            return resolve(header, signature);
+          },
+          {
+            issuer,
+            audience: resource ?? requested,
+            algorithms,
+            requiredClaims: ["iss", "aud", "exp"],
+          },
+        );
         signal.throwIfAborted();
         if (
+          (Array.isArray(payload.aud) &&
+            payload.aud.some((audience) => typeof audience !== "string")) ||
           ["sub", "jti"].some(
             (claim) =>
               payload[claim] !== undefined &&
               typeof payload[claim] !== "string",
           ) ||
-          ["iat", "nbf"].some(
+          ["exp", "iat", "nbf"].some(
             (claim) =>
               payload[claim] !== undefined &&
               (typeof payload[claim] !== "number" ||
@@ -127,7 +138,10 @@ export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
         signal.throwIfAborted();
         if (isAuthError(error)) throw error;
         throw new AuthError(
-          error instanceof errors.JOSEError && invalidCodes.has(error.code)
+          error instanceof errors.JOSEError &&
+            (invalidCodes.has(error.code) ||
+              // Unsupported token headers fail before key lookup; key/crypto failures are provider errors.
+              (error.code === "ERR_JOSE_NOT_SUPPORTED" && !keyRequested))
             ? "invalid_token"
             : "temporarily_unavailable",
           { cause: error },

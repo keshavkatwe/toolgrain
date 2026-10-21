@@ -9,11 +9,17 @@ import { type HttpOptions, resolveHttpOptions } from "./options.js";
 import { parameterHeaders } from "./parameter-headers.js";
 import { readRequest } from "./request.js";
 
+export interface HttpHandler {
+  (request: Request): Promise<Response>;
+  /** Match owned endpoint paths before passing a request to framework middleware. */
+  readonly matches: (pathname: string) => boolean;
+}
+
 /** Combined MCP and public authorization metadata handler. Mount at the root. */
 export function createHttpHandler(
   server: Server,
   options: HttpOptions = {},
-): (request: Request) => Promise<Response> {
+): HttpHandler {
   const { path, maxMessageBytes, allowedOrigins } = resolveHttpOptions(options);
   const parameters = parameterHeaders(server.getToolDefinitions());
   const auth = server.getAuthMetadata();
@@ -24,13 +30,15 @@ export function createHttpHandler(
   const metadataPath = auth?.resource
     ? new URL(resourceMetadataUrl(auth.resource)).pathname
     : metadataPrefix + (path === "/" ? "" : path);
-  return async (request) => {
+  const matches = (pathname: string) =>
+    pathname === path || (metadata !== undefined && pathname === metadataPath);
+  const handle = async (request: Request): Promise<Response> => {
     const hostRejection = validateHost(request);
     if (hostRejection instanceof Response) return hostRejection;
     request = hostRejection;
     const pathname = new URL(request.url).pathname;
+    if (!matches(pathname)) return new Response(null, { status: 404 });
     if (metadata && pathname === metadataPath) return metadata(request);
-    if (pathname !== path) return new Response(null, { status: 404 });
     const rejection = validateEndpoint(request, allowedOrigins);
     if (rejection) return rejection;
     const scope = auth
@@ -66,4 +74,5 @@ export function createHttpHandler(
       scope?.dispose();
     }
   };
+  return Object.assign(handle, { matches });
 }

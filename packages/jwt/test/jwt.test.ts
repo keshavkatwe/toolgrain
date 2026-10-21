@@ -1,5 +1,13 @@
 import { createAuthAccessor, createServer, tool } from "@toolgrain/mcp";
-import { exportJWK, generateKeyPair, type JWTPayload, SignJWT } from "jose";
+import {
+  base64url,
+  CompactSign,
+  errors,
+  exportJWK,
+  generateKeyPair,
+  type JWTPayload,
+  SignJWT,
+} from "jose";
 import { afterEach, expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
 import { discoverJwks, fetchJson } from "../src/discovery.js";
@@ -308,4 +316,74 @@ it("validates issuer, key and resource configuration", () => {
   expect(() => jwt({ issuer: "bad" })).toThrow();
   expect(() => jwt({ issuer, jwksUrl: "bad" })).toThrow();
   expect(() => jwt({ issuer, resource: "/mcp" })).toThrow();
+});
+
+it.each([42, null, {}, ["nested"]])(
+  "rejects a matching audience array containing a non-string value %j",
+  async (value) => {
+    mockFetch();
+    const token = await sign({
+      aud: [resource, value],
+    } as unknown as JWTPayload);
+    await expect(
+      jwt({ issuer }).verify(token, verifyOptions()),
+    ).rejects.toMatchObject({ code: "invalid_token" });
+  },
+);
+it("rejects a correctly signed JSON expiration that overflows to Infinity", async () => {
+  mockFetch();
+  const payload = JSON.stringify({
+    iss: issuer,
+    aud: resource,
+    exp: 0,
+  }).replace('"exp":0', '"exp":1e400');
+  const token = await new CompactSign(new TextEncoder().encode(payload))
+    .setProtectedHeader({ alg: "RS256", kid: "one" })
+    .sign(key.privateKey);
+  await expect(
+    jwt({ issuer }).verify(token, verifyOptions()),
+  ).rejects.toMatchObject({ code: "invalid_token" });
+});
+it("classifies unsupported critical JWT headers as invalid tokens rather than provider outages", async () => {
+  mockFetch();
+  const token = [
+    base64url.encode(
+      JSON.stringify({
+        alg: "RS256",
+        kid: "one",
+        crit: ["unsupported"],
+        unsupported: true,
+      }),
+    ),
+    base64url.encode(
+      JSON.stringify({ iss: issuer, aud: resource, exp: now() + 300 }),
+    ),
+    "AAAA",
+  ].join(".");
+  await expect(
+    jwt({ issuer }).verify(token, verifyOptions()),
+  ).rejects.toMatchObject({
+    code: "invalid_token",
+    cause: { code: "ERR_JOSE_NOT_SUPPORTED" },
+  });
+});
+
+it("preserves provider-outage classification when trusted key import is unsupported", async () => {
+  mockFetch();
+  const token = await sign();
+  const unsupported = new errors.JOSENotSupported("review key import failure");
+  const importKey = vi
+    .spyOn(crypto.subtle, "importKey")
+    .mockRejectedValueOnce(unsupported);
+  try {
+    await expect(
+      jwt({ issuer }).verify(token, verifyOptions()),
+    ).rejects.toMatchObject({
+      code: "temporarily_unavailable",
+      cause: unsupported,
+    });
+    expect(importKey).toHaveBeenCalledOnce();
+  } finally {
+    importKey.mockRestore();
+  }
 });

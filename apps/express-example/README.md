@@ -71,3 +71,11 @@ For a different port or production URL, override the endpoint:
 ```sh
 bun run inspect http://127.0.0.1:4000/mcp
 ```
+
+## Composing application routes
+
+The combined Node handler calls Express `next()` for unrelated paths before
+reading the body. Register it before `express.json()`, then register REST routes
+normally. MCP and public metadata requests finish inside Toolgrain, including MCP
+404 protocol errors. The routing regression checks health and JSON echo routes,
+public metadata, authentication, and host rejection on a real Express listener.

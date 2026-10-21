@@ -321,3 +321,22 @@ it.each([false, true])(
     });
   },
 );
+
+it("does not close an active listener when another server tries to attach the same transport", async () => {
+  const first = fixture(false);
+  const other = createServer({ name: "other", version: "1", tools: {} });
+  await first.server.listen(first.transport);
+  const address = first.transport.address();
+  if (!address) throw new Error("Expected listening address");
+  const url = `http://127.0.0.1:${address.port}/mcp`;
+  try {
+    await expect(other.listen(first.transport)).rejects.toThrow();
+    expect(first.transport.address()).toEqual(address);
+    expect((await fetch(url, request(PROTOCOL_VERSION))).status).toBe(200);
+    await other.listen(http({ port: 0 }));
+    await other.close();
+    expect((await fetch(url, request(PROTOCOL_VERSION))).status).toBe(200);
+  } finally {
+    await Promise.all([first.server.close(), other.close()]);
+  }
+});

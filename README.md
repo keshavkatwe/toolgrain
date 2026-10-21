@@ -363,7 +363,14 @@ import { createNodeHttpHandler } from "@toolgrain/node";
 
 // Express: mount before express.json() or other body-consuming middleware.
 app.use(createNodeHttpHandler(server));
+app.use(express.json());
+app.get("/health", (_request, response) => response.json({ status: "ok" }));
 ```
+
+The Node middleware calls `next()` for unrelated paths before consuming their
+bodies. Matched MCP errors remain Toolgrain responses. Web middleware can use
+`handler.matches(pathname)` to select the MCP and metadata routes and delegate
+other paths to its framework.
 
 The public factories compose focused internal modules. HTTP separates option
 normalization, endpoint checks, bounded body decoding, request/header validation,

@@ -19,6 +19,8 @@ export function honoApp() {
     },
   });
   const handler = createHttpHandler(server);
-  app.all("*", (c) => handler(c.req.raw));
+  app.use("*", (c, next) =>
+    handler.matches(c.req.path) ? handler(c.req.raw) : next(),
+  );
   return { app, server };
 }

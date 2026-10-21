@@ -230,3 +230,39 @@ it("preserves a validated Host authority when a framework normalizes the URL hos
   expect(blocked.status).toBe(403);
   await f.server.close();
 });
+
+it("exposes owned path matching for framework fallthrough without changing standalone 404 responses", async () => {
+  const options = { path: "/api/mcp/" };
+  const f = fixture(options);
+  options.path = "/changed";
+  try {
+    expect(f.handle.matches("/api/mcp/")).toBe(true);
+    expect(f.handle.matches(`${prefix}/api/mcp/`)).toBe(true);
+    for (const pathname of [
+      "/health",
+      "/changed",
+      "/api/mcp",
+      `${prefix}/other`,
+    ])
+      expect(f.handle.matches(pathname)).toBe(false);
+    expect(
+      (await f.handle(new Request("http://localhost/health"))).status,
+    ).toBe(404);
+  } finally {
+    await f.server.close();
+  }
+  const fixed = fixture(
+    { path: "/internal" },
+    "https://api.example.com/public/mcp",
+  );
+  try {
+    expect(fixed.handle.matches("/internal")).toBe(true);
+    expect(fixed.handle.matches(`${prefix}/public/mcp`)).toBe(true);
+    expect(fixed.handle.matches(`${prefix}/internal`)).toBe(false);
+  } finally {
+    await fixed.server.close();
+  }
+  const plain = createServer({ name: "plain", version: "1", tools: {} });
+  expect(createHttpHandler(plain).matches(`${prefix}/mcp`)).toBe(false);
+  await plain.close();
+});

@@ -16,6 +16,7 @@ import type {
   Transport,
   TransportCallbacks,
 } from "./transport.js";
+import { claimTransport } from "./transport-ownership.js";
 
 export function createConnection(
   dispatch: Dispatcher,
@@ -69,6 +70,7 @@ class Connection implements ConnectionLifecycle {
       throw new Error(
         "Server can only attach one transport and cannot restart after closing",
       );
+    claimTransport(transport);
     this.state = "starting";
     this.transport = transport;
     try {

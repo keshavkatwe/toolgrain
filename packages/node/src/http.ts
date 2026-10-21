@@ -6,9 +6,10 @@ import {
 import type { Server } from "@toolgrain/mcp";
 import { nodeHttpHandler } from "./http-handler.js";
 
-/** Mount at the root before body parsing. Does not own the HTTP listener. */
+/** Mount at the root before body parsing. Delegates unmatched paths when next is supplied. */
 export function createNodeHttpHandler(server: Server, options?: HttpOptions) {
-  return nodeHttpHandler(createHttpHandler(server, options));
+  const handle = createHttpHandler(server, options);
+  return nodeHttpHandler(handle, handle.matches);
 }
 
 export function createNodeProtectedResourceMetadataHandler(

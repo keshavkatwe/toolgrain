@@ -35,3 +35,11 @@ await createServer({
   tools: {},
 }).listen(requestTransport);
 await listener.close();
+
+const middleware = createNodeHttpHandler(
+  createServer({ name: "middleware-types", version: "1", tools: {} }),
+);
+declare const request: import("node:http").IncomingMessage;
+declare const response: import("node:http").ServerResponse;
+const invoke = () => middleware(request, response, () => {});
+void invoke;

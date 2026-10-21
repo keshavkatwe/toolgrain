@@ -4,7 +4,13 @@ import {
   request as sendHttp,
 } from "node:http";
 import type { AddressInfo } from "node:net";
-import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import {
+  base64url,
+  CompactSign,
+  exportJWK,
+  generateKeyPair,
+  SignJWT,
+} from "jose";
 import { expect, it } from "vitest";
 
 it("authenticates both protocol revisions through a compiled Node process", async () => {
@@ -74,6 +80,36 @@ it("authenticates both protocol revisions through a compiled Node process", asyn
         .setExpirationTime("5m")
         .sign(privateKey);
     const token = await sign(endpoint);
+    const payload = {
+      iss: issuer,
+      aud: endpoint,
+      exp: Math.floor(Date.now() / 1000) + 300,
+    };
+    const signRaw = (json: string) =>
+      new CompactSign(new TextEncoder().encode(json))
+        .setProtectedHeader({ alg: "RS256", kid: "test" })
+        .sign(privateKey);
+    const invalidTokens = [
+      await signRaw(JSON.stringify({ ...payload, aud: [endpoint, 42] })),
+      await signRaw(
+        JSON.stringify({ ...payload, exp: 0 }).replace(
+          '"exp":0',
+          '"exp":1e400',
+        ),
+      ),
+      [
+        base64url.encode(
+          JSON.stringify({
+            alg: "RS256",
+            kid: "test",
+            crit: ["unsupported"],
+            unsupported: true,
+          }),
+        ),
+        base64url.encode(JSON.stringify(payload)),
+        "AAAA",
+      ].join("."),
+    ];
     for (const revision of ["2026-07-28", "2025-06-18"]) {
       const params = {
         name: "whoAmI",
@@ -125,6 +161,18 @@ it("authenticates both protocol revisions through a compiled Node process", asyn
           })
         ).status,
       ).toBe(401);
+      for (const invalid of invalidTokens) {
+        const rejected = await fetch(endpoint, {
+          method: "POST",
+          headers: { ...headers, Authorization: `Bearer ${invalid}` },
+          body,
+        });
+        expect(rejected.status).toBe(401);
+        expect(rejected.headers.get("WWW-Authenticate")).toContain(
+          metadata.href,
+        );
+        expect(await rejected.json()).toEqual({ error: "invalid_token" });
+      }
       const invalidHost = await new Promise<number | undefined>(
         (resolve, reject) => {
           const req = sendHttp(
