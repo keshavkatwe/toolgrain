@@ -6,24 +6,27 @@ export type AuthErrorCode =
 
 const brand = Symbol.for("@toolgrain/mcp/AuthError/v1");
 
-/** Public messages are deliberately independent of provider diagnostics and credentials. */
+/** Only an explicitly public description is exposed; provider causes stay private. */
 export class AuthError extends Error {
   readonly [brand] = true;
+  readonly description?: string | undefined;
 
   constructor(
     readonly code: AuthErrorCode,
-    options?: ErrorOptions,
+    options?: ErrorOptions & { description?: string },
   ) {
     super(
-      {
-        invalid_request: "Invalid authorization request",
-        invalid_token: "Invalid access token",
-        access_denied: "Access denied",
-        temporarily_unavailable: "Authorization service unavailable",
-      }[code],
+      options?.description ??
+        {
+          invalid_request: "Invalid authorization request",
+          invalid_token: "Invalid access token",
+          access_denied: "Access denied",
+          temporarily_unavailable: "Authorization service unavailable",
+        }[code],
       options,
     );
     this.name = "AuthError";
+    this.description = options?.description;
   }
 }
 

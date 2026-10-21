@@ -5,6 +5,7 @@ import {
   createServer,
   type ToolContext,
   tool,
+  validateTokenAudience,
 } from "@toolgrain/mcp";
 import { LEGACY_PROTOCOL_VERSION, PROTOCOL_VERSION } from "@toolgrain/protocol";
 import { expect, it, vi } from "vitest";
@@ -177,7 +178,9 @@ it.each([
 it("keeps provider outages private and authenticates before parsing the body", async () => {
   const f = setup(
     makeProvider(async () => {
-      throw new Error("secret provider detail");
+      throw Object.assign(new Error("secret provider detail"), {
+        description: "secret description",
+      });
     }),
   );
   const req = request();
@@ -358,4 +361,84 @@ it("aborts verification on disconnect and closes while reading a request body", 
   await Promise.resolve();
   await reading.server.close();
   expect((await bodyPending).status).toBe(503);
+});
+
+it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION])(
+  "returns actionable audience descriptions in HTTP responses and challenges for %s",
+  async (revision) => {
+    for (const fixed of [
+      undefined,
+      "https://canonical.example.com/service/mcp",
+    ]) {
+      const resource = fixed ?? endpoint;
+      const f = setup({
+        ...makeProvider(async (token, options) => {
+          validateTokenAudience(
+            token === "missing-aud" ? undefined : "private-audience",
+            options.resource,
+          );
+          return {};
+        }),
+        ...(fixed ? { resource: fixed } : {}),
+      });
+      try {
+        for (const [token, detail] of [
+          ["missing-aud", "missing the aud claim"],
+          ["wrong-aud", "does not match the expected resource"],
+        ] as const) {
+          const response = await f.handle(
+            request(revision, token, `${endpoint}?trace=private-query`),
+          );
+          expect(response.status).toBe(401);
+          const body = await response.json();
+          expect(body).toMatchObject({
+            error: "invalid_token",
+            error_description: expect.stringContaining(detail),
+          });
+          expect(body.error_description).toContain(resource);
+          expect(response.headers.get("WWW-Authenticate")).toContain(
+            `error_description="${body.error_description}"`,
+          );
+          expect(response.headers.get("WWW-Authenticate")).toContain(
+            'error="invalid_token"',
+          );
+          expect(response.headers.get("Cache-Control")).toBe("no-store");
+          const publicData =
+            JSON.stringify(body) + response.headers.get("WWW-Authenticate");
+          for (const secret of [token, "private-audience", "private-query"])
+            expect(publicData).not.toContain(secret);
+        }
+        expect(f.execute).not.toHaveBeenCalled();
+      } finally {
+        await f.server.close();
+      }
+    }
+  },
+);
+
+it("keeps public descriptions readable in JSON and restricts challenges to Bearer-safe ASCII", async () => {
+  const description = 'Expected "aud"\\value\r\né';
+  const f = setup(
+    makeProvider(async () => {
+      throw new AuthError("invalid_token", {
+        description,
+        cause: new Error("private-secret"),
+      });
+    }),
+  );
+  try {
+    const response = await f.handle(request());
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      error: "invalid_token",
+      error_description: description,
+    });
+    const header = response.headers.get("WWW-Authenticate");
+    expect(header).not.toContain("private-secret");
+    const text = /error_description="([^"\\]*)"$/.exec(header ?? "")?.[1];
+    expect(text).toBeDefined();
+    expect(text).toMatch(/^[\x20-\x21\x23-\x5b\x5d-\x7e]*$/);
+  } finally {
+    await f.server.close();
+  }
 });

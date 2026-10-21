@@ -105,6 +105,16 @@ Get both keys from the same Clerk application/environment's API keys page. No
 and its issuer. Configure OAuth applications and client onboarding in Clerk for
 the MCP clients you intend to support. See [Clerk's OAuth guide](https://clerk.com/docs/guides/configure/auth-strategies/oauth/how-clerk-implements-oauth).
 
+For a runnable framework application and Inspector OAuth setup, see the
+[Elysia Clerk example](../apps/elysia-example/README.md#clerk-authorization-and-inspector).
+
+Enable `aud_claim_enabled` in Clerk's instance OAuth application settings. Clerk
+then includes the requested OAuth `resource` in access tokens' audience. Both JWT
+and opaque tokens must include the resolved MCP resource as their audience.
+Otherwise token exchange can succeed while MCP requests return `401 invalid_token`.
+Authorize again after enabling it to obtain a new token; existing tokens do not
+acquire the missing audience.
+
 Only OAuth access tokens for your resource are accepted. JWT OAuth tokens are
 verified against the Clerk issuer's signing keys; opaque `oat_` tokens are
 verified with Clerk's backend SDK and checked for audience, revocation, and
@@ -258,9 +268,28 @@ Calling another integration's `useAuth` or using a context without auth throws.
 | Provider access denial | 403 |
 | Provider/network failure or closed server | 503 |
 
-These HTTP statuses are the same in both protocol eras. Provider diagnostics and
-credentials are not returned in authentication responses. Public metadata uses
-`Cache-Control: no-store` and is available without a bearer token.
+These HTTP statuses are the same in both protocol eras. JWT and Clerk audience
+failures include an actionable `error_description` in the JSON body and the
+`WWW-Authenticate` challenge. Missing `aud` and an audience that does not match
+the resource have distinct messages. For example:
+
+```json
+{
+  "error": "invalid_token",
+  "error_description": "Access token is missing the aud claim. Configure the authorization server to include an audience and request a new token with resource=http://127.0.0.1:3007/mcp."
+}
+```
+
+A mismatch reports the expected resource and asks the client to request a new
+token for it. These descriptions include only the expected resource, never the
+received token, its actual audience, or other claims. Signature verification or
+Clerk backend verification runs before audience diagnostics; invalid credentials
+and private provider errors retain generic responses. Raw error messages and
+causes are never automatically exposed. Challenge descriptions use Bearer-safe
+ASCII; the JSON body preserves the readable description.
+
+Public metadata uses `Cache-Control: no-store` and is available without a bearer
+token.
 
 Verification, body reading, and execution share request cancellation and server
 shutdown. The server stops waiting if verification cannot be cancelled by the
@@ -281,6 +310,18 @@ identity data and throw `AuthError` with `invalid_token`, `access_denied`, or
 `temporarily_unavailable` as appropriate. `createAuthAccessor<T>(type)` creates a
 typed accessor returning recursively readonly identity data. Matching compatible
 package copies share provider/context symbols.
+
+Custom providers can use `validateTokenAudience(verifiedAudience, resource)` from
+`@toolgrain/mcp` after verifying a token's authenticity and validity. It accepts a
+string or array of strings, requires a match for the expected resource, and throws
+`AuthError` with public guidance for missing or mismatched audiences. It does not
+verify signatures, issuers, expiration, or revocation itself.
+
+`new AuthError(code, { description, cause })` allows an explicitly public
+description separate from a private cause. `description` also becomes the error's
+message and is included as `error_description` by HTTP adapters. Include only
+information intended for clients; never copy raw provider errors or credentials
+into it. Omitting `description` preserves the existing generic response.
 
 The HTTP adapters call `server.authorize(token, { resource, signal? })`, then pass
 the opaque scope to `server.handle(message, { auth: scope, protocolVersion? })`.

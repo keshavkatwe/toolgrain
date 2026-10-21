@@ -5,6 +5,7 @@ import {
   createAuthAccessor,
   createServer,
   tool,
+  validateTokenAudience,
 } from "@toolgrain/mcp";
 import { expect, it } from "vitest";
 import { z } from "zod";
@@ -24,6 +25,7 @@ it("preserves the actual endpoint for authentication and public metadata over re
       type,
       authorizationServers: ["https://auth.example.com"],
       async verify(token, { resource }) {
+        if (token === "missing-aud") validateTokenAudience(undefined, resource);
         if (token !== "valid" || resource !== expectedResource)
           throw new AuthError("invalid_token");
         return { userId: "alice" };
@@ -84,6 +86,21 @@ it("preserves the actual endpoint for authentication and public metadata over re
         })
       ).status,
     ).toBe(401);
+    const missingAudience = await fetch(expectedResource, {
+      method: "POST",
+      headers: { ...headers, Authorization: "Bearer missing-aud" },
+      body,
+    });
+    expect(missingAudience.status).toBe(401);
+    const failure = await missingAudience.json();
+    expect(failure).toMatchObject({
+      error: "invalid_token",
+      error_description: expect.stringContaining("missing the aud claim"),
+    });
+    expect(failure.error_description).toContain(expectedResource);
+    expect(missingAudience.headers.get("WWW-Authenticate")).toContain(
+      `error_description="${failure.error_description}"`,
+    );
     const invalidHost = await new Promise<number | undefined>(
       (resolve, reject) => {
         const req = sendHttp(

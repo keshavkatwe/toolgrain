@@ -27,7 +27,7 @@ The start command defaults to port 3003; set `PORT` to override it.
 | `build` | `bun build --target=bun --outdir=dist src/index.ts` |
 | `start` | `bun run dist/index.js` |
 
-`src/app.ts` uses Elysia's `.mount(handler)` at the root so its body parser does not consume MCP input. `src/index.ts` calls `.listen()` on Bun; The tool and MCP server definitions are inline in `src/app.ts`. Both development and production run on Bun.
+`src/app.ts` uses Elysia's `.mount(handler)` at the root so its body parser does not consume MCP input. `src/index.ts` calls `.listen()` on Bun; The MCP server is defined in `src/app.ts`, and the reusable greeting tool lives in `src/greet.ts`. Both development and production run on Bun.
 
 The app imports Toolgrain's compiled workspace packages. Root `bun run dev` watches
 those packages and runs every example's own development command; HTTP development
@@ -71,3 +71,101 @@ For a different port or production URL, override the endpoint:
 ```sh
 bun run inspect http://127.0.0.1:4000/mcp
 ```
+
+## Clerk authorization and Inspector
+
+The complete protected example lives in [src/clerk.ts](src/clerk.ts): Clerk key
+configuration, the `greet` and `whoAmI` tool definitions, MCP server creation, and
+Elysia startup are together in one file for learning. It uses `@toolgrain/clerk`,
+and `whoAmI` reads the inferred, verified identity through `useAuth(ctx)`. Both
+tools require an OAuth access token.
+It listens on `http://127.0.0.1:3007/mcp`, so it can run alongside the regular
+example. Root `bun run dev` continues to start the regular example on port 3003.
+
+### Configure the server
+
+From this directory, create `.env.local` using `.env.example` as a template:
+
+```dotenv
+CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key
+CLERK_SECRET_KEY=sk_test_your_secret_key
+```
+
+Use keys from the same Clerk app and environment's **API keys** page. Bun loads
+`.env.local` when these scripts run from this workspace. The file is ignored by
+Git. The Clerk entry point refuses to start if either key is missing; it never
+falls back to a public endpoint. Issuer and signing-key discovery come from the
+publishable key; no issuer/JWKS configuration is needed. The resource is inferred
+from the endpoint URL.
+
+Start the server, then Inspector in a second terminal in this directory:
+
+```sh
+bun run dev:clerk
+```
+
+```sh
+bun run inspect:clerk
+```
+
+For a compiled run, use `bun run build` and `bun run start:clerk`. Set `PORT` to
+change the server's port, then pass the matching endpoint to the Inspector:
+
+```sh
+bun run inspect:clerk http://127.0.0.1:4000/mcp
+```
+
+### Configure Clerk's OAuth client
+
+The server keys above identify your Clerk instance. Inspector is a separate
+OAuth client and needs an OAuth application in that same instance:
+
+Before connecting, enable the audience (`aud`) claim in your Clerk instance's
+OAuth application settings (`aud_claim_enabled: true`). Clerk uses the OAuth
+request's `resource` parameter as the token audience. This example requires
+`http://127.0.0.1:3007/mcp`; a token without that audience receives
+`401 invalid_token`, even if login and token exchange succeeded. This applies to
+both JWT and opaque access tokens. After changing this setting, authorize again
+in Inspector to obtain a new access token; previously issued tokens are unchanged.
+Toolgrain's `error_description` identifies missing `aud` or an audience mismatch
+and includes the expected resource in both the JSON response and the HTTP challenge.
+
+The setting is instance-wide. It can also be updated through Clerk's Backend API
+with `PATCH /v1/instance/oauth_application_settings` and the body
+`{ "aud_claim_enabled": true }`; use the server's Clerk secret key for that API
+request. See the [Clerk Backend API](https://clerk.com/docs/reference/backend-api).
+
+1. Open Inspector's **Server Settings → OAuth Settings** and copy its exact
+   **Redirect URI**. The default is `http://127.0.0.1:6274/oauth/callback`, but
+   use the displayed value, including the host and port.
+2. In Clerk Dashboard **OAuth applications**, create an application for Inspector.
+   Configure that redirect URI, enable **Public** and **Require PKCE**, and allow
+   the `openid` and `profile` scopes.
+3. Copy the OAuth application's **Client ID** into Inspector's **Client ID**
+   field. Set Inspector's scopes to `openid profile`. A public client needs no
+   client secret. The Clerk `sk_...` key belongs only in the server's `.env.local`.
+4. Connect in Inspector. The server returns a discovery challenge, Inspector
+   follows the public metadata to Clerk, and Clerk presents sign-in and consent.
+5. After connecting, list tools. Call `whoAmI` with `{}` to see `userId`,
+   `clientId`, and `scopes`; call `greet` with `{ "name": "Ada" }`.
+
+Use `http://127.0.0.1:3007/mcp` consistently. Switching to `localhost` changes the
+resource/audience. The adapter accepts Clerk OAuth access tokens for this
+resource; Clerk session tokens and OIDC ID tokens are not accepted.
+An existing OAuth access token can also be supplied through Inspector's
+**Headers** setting as `Authorization: Bearer <access-token>`.
+
+These steps use a manually registered public client; enabling dynamic client
+registration is not required. See [Clerk OAuth configuration](https://clerk.com/docs/guides/configure/auth-strategies/oauth/how-clerk-implements-oauth)
+and [Inspector authorization](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector/authorization)
+for the client and callback settings.
+
+The public protected-resource metadata is at
+`http://127.0.0.1:3007/.well-known/oauth-protected-resource/mcp`.
+Requests without valid authorization receive 401; public metadata remains
+available before login. This example binds to loopback. For deployment/proxy
+configuration, see the [authorization guide](../../docs/authorization.md).
+
+The automated Clerk example tests use signed JWTs and mocked Clerk backend
+responses, with no live keys. A live Inspector login requires your Clerk app and
+OAuth client configuration.

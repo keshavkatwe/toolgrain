@@ -1,8 +1,5 @@
 import { createClerkClient } from "@clerk/backend";
-import {
-  isClerkAPIResponseError,
-  TokenVerificationError,
-} from "@clerk/backend/errors";
+import { isClerkAPIResponseError } from "@clerk/backend/errors";
 import { parsePublishableKey } from "@clerk/shared/keys";
 import { jwt } from "@toolgrain/jwt";
 import {
@@ -11,6 +8,7 @@ import {
   createAuthAccessor,
   isAuthError,
   validateAuthUrl,
+  validateTokenAudience,
 } from "@toolgrain/mcp";
 import { decodeProtectedHeader } from "jose";
 
@@ -57,9 +55,7 @@ export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
       verifyOptions.signal.throwIfAborted();
       try {
         if (token.startsWith("oat_")) {
-          const verified = await client.idPOAuthAccessToken.verify(token, {
-            audience: resource ?? verifyOptions.resource,
-          });
+          const verified = await client.idPOAuthAccessToken.verify(token);
           verifyOptions.signal.throwIfAborted();
           if (
             verified.revoked ||
@@ -69,6 +65,10 @@ export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
             !verified.clientId
           )
             throw new AuthError("invalid_token");
+          validateTokenAudience(
+            verified.aud,
+            resource ?? verifyOptions.resource,
+          );
           return {
             userId: verified.subject,
             clientId: verified.clientId,
@@ -106,8 +106,6 @@ export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
       } catch (error) {
         verifyOptions.signal.throwIfAborted();
         if (isAuthError(error)) throw error;
-        if (error instanceof TokenVerificationError)
-          throw new AuthError("invalid_token", { cause: error });
         if (isClerkAPIResponseError(error)) {
           const denied = error.status === 403;
           const invalid =
