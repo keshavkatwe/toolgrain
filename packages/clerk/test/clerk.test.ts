@@ -168,6 +168,8 @@ it.each([
   { scope: 1 },
   { scp: [1] },
   { scp: "bad" },
+  { aud: undefined },
+  { aud: [] },
   { aud: "other" },
   { iss: "https://wrong.example.com" },
   { exp: 1 },
@@ -235,4 +237,43 @@ it("rejects malformed local configuration", () => {
   expect(() => clerk({ ...options, publishableKey: "bad" })).toThrow();
   expect(() => clerk({ ...options, secretKey: "" })).toThrow("secret key");
   expect(() => clerk({ ...options, resource: "/mcp" })).toThrow();
+});
+
+it.each([
+  [undefined, "missing the aud claim"],
+  [[], "does not match the expected resource"],
+  [["private-audience"], "does not match the expected resource"],
+] as const)(
+  "explains audience failures consistently for Clerk JWT and opaque tokens %j",
+  async (aud, detail) => {
+    mockFetch(opaque({ aud }));
+    const provider = clerk({ ...options, resource });
+    for (const token of [
+      await sign({ aud } as unknown as JWTPayload),
+      "oat_wrong",
+    ]) {
+      await expect(
+        provider.verify(token, {
+          ...verifyOptions(),
+          resource: "https://internal.example.com/mcp",
+        }),
+      ).rejects.toMatchObject({
+        code: "invalid_token",
+        description: expect.stringContaining(detail),
+        message: expect.stringContaining(resource),
+      });
+    }
+  },
+);
+
+it("does not explain the audience of revoked or malformed opaque tokens", async () => {
+  const fetcher = mockFetch(opaque({ aud: undefined, revoked: true }));
+  const provider = clerk(options);
+  await expect(
+    provider.verify("oat_revoked", verifyOptions()),
+  ).rejects.toMatchObject({ code: "invalid_token", description: undefined });
+  fetcher.mockResolvedValue(Response.json(opaque({ aud: [resource, 1] })));
+  await expect(
+    provider.verify("oat_malformed", verifyOptions()),
+  ).rejects.toMatchObject({ code: "invalid_token", description: undefined });
 });

@@ -118,6 +118,21 @@ bun run inspect:clerk http://127.0.0.1:4000/mcp
 The server keys above identify your Clerk instance. Inspector is a separate
 OAuth client and needs an OAuth application in that same instance:
 
+Before connecting, enable the audience (`aud`) claim in your Clerk instance's
+OAuth application settings (`aud_claim_enabled: true`). Clerk uses the OAuth
+request's `resource` parameter as the token audience. This example requires
+`http://127.0.0.1:3007/mcp`; a token without that audience receives
+`401 invalid_token`, even if login and token exchange succeeded. This applies to
+both JWT and opaque access tokens. After changing this setting, authorize again
+in Inspector to obtain a new access token; previously issued tokens are unchanged.
+Toolgrain's `error_description` identifies missing `aud` or an audience mismatch
+and includes the expected resource in both the JSON response and the HTTP challenge.
+
+The setting is instance-wide. It can also be updated through Clerk's Backend API
+with `PATCH /v1/instance/oauth_application_settings` and the body
+`{ "aud_claim_enabled": true }`; use the server's Clerk secret key for that API
+request. See the [Clerk Backend API](https://clerk.com/docs/reference/backend-api).
+
 1. Open Inspector's **Server Settings → OAuth Settings** and copy its exact
    **Redirect URI**. The default is `http://127.0.0.1:6274/oauth/callback`, but
    use the displayed value, including the host and port.

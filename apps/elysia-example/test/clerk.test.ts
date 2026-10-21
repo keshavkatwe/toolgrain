@@ -147,14 +147,43 @@ it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
           "Hello, Ada!",
         );
       }
-      for (const token of [
-        await sign({}, "JWT"),
-        await sign({ aud: "http://localhost:3007/mcp" }),
-        "oat_revoked",
-      ]) {
+      for (const token of [await sign({}, "JWT"), "oat_revoked"]) {
         const response = await app.handle(request(revision, token));
         expect(response.status).toBe(401);
         expect(await response.json()).toEqual({ error: "invalid_token" });
+      }
+      for (const [aud, detail] of [
+        [undefined, "missing the aud claim"],
+        [[], "does not match the expected resource"],
+        ["http://localhost:3007/mcp", "does not match the expected resource"],
+      ] as const) {
+        const token = await sign({ aud } as unknown as JWTPayload);
+        const req = request(revision, token);
+        const discovery = new Request(req.url, {
+          method: "POST",
+          headers: {
+            ...Object.fromEntries(req.headers),
+            "Mcp-Method": "server/discover",
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "server/discover",
+            params: {},
+          }),
+        });
+        const response = await app.handle(discovery);
+        expect(response.status).toBe(401);
+        const body = await response.json();
+        expect(body).toMatchObject({
+          error: "invalid_token",
+          error_description: expect.stringContaining(detail),
+        });
+        expect(body.error_description).toContain(endpoint);
+        expect(response.headers.get("WWW-Authenticate")).toContain(
+          `error_description="${body.error_description}"`,
+        );
+        expect(JSON.stringify(body)).not.toContain(token);
       }
       expect(
         (

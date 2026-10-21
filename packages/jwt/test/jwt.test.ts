@@ -387,3 +387,52 @@ it("preserves provider-outage classification when trusted key import is unsuppor
     importKey.mockRestore();
   }
 });
+
+it.each([
+  [undefined, "missing the aud claim"],
+  [[], "does not match the expected resource"],
+  ["private-audience", "does not match the expected resource"],
+  [["private-audience"], "does not match the expected resource"],
+] as const)(
+  "explains verified JWT audience failures %j",
+  async (aud, detail) => {
+    mockFetch();
+    for (const explicit of [false, true]) {
+      const provider = jwt({ issuer, ...(explicit ? { resource } : {}) });
+      const token = await sign({ aud } as unknown as JWTPayload);
+      await expect(
+        provider.verify(token, {
+          ...verifyOptions(),
+          ...(explicit ? { resource: "https://internal.example.com/mcp" } : {}),
+        }),
+      ).rejects.toMatchObject({
+        code: "invalid_token",
+        description: expect.stringContaining(detail),
+        message: expect.stringContaining(resource),
+      });
+      try {
+        await provider.verify(token, verifyOptions());
+      } catch (error) {
+        expect(String(error)).not.toContain(token);
+        expect(String(error)).not.toContain("private-audience");
+        expect(String(error)).not.toContain("internal.example.com");
+      }
+    }
+  },
+);
+
+it("does not expose audience diagnostics for a token whose signature is invalid", async () => {
+  mockFetch();
+  const wrong = await generateKeyPair("RS256");
+  const token = await sign(
+    { aud: undefined } as unknown as JWTPayload,
+    wrong.privateKey,
+  );
+  await expect(
+    jwt({ issuer }).verify(token, verifyOptions()),
+  ).rejects.toMatchObject({
+    code: "invalid_token",
+    description: undefined,
+    cause: { code: "ERR_JWS_SIGNATURE_VERIFICATION_FAILED" },
+  });
+});

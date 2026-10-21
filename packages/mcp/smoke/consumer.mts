@@ -1,4 +1,5 @@
 import {
+  AuthError,
   type ContextProvider,
   createContext,
   createServer,
@@ -8,6 +9,7 @@ import {
   type TransportCallbacks,
   tool,
   toolContext,
+  validateTokenAudience,
 } from "@toolgrain/mcp";
 import {
   type DiscoverResult,
@@ -247,3 +249,14 @@ function rejectedContextProviders() {
   void widened;
 }
 void rejectedContextProviders;
+
+validateTokenAudience(
+  "https://api.example.com/mcp",
+  "https://api.example.com/mcp",
+);
+const authFailure = new AuthError("invalid_token", {
+  description: "Public audience guidance",
+  cause: new Error("private diagnostic"),
+});
+const publicDescription: string | undefined = authFailure.description;
+void publicDescription;

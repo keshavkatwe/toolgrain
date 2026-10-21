@@ -10,6 +10,7 @@ import {
   tool,
   toolContext,
   validateAuthUrl,
+  validateTokenAudience,
 } from "../src/index.js";
 import { deferred, MemoryTransport } from "./memory.js";
 
@@ -327,3 +328,48 @@ it.each([
 ])("rejects invalid auth URL %s", (value) =>
   expect(() => validateAuthUrl(value)).toThrow(),
 );
+
+it("validates verified-token audiences and gives public descriptions without token claims", () => {
+  const resource = "https://api.example.com/mcp";
+  for (const audience of [resource, ["other", resource]])
+    expect(() => validateTokenAudience(audience, resource)).not.toThrow();
+  for (const [audience, detail] of [
+    [undefined, "missing the aud claim"],
+    [[], "does not match the expected resource"],
+    ["", "does not match the expected resource"],
+    ["private-audience", "does not match the expected resource"],
+    [["private-audience"], "does not match the expected resource"],
+  ] as const) {
+    let error: unknown;
+    try {
+      validateTokenAudience(audience, resource);
+    } catch (failure) {
+      error = failure;
+    }
+    expect(isAuthError(error)).toBe(true);
+    if (!isAuthError(error)) throw new Error("Expected AuthError");
+    expect(error.code).toBe("invalid_token");
+    expect(error.description).toContain(detail);
+    expect(error.description).toContain(resource);
+    expect(error.description).not.toContain("private-audience");
+    expect(error.message).toBe(error.description);
+  }
+  for (const audience of [null, 1, {}, [resource, 1]])
+    expect(() => validateTokenAudience(audience, resource)).toThrow(
+      "Invalid access token",
+    );
+});
+
+it("retains private causes separately from explicit public descriptions across package copies", async () => {
+  const { AuthError: CopyError } = await import("../src/auth/errors.js");
+  const cause = new Error("private provider response");
+  const error = new CopyError("invalid_token", {
+    description: "Public guidance",
+    cause,
+  });
+  expect(isAuthError(error)).toBe(true);
+  expect(error.message).toBe("Public guidance");
+  expect(error.description).toBe("Public guidance");
+  expect(error.cause).toBe(cause);
+  expectTypeOf(error.description).toEqualTypeOf<string | undefined>();
+});

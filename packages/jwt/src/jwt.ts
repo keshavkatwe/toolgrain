@@ -4,6 +4,7 @@ import {
   createAuthAccessor,
   isAuthError,
   validateAuthUrl,
+  validateTokenAudience,
 } from "@toolgrain/mcp";
 import { createRemoteJWKSet, customFetch, errors, jwtVerify } from "jose";
 import { discoverJwks, fetchJson } from "./discovery.js";
@@ -111,15 +112,12 @@ export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
           },
           {
             issuer,
-            audience: resource ?? requested,
             algorithms,
-            requiredClaims: ["iss", "aud", "exp"],
+            requiredClaims: ["iss", "exp"],
           },
         );
         signal.throwIfAborted();
         if (
-          (Array.isArray(payload.aud) &&
-            payload.aud.some((audience) => typeof audience !== "string")) ||
           ["sub", "jti"].some(
             (claim) =>
               payload[claim] !== undefined &&
@@ -133,6 +131,7 @@ export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
           )
         )
           throw new AuthError("invalid_token");
+        validateTokenAudience(payload.aud, resource ?? requested);
         return { claims: payload as JwtClaims };
       } catch (error) {
         signal.throwIfAborted();
