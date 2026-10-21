@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-20
+Updated: 2026-10-21
 
 ## Working agreement
 
@@ -108,8 +108,21 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 - `ToolRequest` stays a single shape with optional `client`, not a union keyed on `protocolVersion`, so legacy support remains removable. Once legacy is removed, `client` can become required without breaking handlers that only read it.
 - Cancellation is cooperative and documented as such: a handler that ignores the signal keeps running, its response is discarded, and on stdio its request ID stays reserved until it settles. Per-tool timeouts may be considered later if users need them.
 - Proposals deferred to the elicitation design: a helper such as `requireCapability(ctx, "elicitation")` that produces `MissingRequiredClientCapability` (`-32021`), read-only `inputResponses`/`requestState` on `ctx.request`, an `inputRequired()` result helper, and possibly a higher-level `ctx.elicit()`.
-- Progress, elicitation through multi-round-trip input requests, and identity/auth are later additive fields. No `ctx.log` is planned because MCP logging is deprecated in `2026-07-28`.
+- Progress and elicitation through multi-round-trip input requests remain later additive fields. Identity/auth uses the accessors described below. No `ctx.log` is planned because MCP logging is deprecated in `2026-07-28`.
 - Confirmed after user review on 2026-10-19: the signal aborts on stdio `notifications/cancelled`, on the `handle()` caller's signal (HTTP disconnect), on transport close including stdin EOF, and on server close. `signal.reason` is a `DOMException` `AbortError`: "Request cancelled by client" for stdio cancellation, "Connection closed" for stdio requests when the connection closes (including through `server.close()`), "Server closed" for `handle()` calls when the server or attached transport closes, or otherwise the `handle()` caller's own reason. Results and failures after an abort are discarded without reporting, as responses already were. Close is re-entrant: abort listeners that call `server.close()` reuse the pending close. Internally a per-request `RequestScope { signal, client? }` replaces the former `isActive` callback; legacy stdio stores client details after a successful `initialize`.
+
+## Confirmed authorization decisions
+
+Implemented after user approval on 2026-10-21; packages remain private and unpublished.
+
+- Configure HTTP endpoint authorization with `createServer({ auth })`. Shared `AuthProvider<T>` and `AuthError` live in MCP; `@toolgrain/jwt` and `@toolgrain/clerk` implement the interface. Tools remain standalone and `ToolContext` remains non-generic.
+- Each integration exports synchronous, provider-specific `useAuth(ctx)`. Verification is eager, before body parsing and tool work. Identities are copied and deeply frozen per request, with typed standard JWT claims or Clerk `{ userId, clientId, scopes }`; custom JWT claims remain unknown. Raw credentials and Clerk SDK methods are not exposed.
+- `resource` is optional: HTTP adapters infer it from a validated public request URL, excluding queries and preserving the endpoint path. Metadata, challenges, and audience checks use that same resource. HTTP adapters validate hosts before routing/auth/body parsing. `allowedHosts` contains exact authorities with optional ports, with loopback defaults; `allowedOrigins` is separate. Applications configure production hosts and normalize public URLs through trusted proxy middleware. Explicit resource overrides remain available. Node preserves the real request target/host/direct TLS scheme and ignores forwarded headers.
+- JWT verifies signatures with jose, exact issuer, resource audience, expiration, and not-before. Audience arrays contain only strings; NumericDate claims are finite. Unsupported token critical headers yield invalid_token/401, while trusted signing-key/crypto failures remain provider outages/503. `issuer` is required; `jwksUrl` is an optional override for discovery. Keys rotate/cache; default algorithms are RS256/ES256, and only asymmetric algorithms are allowed. Clerk derives issuer from its publishable key, verifies OAuth JWTs and opaque tokens, and rejects sessions/API keys/M2M tokens. Clerk publishable and secret keys are required.
+- Combined Web and Node HTTP handlers default to `/mcp` and automatically route public GET/HEAD protected-resource metadata when auth is configured. Mount combined handlers at the application root. Explicit metadata factories remain available for filesystem routers and apply the same host validation. Auth HTTP status rules apply equally in both protocol eras. Bearer headers are the only credential source; query tokens are rejected.
+- `server.listen()` accepts message `Transport` and independent `RequestTransport` contracts. Auth-configured servers accept request transports such as Node `http()` and reject message transports such as stdio before startup. One transport may attach; each transport instance is claimed once before startup, across compatible package copies, without mutating frozen custom transports. A rejected second attachment leaves the owner running and the other server free to attach a fresh transport. Close remains terminal, idempotent, and re-entrant across both contracts. `authorize(token, { resource, signal? })` produces a server-bound, single-use scope passed to `handle({ ... }, { auth })` and disposed in `finally`. Verification, body reading, and tool execution observe cancellation and server close; late verification results are discarded.
+- Token issuance/login/consent/client registration, per-tool scope policies, and generic context providers remain separate work. The agreed future context-provider design uses inferred accessors and lazy, request-cached resolution through accessor calls, without `dependsOn` or registration-order requirements. Auth remains eagerly verified when that feature is added.
+- See `docs/authorization.md` and `apps/jwt-example`. New adapter packages use the same 95% coverage and compiled export/consumer verification as existing libraries, including TypeScript 5.5.4 and Zod 4.0.0 declaration consumers.
 
 ## Confirmed protocol package decisions
 
@@ -150,11 +163,11 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 ## Confirmed HTTP decisions
 
 - `@toolgrain/http` owns shared Streamable HTTP behavior and `createHttpHandler(server, options?)`, accepting Web Request and returning Promise<Response>.
-- `@toolgrain/node` retains stdio and adds `createNodeHttpHandler(server, options?)`; applications own routing, ports, TLS, authentication middleware, CORS, and listener shutdown. Mount before body parsing.
+- `@toolgrain/node` retains stdio and adds `createNodeHttpHandler(server, options?)`; combined handlers own MCP/metadata routing and host validation; applications own framework listeners, TLS, trusted proxy normalization, and CORS. Mount at the root before body parsing. Node also exports `http({ port?, hostname?, path?, allowedHosts?, allowedOrigins?, maxMessageBytes? })` for `server.listen(http(...))`; it owns listener startup/cleanup, defaults to loopback:3000 and /mcp, restricts local hosts to the actual bound port, and exposes a copied `address()`. It installs no global signal handlers.
 - Keep the HTTP factories as composition only: split options, endpoint checks, body decoding, request/header validation, parameter-header schema extraction, execution, and response serialization. Node separates request conversion, abort lifecycle, and response writing/backpressure. Share protocol behavior through HTTP rather than duplicating it in Node; do not add a generic utility package without concrete reusable responsibilities.
 - HTTP `modern/` and `legacy/` modules own each era's header, notification, status, and error-ID policies. Share endpoint/body/envelope handling, routing and parameter-header comparison, execution, and JSON serialization; choose one of the two internal adapters per request without a plugin framework.
-- Both factories accept `allowedOrigins` and `maxMessageBytes` (default 1 MiB). Absent Origin is allowed; a present Origin must match the explicit allowlist, empty by default.
-- Support `2026-07-28` and `2025-06-18` with independent POSTs and JSON responses. GET/DELETE return 405. No session IDs or global per-client negotiation state. Persistent sessions, resumability, SSE/progress/subscriptions, OAuth/Clerk, and identity context remain separate work.
+- Both factories accept `path` (default /mcp), `allowedHosts` (default loopback on any port for externally owned listeners), `allowedOrigins`, and `maxMessageBytes` (default 1 MiB). The combined Web handler exposes matches(pathname) for framework composition; Node delegates unrelated paths when a middleware next callback is supplied, before reading their bodies. Matched MCP errors never fall through; standalone unmatched paths retain 404. Host checks precede owned-route auth and body reads, including metadata; both URL and supplied Host authorities must be allowed; the validated Host header preserves the actual resource authority when a framework normalizes URL hosts. Explicit authorities normalize case/default ports; wildcards/schemes/paths are rejected and empty lists deny all. Absent Origin is allowed; a present Origin must match the explicit allowlist, empty by default.
+- Support `2026-07-28` and `2025-06-18` with independent POSTs and JSON responses. GET/DELETE return 405. No session IDs or global per-client negotiation state. Persistent sessions, resumability, and SSE/progress/subscriptions remain separate work. Authorization is described below.
 - Validate modern protocol/method/name headers against body metadata and declared parameter-header annotations, including Base64 decoding. Legacy initialization may omit the version header; subsequent legacy POSTs carry `2025-06-18`. Optional legacy routing/parameter headers are validated when present. Invalid annotations fail HTTP-handler construction. Valid legacy initialized/cancelled notifications return 202 empty; cancellation is advisory no-op because independent requests have no session/client identity. Modern HTTP notifications remain unsupported.
 - MCP exposes `handle(message, { signal?, protocolVersion? })` for independent requests and `getToolDefinitions()` for copied metadata. HTTP passes the validated revision per invocation; shared dispatch/error conversion serves stdio and HTTP. HTTP request IDs are isolated per invocation. Legacy JSON-RPC errors use HTTP 200; modern errors retain modern status rules.
 - Cancellation and disconnects suppress delivery and abort the handler context signal; handlers stop early only if they observe it. Closing the server is terminal across HTTP and stdio; closing the attached transport also closes independent processing.
@@ -183,8 +196,7 @@ Before changing Turborepo configuration or commands, resolve the installed `turb
 HTTP implementation and framework example review is complete. The merged scope
 is independent POST requests with JSON responses, with plain Node, Express,
 Hono, Elysia, and Next.js examples. Fastify support is deferred. Agree on the
-next feature with the user before implementing it; sessions, SSE, resumability,
-OAuth/Clerk, and identity context remain separate work. No commits, publication,
+next feature with the user before implementing it; sessions, SSE, and resumability remain separate work. HTTP authorization is implemented as described above. No commits, publication,
 or deployment are authorized by implementation alone.
 
 ## Development loop
@@ -253,7 +265,7 @@ are intentionally unsupported.
 Root `bun run test:coverage` uses Turbo with each workspace's own build as a
 prerequisite and caches `coverage/**` for measured packages. CI runs this instead
 of plain tests. Vitest V8 includes all library source files and enforces each of
-statements, branches, functions, and lines: 95% per package for MCP, Node, and HTTP.
+statements, branches, functions, and lines: 95% per package for MCP, Node, HTTP, JWT, and Clerk.
 Protocol integrity runs without coverage instrumentation. Example tests run separately through
 root `bun run test:examples`, without coverage instrumentation or coverage floors. CI runs
 `test:coverage` and `test:examples` together. CI retains coverage reports for 14 days.
@@ -269,7 +281,7 @@ no checkout and does not execute repository code.
 
 ## Package size and dependency auditing
 
-- `bun run test:size` builds and packs the four library packages without lifecycle
+- `bun run test:size` builds and packs the six library packages without lifecycle
   scripts or publication. It enforces packed/unpacked byte budgets from
   `package-size.config.json` (found by walking up from the package), every compiled
   module and declaration in `dist`, explicit required protocol artifacts, and
@@ -278,13 +290,13 @@ no checkout and does not execute repository code.
   and its TypeScript sources must be packed. Verification checks map JSON,
   relative source targets, matching compiled files, and mapping comments in the
   actual archive. Only existing `src/**/*.ts` files are allowed under this policy;
-  other packages keep their source-file restrictions. MCP's budgets are 59 KiB
-  packed and 258 KiB unpacked, retaining approximately 20% headroom after maps.
+  other packages keep their source-file restrictions. MCP's budgets are 69 KiB
+  packed and 296 KiB unpacked, retaining approximately 20% headroom after maps.
 - Library builds remove `dist` before compiling. Turbo cache restores do not
   remove extra files, so the size check also fails on any compiled `dist` module
   without a matching `src/**/*.ts` source; rerun `bun run build --force`. Reports include the complete inventory under each package's
   `reports/size.json`; sizes exclude dependencies and retain required vendor files.
-- Initial size budgets allow approximately 20% growth, rounded up to KiB.
+- Initial size budgets allow approximately 20% growth, rounded up to KiB. The Node HTTP listener addition uses 9 KiB packed and 31 KiB unpacked budgets, retaining roughly 20% headroom for the new listener/declarations.
   Intentional growth requires reviewing the relevant budget. Size checks are uncached
   and run after successful installation even if an unrelated application build fails.
 - `bun run test:audit` runs `bun audit --json` once for the complete lockfile and

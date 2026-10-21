@@ -47,19 +47,23 @@ export function createModernDispatcher(
         break;
       case "tools/call":
         result = await callTool(request.params, tools, (params) =>
-          createToolContext(scope.signal, {
-            id: request.id,
-            protocolVersion: PROTOCOL_VERSION,
-            client: toolClient(
-              parsed.data["io.modelcontextprotocol/clientInfo"] as
-                | Implementation
-                | undefined,
-              parsed.data[
-                "io.modelcontextprotocol/clientCapabilities"
-              ] as ClientCapabilities,
-            ),
-            meta: params._meta ?? {},
-          }),
+          createToolContext(
+            scope.signal,
+            {
+              id: request.id,
+              protocolVersion: PROTOCOL_VERSION,
+              client: toolClient(
+                parsed.data["io.modelcontextprotocol/clientInfo"] as
+                  | Implementation
+                  | undefined,
+                parsed.data[
+                  "io.modelcontextprotocol/clientCapabilities"
+                ] as ClientCapabilities,
+              ),
+              meta: params._meta ?? {},
+            },
+            scope.auth,
+          ),
         );
         break;
       default:

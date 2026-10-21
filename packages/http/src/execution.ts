@@ -1,4 +1,4 @@
-import type { Server } from "@toolgrain/mcp";
+import type { AuthScope, Server } from "@toolgrain/mcp";
 import type { HttpProtocol } from "./http-protocol.js";
 import type { ObjectValue } from "./object.js";
 import { protocolResponse, unavailableResponse } from "./responses.js";
@@ -8,11 +8,13 @@ export async function executeHttpRequest(
   message: ObjectValue,
   signal: AbortSignal,
   protocol: HttpProtocol,
+  auth?: AuthScope,
 ): Promise<Response> {
   try {
     const response = await server.handle(message, {
       signal,
       protocolVersion: protocol.protocolVersion,
+      ...(auth ? { auth } : {}),
     });
     if (signal.aborted) throw new DOMException("Request aborted", "AbortError");
     if (!response && !Object.hasOwn(message, "id"))

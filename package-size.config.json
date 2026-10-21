@@ -12,16 +12,24 @@
     ]
   },
   "@toolgrain/mcp": {
-    "packedBytes": 60416,
-    "unpackedBytes": 264192,
+    "packedBytes": 70656,
+    "unpackedBytes": 303104,
     "sourceMaps": true
   },
   "@toolgrain/http": {
-    "packedBytes": 9216,
-    "unpackedBytes": 32768
+    "packedBytes": 11264,
+    "unpackedBytes": 38912
   },
   "@toolgrain/node": {
-    "packedBytes": 7168,
-    "unpackedBytes": 22528
+    "packedBytes": 9216,
+    "unpackedBytes": 31744
+  },
+  "@toolgrain/jwt": {
+    "packedBytes": 5120,
+    "unpackedBytes": 12288
+  },
+  "@toolgrain/clerk": {
+    "packedBytes": 3072,
+    "unpackedBytes": 9216
   }
 }

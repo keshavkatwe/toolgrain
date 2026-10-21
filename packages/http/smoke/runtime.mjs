@@ -5,6 +5,8 @@ import { PROTOCOL_VERSION } from "@toolgrain/protocol";
 
 const server = createServer({ name: "smoke", version: "1", tools: {} });
 const handler = createHttpHandler(server);
+assert.equal(handler.matches("/mcp"), true);
+assert.equal(handler.matches("/health"), false);
 assert.equal((await handler(new Request("http://localhost/mcp"))).status, 405);
 const response = await handler(
   new Request("http://localhost/mcp", {

@@ -27,7 +27,7 @@ The start command defaults to port 3000; set `PORT` to override it.
 | `build` | `tsc -p tsconfig.build.json` |
 | `start` | `node dist/index.js` |
 
-`src/index.ts` mounts the Node handler at `/mcp`; The tool and MCP server definitions are inline in `src/index.ts`. This app has no framework dependencies.
+`src/index.ts` calls `server.listen(http({ port }))`; Toolgrain owns the listener, endpoint routing, host validation, and cleanup through `server.close()`. The tool and MCP server definitions are inline in `src/index.ts`. This app has no framework dependencies.
 
 The app imports Toolgrain's compiled workspace packages. Root `bun run dev` watches
 those packages and runs every example's own development command; HTTP development
@@ -49,8 +49,10 @@ from library coverage and retains each workspace's test report.
 The MCP revision is `2026-07-28`, with JSON responses. Clients must send the
 protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
-SSE and Clerk/OAuth are separate work. Toolgrain packages are private workspace
-packages, so this example currently runs from this repository.
+SSE remains separate work. Optional JWT/Clerk authorization and automatic public
+metadata are described in [authorization](../../docs/authorization.md). Toolgrain
+packages are private workspace packages, so this example currently runs from this
+repository.
 
 ## MCP Inspector
 

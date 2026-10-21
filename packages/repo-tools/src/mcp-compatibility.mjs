@@ -35,8 +35,18 @@ function run(label, script, directory) {
 export function main() {
   const directory = process.cwd();
   const manifest = readJSON(join(directory, "package.json"));
-  if (manifest.name !== "@toolgrain/mcp")
-    throw new Error("Run mcp-compat from packages/mcp");
+  const isMcp = manifest.name === "@toolgrain/mcp";
+  if (
+    !["@toolgrain/mcp", "@toolgrain/jwt", "@toolgrain/clerk"].includes(
+      manifest.name,
+    )
+  )
+    throw new Error(
+      "Run mcp-compat from packages/mcp, packages/jwt, or packages/clerk",
+    );
+  const mcp = isMcp
+    ? directory
+    : join(directory, "node_modules/@toolgrain/mcp");
   const consumerRequire = createRequire(join(directory, "package.json"));
   const compilers = [
     dependency(require, "typescript-minimum"),
@@ -46,14 +56,18 @@ export function main() {
     dependency(require, "zod-minimum"),
     dependency(consumerRequire, "zod"),
   ];
-  if (manifest.peerDependencies.zod !== `^${schemas[0].version}`)
+  if (
+    readJSON(join(mcp, "package.json")).peerDependencies.zod !==
+    `^${schemas[0].version}`
+  )
     throw new Error("Update zod-minimum to match MCP's Zod peer floor");
-  const protocol = join(directory, "node_modules/@toolgrain/protocol");
+  const protocol = join(mcp, "node_modules/@toolgrain/protocol");
   let passed = true;
   for (const schema of schemas) {
     const temporary = mkdtempSync(join(tmpdir(), "toolgrain-mcp-compat-"));
     try {
       for (const [name, source] of [
+        ...(!isMcp ? [["@toolgrain/mcp", mcp]] : []),
         [manifest.name, directory],
         ["@toolgrain/protocol", protocol],
       ]) {
@@ -72,7 +86,9 @@ export function main() {
         recursive: true,
         dereference: true,
       });
-      for (const name of ["consumer.mts", "runtime.mjs"])
+      for (const name of isMcp
+        ? ["consumer.mts", "runtime.mjs"]
+        : ["consumer.mts"])
         cpSync(join(directory, "smoke", name), join(temporary, name));
       cpSync(
         resolve(directory, "../../tsconfig.base.json"),
@@ -93,6 +109,7 @@ export function main() {
         }),
       );
       if (
+        isMcp &&
         !run(
           `Zod ${schema.version} runtime`,
           ["--enable-source-maps", "runtime.mjs"],

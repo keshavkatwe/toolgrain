@@ -1,6 +1,7 @@
 import { once } from "node:events";
 import type { ServerResponse } from "node:http";
 import { ConsumedRequestError } from "./http-request.js";
+import { InvalidRequestUrlError } from "./http-url.js";
 
 async function writeBody(
   output: ServerResponse,
@@ -70,7 +71,12 @@ export async function writeHttpFailure(
     output.destroy();
     return;
   }
-  output.writeHead(error instanceof ConsumedRequestError ? 400 : 500);
+  output.writeHead(
+    error instanceof ConsumedRequestError ||
+      error instanceof InvalidRequestUrlError
+      ? 400
+      : 500,
+  );
   await finishResponse(output, signal).catch(() => {
     output.destroy();
   });

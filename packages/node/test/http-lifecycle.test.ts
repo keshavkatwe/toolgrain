@@ -7,7 +7,13 @@ import { createNodeHttpHandler } from "../src/index.js";
 
 function fixture() {
   const input = new PassThrough() as unknown as IncomingMessage;
-  Object.assign(input, { rawHeaders: [], method: "GET" });
+  Object.assign(input, {
+    rawHeaders: ["Host", "localhost"],
+    headers: { host: "localhost" },
+    socket: {},
+    url: "/mcp",
+    method: "GET",
+  });
   const output = Object.assign(new EventEmitter(), {
     writableFinished: false,
     destroyed: false,
@@ -55,7 +61,7 @@ it("waits for writable backpressure", async () => {
   const { input, output, handler } = fixture();
   Object.assign(input, {
     method: "POST",
-    rawHeaders: ["Content-Type", "text/plain"],
+    rawHeaders: ["Host", "localhost", "Content-Type", "text/plain"],
   });
   output.write.mockImplementation(() => {
     queueMicrotask(() => output.emit("drain"));
@@ -69,7 +75,7 @@ it("handles abort while waiting for writable backpressure", async () => {
   const { input, output, handler } = fixture();
   Object.assign(input, {
     method: "POST",
-    rawHeaders: ["Content-Type", "text/plain"],
+    rawHeaders: ["Host", "localhost", "Content-Type", "text/plain"],
   });
   output.write.mockImplementation(() => {
     queueMicrotask(() => output.emit("close"));
@@ -106,4 +112,25 @@ it("handles a failed error-response flush", async () => {
   await handler(input, output as unknown as ServerResponse);
   expect(output.destroy).toHaveBeenCalled();
   expect(output.listenerCount("error")).toBe(0);
+});
+
+it("delegates unrelated middleware requests before inspecting or consuming their bodies", async () => {
+  const { input, output, handler } = fixture();
+  Object.assign(input, { url: "/rest?trace=1", method: "POST" });
+  input.setEncoding("utf8");
+  input.push('{"message":"untouched"}');
+  input.push(null);
+  const next = vi.fn();
+  await handler(input, output as unknown as ServerResponse, next);
+  expect(next).toHaveBeenCalledOnce();
+  expect(output.writeHead).not.toHaveBeenCalled();
+  expect(input.read()).toBe('{"message":"untouched"}');
+  expect(output.listenerCount("close")).toBe(0);
+});
+it("does not delegate matched MCP requests to later framework middleware", async () => {
+  const { input, output, handler } = fixture();
+  const next = vi.fn();
+  await handler(input, output as unknown as ServerResponse, next);
+  expect(output.writeHead).toHaveBeenCalledWith(405, expect.anything());
+  expect(next).not.toHaveBeenCalled();
 });

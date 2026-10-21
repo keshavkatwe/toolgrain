@@ -3,13 +3,20 @@ import type {
   Tool as ProtocolTool,
   SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import { createAuthorization } from "./auth/authorization.js";
+import { AuthError } from "./auth/errors.js";
+import type { AuthMetadata, AuthProvider, AuthScope } from "./auth/types.js";
 import { createConnection } from "./connection.js";
 import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
 import { createToolAdapter } from "./tools/adapter.js";
 import type { ToolMap } from "./tools/registry.js";
-import type { Transport } from "./transport.js";
+import {
+  isRequestTransport,
+  type RequestTransport,
+  type Transport,
+} from "./transport.js";
 
 export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   name: string;
@@ -17,11 +24,13 @@ export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   tools: Tools;
   instructions?: string;
   onError?: (error: unknown) => void;
+  auth?: AuthProvider;
 }
 
 export interface HandleOptions {
   signal?: AbortSignal;
   protocolVersion?: SupportedProtocolVersion;
+  auth?: AuthScope;
 }
 
 export interface Server {
@@ -30,7 +39,12 @@ export interface Server {
     options?: HandleOptions,
   ): Promise<ProtocolResponse | undefined>;
   getToolDefinitions(): ProtocolTool[];
-  listen(transport: Transport): Promise<void>;
+  getAuthMetadata(): AuthMetadata | undefined;
+  authorize(
+    accessToken: string,
+    options: { resource: string; signal?: AbortSignal },
+  ): Promise<AuthScope>;
+  listen(transport: Transport | RequestTransport): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -38,6 +52,7 @@ export interface Server {
 export function createServer<const Tools extends ToolMap>(
   options: ServerOptions<Tools>,
 ): Server {
+  const authorization = createAuthorization(options.auth);
   const tools = createToolAdapter(options.tools);
   const dispatch = createDispatcher(
     tools,
@@ -58,32 +73,72 @@ export function createServer<const Tools extends ToolMap>(
     options.onError,
     closeIndependent,
   );
-  return {
-    listen: connection.listen,
+  const requestController = (signal?: AbortSignal) => {
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    if (signal?.aborted) abort();
+    else signal?.addEventListener("abort", abort, { once: true });
+    running.add(controller);
+    return {
+      signal: controller.signal,
+      finish() {
+        signal?.removeEventListener("abort", abort);
+        running.delete(controller);
+      },
+    };
+  };
+  const server: Server = {
+    async listen(transport) {
+      if (isRequestTransport(transport))
+        return connection.listenRequests(transport, server);
+      if (authorization.metadata())
+        throw new Error(
+          "Auth-configured servers require HTTP and cannot listen on a message transport",
+        );
+      return connection.listen(transport);
+    },
     getToolDefinitions: () => tools.list(),
-    async handle(message, { signal, protocolVersion } = {}) {
+    getAuthMetadata: authorization.metadata,
+    async authorize(accessToken, { resource, signal }) {
+      if (closed) throw new AuthError("temporarily_unavailable");
+      const pending = requestController(signal);
+      try {
+        return await authorization.authorize(
+          accessToken,
+          resource,
+          pending.signal,
+          pending.finish,
+        );
+      } catch (error) {
+        pending.finish();
+        throw error;
+      }
+    },
+    async handle(message, { signal, protocolVersion, auth } = {}) {
       if (closed) throw new Error("Server is closed");
+      const identity = authorization.consume(auth);
+      if (auth?.signal.aborted) return;
       const active = () => !closed && !signal?.aborted;
       if (!active()) return;
       const incoming = decode(message);
       if (incoming.kind === "error")
         return formatErrorResponse(incoming.response, protocolVersion);
       if (incoming.kind !== "request") return;
-      const controller = new AbortController();
-      const abort = () => controller.abort(signal?.reason);
-      signal?.addEventListener("abort", abort, { once: true });
-      running.add(controller);
+      const pending = requestController(signal);
+      // The authorization signal covers verification and body decoding too.
+      const combined = auth
+        ? AbortSignal.any([pending.signal, auth.signal])
+        : pending.signal;
       try {
         return await executeRequest(
           dispatch,
           incoming.request,
-          { signal: controller.signal },
+          { signal: combined, ...(identity ? { auth: identity } : {}) },
           options.onError,
           protocolVersion,
         );
       } finally {
-        signal?.removeEventListener("abort", abort);
-        running.delete(controller);
+        pending.finish();
       }
     },
     close() {
@@ -91,4 +146,5 @@ export function createServer<const Tools extends ToolMap>(
       return connection.close();
     },
   };
+  return server;
 }

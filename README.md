@@ -9,7 +9,8 @@ MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
 same tool definitions. All packages are private and unpublished.
 
 See [project decisions](./AGENTS.md) and
-[client compatibility verification](./docs/compatibility.md).
+[client compatibility verification](./docs/compatibility.md), and
+[JWT/Clerk authorization](./docs/authorization.md).
 
 ## Authoring API
 
@@ -326,12 +327,27 @@ see the [compatibility report](./docs/compatibility.md) for exact tested version
 `Request` → `Promise<Response>` handler. `@toolgrain/node` provides
 `createNodeHttpHandler(server, options?)` for Node `IncomingMessage` and
 `ServerResponse`. Both share the same HTTP implementation; neither depends on a
-web framework. HTTP handlers are mounted directly, without `server.listen()`.
+web framework. For a standalone Node listener, use:
+
+```ts
+import { http } from "@toolgrain/node";
+
+await server.listen(http({ port: 3000, path: "/mcp" }));
+// await server.close(); // Stops the owned listener and active requests.
+```
+
+For an existing application, mount a combined handler at its root. It routes the
+configured MCP endpoint (default `/mcp`) and automatically serves public protected
+resource metadata when auth is configured. `allowedHosts` defaults to loopback
+hosts; configure exact public authorities for deployment. The framework owns its
+listener and calls `server.close()` during shutdown.
 
 ```ts
 import { createHttpHandler } from "@toolgrain/http";
 
 const handler = createHttpHandler(server, {
+  path: "/mcp",
+  allowedHosts: ["api.example.com"],
   allowedOrigins: ["https://example.com"],
   maxMessageBytes: 1024 * 1024,
 });
@@ -346,8 +362,15 @@ export const DELETE = handler;
 import { createNodeHttpHandler } from "@toolgrain/node";
 
 // Express: mount before express.json() or other body-consuming middleware.
-app.all("/mcp", createNodeHttpHandler(server));
+app.use(createNodeHttpHandler(server));
+app.use(express.json());
+app.get("/health", (_request, response) => response.json({ status: "ok" }));
 ```
+
+The Node middleware calls `next()` for unrelated paths before consuming their
+bodies. Matched MCP errors remain Toolgrain responses. Web middleware can use
+`handler.matches(pathname)` to select the MCP and metadata routes and delegate
+other paths to its framework.
 
 The public factories compose focused internal modules. HTTP separates option
 normalization, endpoint checks, bounded body decoding, request/header validation,
@@ -365,8 +388,8 @@ and JSON serialization are shared.
 HTTP supports revisions `2026-07-28` and `2025-06-18`: independent POST requests
 and JSON responses. Legacy initialization is supported without issuing session
 IDs or keeping global client negotiation state. There is no GET event stream or
-resumption. SSE, progress, subscriptions, OAuth/Clerk, and request identity context
-are separate work. Requests must advertise both `application/json` and
+resumption. SSE, progress, and subscriptions remain separate work. See
+[authorization](./docs/authorization.md) for JWT/Clerk and request identities. Requests must advertise both `application/json` and
 `text/event-stream` in Accept even though this implementation returns JSON.
 
 Every modern POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
@@ -395,8 +418,9 @@ the existing tool execution semantics.
 
 An absent Origin is allowed. A present Origin must exactly match an entry in
 `allowedOrigins`, which defaults to an empty list. This is independent of CORS and
-authentication: applications own browser preflight handling, access checks,
-routing, TLS, binding addresses, and HTTP-server shutdown. Set explicit origins
+authentication: applications own browser preflight handling, TLS, deployment
+configuration, and framework HTTP-server shutdown. Toolgrain owns MCP routing,
+host validation, and optional JWT/Clerk verification. Set explicit origins
 when using a browser client. The plain Node example binds to `127.0.0.1`.
 
 The MCP server exposes `handle(message, { signal?, protocolVersion? })` for independent decoded
@@ -405,7 +429,8 @@ The HTTP adapter passes the validated revision per request; direct legacy
 callers supply `protocolVersion: LEGACY_PROTOCOL_VERSION` after initialization.
 Request processing shares dispatch/error conversion with stdio. `close()` is
 terminal and suppresses pending results across both paths; attached-transport EOF
-also closes the server. The HTTP listener remains application-owned.
+also closes the server. A listener attached through `http()` closes with the MCP
+server; externally mounted handlers leave the listener application-owned.
 
 Run the plain Node example after building:
 
@@ -506,7 +531,7 @@ verification requires no additional downloads or workspace dependency changes.
 `bun run test:coverage` runs through Turborepo, building each workspace before
 its tests. MCP, Node, and HTTP use Vitest V8 coverage over every `src/**/*.ts`
 file, including files not imported by tests. Thresholds apply separately to
-statements, branches, functions, and lines in each package: 95% for MCP, Node, and HTTP. A test failure or missed threshold fails CI.
+statements, branches, functions, and lines in each package: 95% for MCP, Node, HTTP, JWT, and Clerk. A test failure or missed threshold fails CI.
 
 Protocol runs its vendored-schema integrity test without instrumenting upstream
 code. Examples run their real-process integration tests through `bun run test:examples`,
@@ -531,7 +556,7 @@ the Actions summary and downloadable artifact. Reports link to the run logs.
 
 ### Package size and dependency auditing
 
-`bun run test:size` builds and checks the four library packages through Turbo.
+`bun run test:size` builds and checks the six library packages through Turbo.
 Each check packs the workspace with Bun 1.3.14 into a temporary directory,
 without running lifecycle scripts or publishing anything. It measures compressed
 tarball bytes, unpacked file bytes, and file count, and writes the complete file
@@ -553,7 +578,7 @@ MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaratio
 maps, and the TypeScript sources in the archive. Verification rejects malformed
 maps, missing or incorrect source targets, and missing mapping comments. Packaged
 sources are limited to existing `src/**/*.ts` files; other libraries retain their
-existing restrictions. MCP's budgets are 59 KiB packed and 258 KiB unpacked,
+existing restrictions. MCP's budgets are 69 KiB packed and 296 KiB unpacked,
 allowing approximately 20% growth above the build with maps and sources.
 
 `bun run test:audit` queries Bun's advisory service once for the complete

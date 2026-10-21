@@ -5,6 +5,7 @@ import {
   type ProtocolResponse,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import type { AuthIdentity } from "./auth/types.js";
 import {
   createLegacyDispatcher,
   usesLegacyProtocol,
@@ -21,6 +22,7 @@ export interface RequestScope {
   signal: AbortSignal;
   /** Client details negotiated by legacy initialization, when the connection has them. */
   client?: ToolClient | undefined;
+  auth?: AuthIdentity;
 }
 
 export type Dispatcher = (

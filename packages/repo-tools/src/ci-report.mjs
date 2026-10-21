@@ -12,6 +12,8 @@ const libraries = [
   "packages/mcp",
   "packages/node",
   "packages/http",
+  "packages/jwt",
+  "packages/clerk",
 ];
 const escapeMarkdown = (value) =>
   String(value)
@@ -58,7 +60,9 @@ export function main() {
     "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
   );
   const failures = [];
-  for (const workspace of ["packages/mcp", "packages/node", "packages/http"]) {
+  for (const workspace of libraries.filter(
+    (path) => path !== "packages/protocol",
+  )) {
     const total = read(
       `${workspace}/coverage/coverage-summary.json`,
       "coverage",
