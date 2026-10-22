@@ -1,0 +1,18 @@
+{
+  "node": {
+    "minimum": "24.20.0",
+    "range": "^24.20.0",
+    "preview": "26"
+  },
+  "bun": {
+    "minimum": "1.4.4",
+    "range": ">=1.4.4 <2"
+  },
+  "typescript": {
+    "minimum": "5.5.4"
+  },
+  "zod": {
+    "minimum": "4.0.0",
+    "range": "^4.0.0"
+  }
+}

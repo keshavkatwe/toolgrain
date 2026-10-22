@@ -562,6 +562,11 @@ run only that workspace; root `dev` starts all of them.
 
 Use Bun 1.3.14 and the Node version declared in `package.json`.
 
+The [support policy](./docs/support-policy.md) defines Node 24.20.0+/24.x,
+Bun 1.4.4+/1.x, strict TypeScript 5.5.4+, and Zod `^4.0.0`, plus the
+platform matrix, CI requirements, and upgrade/deprecation rules. Node 26 remains
+a preview. Each library carries its own runtime declarations.
+
 ```sh
 bun install --frozen-lockfile
 bun run check
@@ -602,7 +607,9 @@ have been removed. Library build, test, and type-check tasks run through Turbo.
 GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
 requests and pushes to `main`. The workflow reads the Bun version from
 `package.json`. It also runs type checks, library coverage, uninstrumented example smoke tests, builds, and a compiled-package import and
-declaration smoke check using Node 24.20.0.
+declaration smoke check using Node 24.20.0. A separate support workflow checks
+latest Node 24 and Bun consumers on Linux, macOS and Windows, with a Node 26
+preview and weekly compiler/dependency probes; see the [support matrix](./docs/support-policy.md#required-ci).
 
 MCP package verification reuses its compiled consumer and runtime fixtures in
 isolated temporary directories. It checks TypeScript 5.5.4 and the development
@@ -621,16 +628,23 @@ The check packs all six libraries with Bun and serves their unchanged archives
 through a temporary loopback registry scoped to `@toolgrain`. Six fresh npm
 consumers each install one library as their only direct Toolgrain dependency,
 letting npm resolve its declared dependencies and versions. Each imports the
-installed library and checks its declaration fixture with strict TypeScript and
-`skipLibCheck: false`. This catches dependencies hidden by installing every
+installed library and checks its declaration fixture with both minimum and
+development TypeScript, with strict mode and `skipLibCheck: false`. This catches dependencies hidden by installing every
 library together. A separate full consumer exercises both protocol revisions
 over stdio, Web HTTP, Node HTTP, and the managed HTTP transport, including input
 validation, rich results, and a context provider. JWT and Clerk initialize with
-test configuration; no live credentials or external authorization calls are used.
+test configuration; signed-token and opaque-token verification uses offline
+responses. Both eras also exercise stdio cancellation and HTTP disconnects.
+No live credentials or external authorization calls are used.
 
-This check needs npm, tar, registry access for external dependencies, and loopback
-access. Zod, TypeScript, and Node types use their development versions, and all
-consumers share a disposable npm cache. Workspace links and unresolved local
+The default check uses npm and Node; the support workflow selects Bun installation
+and execution with `--package-manager=bun --runtime=bun`. Node source-map
+verification remains separate from Bun functional checks.
+
+This check needs npm, Bun, tar, registry access for external dependencies, and loopback
+access. Zod and Node types default to development versions; declarations check
+TypeScript 5.5.4 and the development compiler. Weekly probes can select another
+compiler and current Zod 4. All consumers share disposable package-manager caches. Workspace links and unresolved local
 runtime dependencies are rejected. Temporary files and listeners are cleaned up;
 a pass/fail report is saved to `reports/clean-install.json` in the existing CI
 artifact. After building, run just this check with `bun run test:clean-install`

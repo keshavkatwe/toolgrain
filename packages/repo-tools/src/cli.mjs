@@ -16,7 +16,11 @@ const commands = {
   ],
   "clean-install": [
     "./clean-install.mjs",
-    "Install packed libraries in isolation and verify a compiled Node consumer",
+    "Install packed libraries; check Node/Bun runtimes and minimum/current types",
+  ],
+  "support-matrix": [
+    "./support-matrix.mjs",
+    "Resolve weekly compiler checks or prepare CI-only dependency drift probes",
   ],
   audit: ["./audit.mjs", "Audit the Bun lockfile and write reports/audit.json"],
   "ci-report": [

@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { startArchiveRegistry } from "./archive-registry.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -55,19 +56,64 @@ export function inspectInstallation(directory, packages) {
 }
 
 /** Install real tarballs outside the repository, then compile and run a consumer. */
-export async function main() {
+export async function main(args = []) {
+  assert.equal(
+    process.versions.bun,
+    undefined,
+    "Run clean-install with Node; --runtime selects the consumer runtime",
+  );
+  const { values } = parseArgs({
+    args,
+    options: {
+      runtime: { type: "string", default: "node" },
+      "package-manager": { type: "string", default: "npm" },
+      typescript: { type: "string" },
+      zod: { type: "string" },
+    },
+  });
+  assert(["node", "bun"].includes(values.runtime), "Unknown runtime");
+  const manager = values["package-manager"];
+  assert(["npm", "bun"].includes(manager), "Unknown package manager");
+  const runtime = values.runtime === "bun" ? "bun" : process.execPath;
+  const runtimeArgs = values.runtime === "bun" ? ["--no-install"] : [];
+  const policy = readJSON(join(root, "support-policy.json"));
   const temporary = mkdtempSync(join(tmpdir(), "toolgrain-clean-install-"));
   const results = [];
   let failure;
   let registry;
+  let runtimeVersion;
   const env = { ...process.env };
   // Do not inherit loaders or module lookup paths from the developer's process.
   delete env.NODE_PATH;
   delete env.NODE_OPTIONS;
+  if (process.platform === "win32") {
+    // Avoid duplicate case-insensitive PATH keys when spawning on Windows.
+    for (const key of Object.keys(env))
+      if (key !== "PATH" && key.toUpperCase() === "PATH") {
+        env.PATH = env[key];
+        delete env[key];
+      }
+  }
   env.PATH = `${dirname(process.execPath)}${delimiter}${env.PATH ?? ""}`;
   // npm's cache/logs belong to this disposable consumer, too.
   env.npm_config_cache = join(temporary, "npm-cache");
   env.npm_config_update_notifier = "false";
+  env.BUN_INSTALL_CACHE_DIR = join(temporary, "bun-cache");
+  env.NODE_ENV = "development";
+  env.TOOLGRAIN_EXPECT_RUNTIME = values.runtime;
+
+  // Windows .cmd shims cannot be spawned without a shell. Invoke npm's JS
+  // entry point with Node instead; all arguments remain literal argv values.
+  let npm = "npm";
+  let npmArgs = [];
+  if (process.platform === "win32") {
+    const cli = env.PATH.split(delimiter)
+      .map((directory) => join(directory, "node_modules/npm/bin/npm-cli.js"))
+      .find(existsSync);
+    assert(cli, "Cannot locate npm-cli.js on PATH");
+    npm = process.execPath;
+    npmArgs = [cli];
+  }
 
   async function run(check, command, args, cwd = temporary) {
     console.log(`Clean install: ${check}`);
@@ -77,7 +123,8 @@ export async function main() {
       cwd,
       env,
       stdio: "inherit",
-      timeout: 60_000,
+      // Cold compiler downloads can exceed a minute; execution checks remain bounded separately.
+      timeout: check.startsWith(`${manager} install `) ? 120_000 : 60_000,
       killSignal: "SIGKILL",
     });
     const status = await new Promise((resolve, reject) => {
@@ -90,12 +137,24 @@ export async function main() {
 
   const packages = [];
   try {
+    runtimeVersion = execFileSync(runtime, ["--version"], {
+      encoding: "utf8",
+      env,
+    }).trim();
     for (const name of libraries) {
       const directory = join(root, "packages", name);
       packages.push({
         directory,
         ...readJSON(join(directory, "package.json")),
       });
+      assert.deepEqual(
+        packages.at(-1).engines,
+        {
+          node: policy.node.range,
+          bun: policy.bun.range,
+        },
+        "Library engines must match support-policy.json",
+      );
     }
     assert(
       !inside(realpathSync(root), realpathSync(temporary)),
@@ -122,13 +181,23 @@ export async function main() {
           }),
         ),
       });
+      assert.deepEqual(packed.at(-1).manifest.engines, manifest.engines);
     }
     const mcp = packages.find((manifest) => manifest.name === "@toolgrain/mcp");
+    const aliases = readJSON(
+      join(root, "packages/repo-tools/package.json"),
+    ).dependencies;
+    assert.equal(
+      aliases["typescript-minimum"],
+      `npm:typescript@${policy.typescript.minimum}`,
+    );
+    assert.equal(aliases["zod-minimum"], `npm:zod@${policy.zod.minimum}`);
+    assert.equal(mcp.peerDependencies.zod, policy.zod.range);
     const node = packages.find(
       (manifest) => manifest.name === "@toolgrain/node",
     );
     registry = await startArchiveRegistry(packed);
-    const install = async (consumer, dependencies) => {
+    const install = async (consumer, dependencies, tools = {}) => {
       writeFileSync(
         join(consumer, ".npmrc"),
         `@toolgrain:registry=${registry.url}/\n`,
@@ -143,8 +212,10 @@ export async function main() {
             type: "module",
             dependencies,
             devDependencies: {
-              typescript: mcp.devDependencies.typescript,
+              typescript: values.typescript ?? mcp.devDependencies.typescript,
+              "typescript-minimum": `npm:typescript@${policy.typescript.minimum}`,
               "@types/node": node.devDependencies["@types/node"],
+              ...tools,
             },
           },
           null,
@@ -152,17 +223,20 @@ export async function main() {
         )}\n`,
       );
       await run(
-        `npm install ${Object.keys(dependencies).join(", ")}`,
-        "npm",
-        [
-          "install",
-          "--ignore-scripts",
-          "--include=dev",
-          "--no-audit",
-          "--no-fund",
-          "--fetch-retries=0",
-          "--fetch-timeout=30000",
-        ],
+        `${manager} install ${Object.keys(dependencies).join(", ")}`,
+        manager === "npm" ? npm : "bun",
+        manager === "npm"
+          ? [
+              ...npmArgs,
+              "install",
+              "--ignore-scripts",
+              "--include=dev",
+              "--no-audit",
+              "--no-fund",
+              "--fetch-retries=0",
+              "--fetch-timeout=30000",
+            ]
+          : ["install", "--ignore-scripts"],
         consumer,
       );
       inspectInstallation(
@@ -173,8 +247,8 @@ export async function main() {
       );
       await run(
         "runtime dependency tree",
-        "npm",
-        ["ls", "--all", "--omit=dev"],
+        npm,
+        [...npmArgs, "ls", "--all", "--omit=dev"],
         consumer,
       );
     };
@@ -185,7 +259,7 @@ export async function main() {
         [manifest.name]: manifest.version,
         ...(manifest.name === "@toolgrain/protocol"
           ? {}
-          : { zod: mcp.devDependencies.zod }),
+          : { zod: values.zod ?? mcp.devDependencies.zod }),
       });
       // Import before adding any other Toolgrain entry package to the project.
       cpSync(
@@ -194,8 +268,8 @@ export async function main() {
       );
       await run(
         `isolated runtime ${manifest.name}`,
-        process.execPath,
-        ["entry-runtime.mjs", manifest.name],
+        runtime,
+        [...runtimeArgs, "entry-runtime.mjs", manifest.name],
         consumer,
       );
       cpSync(
@@ -207,27 +281,35 @@ export async function main() {
       );
       config.compilerOptions.noEmit = true;
       writeFileSync(join(consumer, "tsconfig.json"), JSON.stringify(config));
-      await run(
-        `isolated declarations ${manifest.name}`,
-        process.execPath,
-        [
-          join(consumer, "node_modules/typescript/bin/tsc"),
-          "-p",
-          "tsconfig.json",
-        ],
-        consumer,
-      );
+      for (const compiler of ["typescript-minimum", "typescript"])
+        await run(
+          `isolated declarations ${manifest.name} / ${compiler}`,
+          process.execPath,
+          [
+            join(consumer, "node_modules", compiler, "bin/tsc"),
+            "-p",
+            "tsconfig.json",
+          ],
+          consumer,
+        );
     }
     const consumer = join(temporary, "consumer");
     cpSync(new URL("../fixtures/clean-install/", import.meta.url), consumer, {
       recursive: true,
     });
-    await install(consumer, {
-      ...Object.fromEntries(
-        packages.map(({ name, version }) => [name, version]),
-      ),
-      zod: mcp.devDependencies.zod,
-    });
+    await install(
+      consumer,
+      {
+        ...Object.fromEntries(
+          packages.map(({ name, version }) => [name, version]),
+        ),
+        zod: values.zod ?? mcp.devDependencies.zod,
+      },
+      {
+        jose: packages.find(({ name }) => name === "@toolgrain/jwt")
+          .dependencies.jose,
+      },
+    );
     await run(
       "strict TypeScript consumer",
       process.execPath,
@@ -239,9 +321,11 @@ export async function main() {
       consumer,
     );
     await run(
-      "Node consumer over stdio and HTTP",
-      process.execPath,
-      ["--test", "runtime.mjs"],
+      `${values.runtime} consumer over stdio and HTTP`,
+      runtime,
+      values.runtime === "bun"
+        ? ["test", "--no-install", "./runtime.mjs"]
+        : ["--test", "runtime.mjs"],
       consumer,
     );
   } catch (error) {
@@ -260,6 +344,11 @@ export async function main() {
           status: failure ? "failed" : "passed",
           ...(failure ? { error: failure.message } : {}),
           node: process.version,
+          platform: process.platform,
+          architecture: process.arch,
+          runtime: values.runtime,
+          runtimeVersion,
+          packageManager: manager,
           packages: packages.map(({ name, version }) => ({ name, version })),
           results,
         },

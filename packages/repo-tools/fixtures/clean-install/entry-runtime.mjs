@@ -1,20 +1,21 @@
 import assert from "node:assert/strict";
 import { realpathSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const name = process.argv[2];
 const specifiers =
   name === "@toolgrain/protocol" ? [name, `${name}/2025-06-18`] : [name];
+// Windows may report cwd with an 8.3 alias while module URLs use its long name.
+// Anchor both paths to module resolution's spelling of this consumer directory.
+const modules = realpathSync(
+  fileURLToPath(new URL("./node_modules/", import.meta.url)),
+);
 for (const specifier of specifiers) {
   const resolved = realpathSync(fileURLToPath(import.meta.resolve(specifier)));
-  assert(
-    resolved.startsWith(
-      `${realpathSync(join(process.cwd(), "node_modules"))}/`,
-    ),
-    resolved,
-  );
-  assert(resolved.includes("/dist/"), resolved);
+  const path = relative(modules, resolved);
+  assert(!isAbsolute(path) && !path.startsWith(`..${sep}`), resolved);
+  assert(resolved.includes(`${sep}dist${sep}`), resolved);
   await import(specifier);
 }
 assert.throws(() => import.meta.resolve("@toolgrain/repo-tools"));

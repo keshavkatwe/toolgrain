@@ -145,6 +145,32 @@ Approved and implemented on 2026-10-21; packages remain private and unpublished.
 - Provider values are returned unchanged and may contain mutable clients, class instances, or functions. Application-owned pools/resources remain application-owned. Automatic disposal, transactions, cleanup hooks, lifecycle hooks, synchronous provider accessors, and background-work support are outside this version.
 - See `docs/context.md`. Coverage and compiled consumer checks retain the existing 95% floor and TypeScript 5.5.4/Zod 4.0.0 compatibility requirements. Implementation alone does not authorize commits or publication.
 
+## Confirmed runtime and dependency support policy
+
+Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
+
+- All six libraries declare Node `^24.20.0` and Bun `>=1.4.4 <2` separately.
+  Bun 1.3.14 cannot report Node HTTP disconnects; the supported application runtime
+  starts at 1.4.4. Keep repository Bun pinned at 1.3.14.
+  TypeScript remains strict 5.5.4 minimum;
+  Zod remains `^4.0.0`. Node 26 is preview until explicitly promoted after LTS
+  and passing checks. Other runtimes/package managers have no support commitment.
+- CI retains the complete baseline and adds real packed npm/Node and Bun/Bun
+  consumers on Linux, macOS and Windows. Every library checks minimum/current
+  declarations with `skipLibCheck: false`. Hosted combinations need passing runs
+  before being called verified. Bun functional coverage does not waive Node's
+  existing source-map stack assertion; mapped stacks are currently Node-specific.
+- Weekly checks cover intermediate TypeScript minors/current Zod 4 and stable
+  dependency drift. Prerelease/Node-26 probes are informational. Stable supported
+  regressions block release. CI probes change only disposable checkouts.
+- Review dependency updates monthly, urgent security fixes sooner. Preserve exact
+  pins and reviewed lockfiles. Runtime, peer and declaration floors are upgrade
+  gates, including transitive changes. Minimum increases/removals are breaking:
+  minor in 0.x, major from 1.0; give 90 days and one release of removal notice,
+  whichever is longer, except documented security emergencies. Runtime retirement
+  requires explicit review around upstream EOL. Protocol/schema updates remain
+  separate reviewed work. No commit/publication is authorized by implementation.
+
 ## Confirmed protocol package decisions
 
 - `@toolgrain/protocol` is a private workspace package, version `0.0.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
@@ -248,9 +274,12 @@ constraints normally; no overrides or workspace links supply missing dependencie
 Each consumer imports the installed library and checks its existing declaration
 fixture with strict mode and `skipLibCheck: false`. A separate full consumer runs
 both protocol revisions over stdio, Web HTTP, Node HTTP, and the managed Node
-listener, including context providers and offline JWT/Clerk initialization.
-Zod, TypeScript, and Node types use their development versions; npm includes the
-consumer's development tools even with `NODE_ENV=production`. Fixtures live in
+listener, including context providers, cancellation/disconnects and offline JWT/Clerk
+verification. Bun compatibility lanes use `--runtime=bun --package-manager=bun`
+to install and execute under Bun itself.
+Zod and Node types default to development versions. Every installed library
+checks minimum and development TypeScript; optional CLI overrides support weekly
+compiler/Zod probes. npm includes the consumer's development tools even with `NODE_ENV=production`. Fixtures live in
 `packages/repo-tools/fixtures/clean-install/`; compiled implementations and
 repository TypeScript configuration are not copied into consumers. The check
 requires npm, tar, external registry access, and loopback access. All consumers,
@@ -267,7 +296,7 @@ are intentionally unsupported.
 
 - `packages/repo-tools` (`@toolgrain/repo-tools`, private) owns repository
   verification, reporting, and inspection. Its `toolgrain-repo` command provides
-  `size`, `exports`, `mcp-compat`, `clean-install`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
+  `size`, `exports`, `mcp-compat`, `clean-install`, `support-matrix`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
   `@toolgrain/repo-tools/http-example` is the shared example smoke test.
 - Libraries and HTTP examples declare it as a development dependency. The root
   does not, because a root dependency on an internal package invalidates every
