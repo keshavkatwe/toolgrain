@@ -77,3 +77,29 @@ export const directContext = () =>
   });
 
 if (process.argv[2] === "stdio") await server().listen(stdio());
+
+if (process.argv[2] === "stdio-cancellation") {
+  await createServer({
+    name: "cancellation",
+    version: "1",
+    tools: {
+      wait: tool({
+        input: z.object({}),
+        async execute(_input, ctx) {
+          process.stderr.write("started\n");
+          await new Promise<void>((resolve) => {
+            ctx.signal.addEventListener(
+              "abort",
+              () => {
+                process.stderr.write("aborted\n");
+                resolve();
+              },
+              { once: true },
+            );
+          });
+          return "cancelled";
+        },
+      }),
+    },
+  }).listen(stdio());
+}

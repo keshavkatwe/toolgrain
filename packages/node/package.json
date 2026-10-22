@@ -32,5 +32,9 @@
     "@toolgrain/mcp": "workspace:*",
     "@toolgrain/protocol": "workspace:*",
     "@toolgrain/http": "workspace:*"
+  },
+  "engines": {
+    "node": "^24.20.0",
+    "bun": ">=1.4.4 <2"
   }
 }
