@@ -17,12 +17,7 @@ import {
   createContextRegistry,
 } from "../context/registry.js";
 import { createContextScope } from "../context/scope.js";
-
-type DeepReadonly<T> = T extends readonly (infer Item)[]
-  ? readonly DeepReadonly<Item>[]
-  : T extends object
-    ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
-    : T;
+import type { DeepReadonly } from "./json-value.js";
 
 /** What the client reported about itself; unverified, so not a basis for security decisions. */
 export interface ToolClient {

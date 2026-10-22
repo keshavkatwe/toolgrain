@@ -71,9 +71,16 @@ object spreads are rejected. Pass modified definitions through `tool()` again to
 check their schema/handler types. Definitions and `mcpResult()` values from a
 duplicate installed copy of a compatible `@toolgrain/mcp` version are recognized.
 
+Variants retain the original input and output schema types:
+
+```ts
+const friendlyGreet = tool({ ...greet, title: "Friendly greeting" });
+```
+
 `tool()` accepts `title`, `description`, `annotations`, `icons`, and `_meta`
 directly. Tool annotations are descriptive hints, not access controls. Metadata
 must be JSON-compatible and is validated and copied when the server is created.
+Readonly icon arrays, including nested `sizes`, are accepted.
 
 Handlers receive asynchronously parsed input, including defaults and transforms.
 An optional `output` schema constrains the handler return type and asynchronously
@@ -205,15 +212,18 @@ const report = tool({
 ```
 
 The helper supports text, image, audio, resource links, and embedded text/blob
-resources. Content and data are validated and copied during conversion. Optional
-result and content fields set to `undefined` are treated as absent. A JSON text
+resources. Content accepts readonly arrays and nested protocol fields, including
+`as const` values. Content and data are validated and copied during conversion.
+Optional result and content fields set to `undefined` are treated as absent. A JSON text
 block accompanies structured data unless an identical text block is already
 present. When an output schema changes the data, a text block containing the
 original JSON is updated to the parsed JSON instead of being duplicated. Ordinary objects containing `content` or `isError` remain application
 data; Toolgrain does not guess that they are protocol results.
 
 When `output` is declared, an explicit successful result must supply
-`structuredContent`. Any supplied structured data is parsed against the schema,
+`structuredContent`; TypeScript checks its presence as well as its type. Use
+`McpStructuredResult<T>` when explicitly annotating a helper that returns such
+a result. Any supplied structured data is parsed against the schema,
 including data in error results (`isError: true`). Errors may omit structured data
 and report text in `content`; output defaults do not create structured data for
 these errors. Without an output schema, structured data may be any valid JSON.
@@ -252,6 +262,12 @@ the exposed `toolName` and the context's frozen `request`: ID, protocol revision
 optional client information, and request metadata. Toolgrain adds no arguments,
 verified identity, or bearer token to these details. Request metadata and client
 information retain the client-supplied values; keep diagnostics private.
+
+Unexpected auth verification failures, including provider
+`AuthError("temporarily_unavailable")` outages, also reach `onError` once with
+the original thrown value and no `details`. Expected auth rejections
+(`invalid_request`, `invalid_token`, and `access_denied`) do not. Auth responses
+keep their existing public error codes and optional provider-supplied descriptions.
 Transport and other internal request failures omit `details`. Existing callbacks
 taking only `error` remain supported. Callback throws and asynchronous rejections
 cannot replace the response or interrupt cleanup; diagnostics are not awaited.

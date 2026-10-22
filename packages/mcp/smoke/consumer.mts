@@ -3,6 +3,9 @@ import {
   type ContextProvider,
   createContext,
   createServer,
+  type McpErrorResult,
+  type McpResultOptions,
+  type McpStructuredResult,
   mcpResult,
   type ToolContext,
   type ToolErrorDetails,
@@ -32,6 +35,46 @@ const miniTool = tool({
   output: mini.object({ count: mini.string() }),
   execute: ({ count }) => ({ count: count.toFixed() }),
 });
+const miniVariant = tool({ ...miniTool, title: "Mini variant" });
+const miniOutput: typeof miniTool.output = miniVariant.output;
+void miniOutput;
+const plainTool = tool({
+  input: z.object({ name: z.string() }),
+  execute: ({ name }) => name,
+});
+const plainVariant = tool({ ...plainTool, title: "Plain variant" });
+const plainReturn: string = plainVariant.execute(
+  { name: "Ada" },
+  toolContext(),
+);
+void plainReturn;
+
+const icons = [
+  { src: "https://example.com/icon.png", sizes: ["48x48"] },
+] as const;
+const readonlyContent = [
+  { type: "text", text: "Report", annotations: { audience: ["assistant"] } },
+  {
+    type: "resource_link",
+    name: "Report",
+    uri: "https://example.com/report",
+    icons,
+  },
+] as const;
+const readonlyReport = tool({
+  input: z.object({}),
+  icons,
+  output: z.object({ message: z.string() }),
+  execute: (): McpStructuredResult<{ message: string }> =>
+    mcpResult({
+      content: readonlyContent,
+      structuredContent: { message: "Report" },
+    }),
+});
+const readonlyVariant = tool({ ...readonlyReport, title: "Readonly variant" });
+const structuredError: McpStructuredResult<number> & McpErrorResult<number> =
+  mcpResult({ content: [], isError: true, structuredContent: 1 });
+void structuredError;
 const preservedMiniInput: typeof miniInput = miniTool.input;
 const miniReturn: { count: string } = miniTool.execute(
   { count: 2 },
@@ -77,6 +120,9 @@ const server = createServer({
   },
   tools: {
     mini: miniTool,
+    miniVariant,
+    plainVariant,
+    readonlyVariant,
     greet: tool({
       title: "Greeting",
       annotations: { readOnlyHint: true },
@@ -120,6 +166,23 @@ void discovery;
 function rejectedDefinitions() {
   const wrongError = () =>
     mcpResult({ content: [], isError: true, structuredContent: "wrong" });
+  const textOnly = () => mcpResult({ content: [] });
+  const asyncTextOnly = async () => textOnly();
+  const uncertainError = () => mcpResult({ content: [], isError: Boolean(1) });
+  const optionalData: McpResultOptions<number> = { content: [] };
+  const optionalRich = () => mcpResult(optionalData);
+  // @ts-expect-error Successful rich results must carry structured data.
+  tool({ input: z.object({}), output: z.number(), execute: textOnly });
+  // @ts-expect-error Async successful rich results must carry structured data too.
+  tool({ input: z.object({}), output: z.number(), execute: asyncTextOnly });
+  // @ts-expect-error A boolean flag does not guarantee a text-only error.
+  tool({ input: z.object({}), output: z.number(), execute: uncertainError });
+  // @ts-expect-error Optional structured data does not guarantee a successful output.
+  tool({ input: z.object({}), output: z.number(), execute: optionalRich });
+  // @ts-expect-error Tool variants must recheck inherited output handlers.
+  tool({ ...miniTool, output: mini.number() });
+  // @ts-expect-error Tool variants must recheck inherited input handlers.
+  tool({ ...plainTool, input: z.object({ name: z.number() }) });
   // @ts-expect-error Compiled declarations infer Mini's parsed input type.
   tool({ input: miniInput, execute: ({ count }: { count: string }) => count });
   // @ts-expect-error Compiled declarations check Mini output schemas.

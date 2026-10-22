@@ -4,12 +4,12 @@ import type {
   SupportedProtocolVersion,
 } from "@toolgrain/protocol";
 import { createAuthorization } from "./auth/authorization.js";
-import { AuthError } from "./auth/errors.js";
+import { AuthError, isAuthError } from "./auth/errors.js";
 import type { AuthMetadata, AuthProvider, AuthScope } from "./auth/types.js";
 import { createConnection } from "./connection.js";
 import type { RegisteredContextProvider } from "./context/definition.js";
 import { createContextRegistry } from "./context/registry.js";
-import type { ErrorHandler } from "./diagnostics.js";
+import { type ErrorHandler, reportError } from "./diagnostics.js";
 import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
@@ -117,6 +117,11 @@ export function createServer<const Tools extends ToolMap>(
         );
       } catch (error) {
         pending.finish();
+        if (
+          !pending.signal.aborted &&
+          (!isAuthError(error) || error.code === "temporarily_unavailable")
+        )
+          reportError(options.onError, error);
         throw error;
       }
     },

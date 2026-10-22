@@ -1,8 +1,8 @@
 import type { ContentBlock, MetaObject } from "@toolgrain/protocol";
-import type { JsonCompatible } from "./json-value.js";
+import type { DeepReadonly, JsonCompatible } from "./json-value.js";
 
 export interface McpResultOptions<Structured = unknown> {
-  content: ContentBlock[];
+  content: readonly DeepReadonly<ContentBlock>[];
   structuredContent?: Structured & JsonCompatible<NoInfer<Structured>>;
   isError?: boolean;
   _meta?: MetaObject;
@@ -36,13 +36,29 @@ export type McpErrorResult<Structured = never> = McpResult<Structured> & {
   readonly value: McpResultOptions<Structured> & { isError: true };
 };
 
+/** A result whose structured data is present, as required by an output schema. */
+export type McpStructuredResult<Structured> = McpResult<Structured> & {
+  readonly value: McpResultOptions<Structured> & {
+    structuredContent: Structured;
+  };
+};
+
 /** Explicitly return MCP content. Ordinary objects always remain application data. */
+export function mcpResult<Structured = never>(
+  value: McpResultOptions<Structured> & {
+    isError: true;
+    structuredContent: Structured;
+  },
+): McpErrorResult<Structured> & McpStructuredResult<Structured>;
 export function mcpResult(
   value: McpResultOptions<never> & { isError: true },
 ): McpErrorResult<never>;
 export function mcpResult<Structured>(
   value: McpResultOptions<Structured> & { isError: true },
 ): McpErrorResult<Structured>;
+export function mcpResult<Structured>(
+  value: McpResultOptions<Structured> & { structuredContent: Structured },
+): McpStructuredResult<Structured>;
 export function mcpResult(value: McpResultOptions<never>): McpResult<never>;
 export function mcpResult<Structured = never>(
   value: McpResultOptions<Structured>,

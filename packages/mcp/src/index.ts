@@ -30,6 +30,7 @@ export type {
   McpErrorResult,
   McpResult,
   McpResultOptions,
+  McpStructuredResult,
 } from "./tools/rich-result.js";
 export { mcpResult } from "./tools/rich-result.js";
 export { ToolSchemaError } from "./tools/schema.js";

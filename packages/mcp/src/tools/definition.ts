@@ -1,8 +1,16 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import type * as core from "zod/v4/core";
 import type { ToolContext } from "./context.js";
-import type { IsJsonCompatible, JsonCompatible } from "./json-value.js";
-import type { McpResult } from "./rich-result.js";
+import type {
+  DeepReadonly,
+  IsJsonCompatible,
+  JsonCompatible,
+} from "./json-value.js";
+import type {
+  McpErrorResult,
+  McpResult,
+  McpStructuredResult,
+} from "./rich-result.js";
 
 export const TOOL_METADATA_KEYS = [
   "title",
@@ -12,9 +20,8 @@ export const TOOL_METADATA_KEYS = [
   "_meta",
 ] as const;
 
-export type ToolMetadata = Pick<
-  ProtocolTool,
-  (typeof TOOL_METADATA_KEYS)[number]
+export type ToolMetadata = DeepReadonly<
+  Pick<ProtocolTool, (typeof TOOL_METADATA_KEYS)[number]>
 >;
 
 export interface ToolDefinition<
@@ -38,9 +45,9 @@ export abstract class RegisteredTool {
   abstract readonly execute: (input: never, ctx: ToolContext) => unknown;
   abstract readonly title?: string;
   abstract readonly description?: string;
-  abstract readonly annotations?: NonNullable<ProtocolTool["annotations"]>;
-  abstract readonly icons?: NonNullable<ProtocolTool["icons"]>;
-  abstract readonly _meta?: NonNullable<ProtocolTool["_meta"]>;
+  abstract readonly annotations?: NonNullable<ToolMetadata["annotations"]>;
+  abstract readonly icons?: NonNullable<ToolMetadata["icons"]>;
+  abstract readonly _meta?: NonNullable<ToolMetadata["_meta"]>;
 
   /**
    * Structural brand shared by package copies. Object spreads drop prototype
@@ -61,18 +68,22 @@ export function isRegisteredTool(value: unknown): value is RegisteredTool {
   );
 }
 
-export class Tool<Schema extends core.$ZodType, Result> extends RegisteredTool {
+export class Tool<
+  Schema extends core.$ZodType,
+  Result,
+  Output extends core.$ZodType = core.$ZodType,
+> extends RegisteredTool {
   declare readonly input: Schema;
-  declare readonly output?: core.$ZodType;
+  declare readonly output?: Output;
   declare readonly execute: (
     input: core.output<Schema>,
     ctx: ToolContext,
   ) => Result;
   declare readonly title?: string;
   declare readonly description?: string;
-  declare readonly annotations?: NonNullable<ProtocolTool["annotations"]>;
-  declare readonly icons?: NonNullable<ProtocolTool["icons"]>;
-  declare readonly _meta?: NonNullable<ProtocolTool["_meta"]>;
+  declare readonly annotations?: NonNullable<ToolMetadata["annotations"]>;
+  declare readonly icons?: NonNullable<ToolMetadata["icons"]>;
+  declare readonly _meta?: NonNullable<ToolMetadata["_meta"]>;
 
   constructor(definition: ToolDefinition<Schema, Result, core.$ZodType>) {
     super();
@@ -89,7 +100,8 @@ export class Tool<Schema extends core.$ZodType, Result> extends RegisteredTool {
 
 type OutputResult<Output extends core.$ZodType> =
   | core.input<Output>
-  | McpResult<core.input<Output>>;
+  | McpStructuredResult<core.input<Output>>
+  | McpErrorResult<core.input<Output>>;
 
 type JsonSafeOutput<Result> =
   Result extends PromiseLike<infer Resolved>
@@ -120,10 +132,10 @@ export function tool<
   definition: ToolDefinition<Schema, Result, Output> & {
     readonly output: Output;
   },
-): Tool<Schema, Result>;
+): Tool<Schema, Result, Output> & { readonly output: Output };
 export function tool<Schema extends core.$ZodType, Result>(
   definition: ToolDefinitionWithoutOutput<Schema, Result>,
-): Tool<Schema, Result>;
+): Tool<Schema, Result, never>;
 /** Define a reusable MCP tool. Its execute property remains the raw handler. */
 export function tool<Schema extends core.$ZodType, Result>(
   definition: ToolDefinition<Schema, Result, core.$ZodType>,
