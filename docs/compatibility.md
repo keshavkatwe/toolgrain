@@ -1,5 +1,9 @@
 # Client compatibility verification
 
+The latest review is [client interoperability on 2026-10-22](./interoperability-2026-10-22.md),
+covering the merged public API, context providers, protected HTTP, and observed
+client limitations. The dated verification below retains the earlier baseline.
+
 Verified on 2026-10-17 using Node 24.20.0 on macOS arm64. This report covers the
 dual-era working tree: MCP `2025-06-18` and `2026-07-28` tools over stdio and
 independent HTTP POSTs with JSON responses. Local reports record the checked-out
