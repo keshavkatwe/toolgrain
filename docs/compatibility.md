@@ -195,5 +195,11 @@ parameter mirroring remains outside this report.
 The [dual-era specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/basic/versioning.mdx#backward-compatibility-with-initialization-based-versions)
 permits both behaviors. Legacy [lifecycle](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle)
 and [HTTP transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
-rules govern initialization-based calls. Packaging, clean consumer installs,
-licensing, and other proposed roadmap items remain separate work.
+rules govern initialization-based calls. Root `bun run test:package` now also
+installs each packed library in its own npm consumer to check declared dependency
+resolution, runtime imports, and strict declarations. A separate full consumer
+checks both protocol revisions over stdio and HTTP under Node.
+This installation check uses the development dependency versions and offline
+JWT/Clerk initialization with test configuration; it does not extend the real-client
+compatibility claims above. Licensing and other proposed roadmap items remain
+separate work.

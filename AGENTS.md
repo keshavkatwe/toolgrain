@@ -230,6 +230,31 @@ or deployment are authorized by implementation alone.
 
 Root `bun run test:package` uses Turbo to run every workspace package verification script after its own build. CI invokes this single command; do not add per-package verification steps.
 
+The root command runs `turbo run test:package test:clean-install`, preserving
+Turbo argument forwarding. The uncached root `//#test:clean-install` task waits
+for all six libraries' `test:package` tasks, then runs the check under Node.
+Package filters apply normally, including excluding the root task when it is not
+selected; dry runs do not perform installations. `bun run test:clean-install`
+also runs the install check directly after a build.
+
+The check Bun-packs all six libraries and serves their unchanged archives and
+packed manifests from a temporary loopback registry for the `@toolgrain` scope.
+Each library gets a fresh npm consumer with only that library as a direct
+Toolgrain dependency. npm resolves its declared dependency graph and version
+constraints normally; no overrides or workspace links supply missing dependencies.
+Each consumer imports the installed library and checks its existing declaration
+fixture with strict mode and `skipLibCheck: false`. A separate full consumer runs
+both protocol revisions over stdio, Web HTTP, Node HTTP, and the managed Node
+listener, including context providers and offline JWT/Clerk initialization.
+Zod, TypeScript, and Node types use their development versions; npm includes the
+consumer's development tools even with `NODE_ENV=production`. Fixtures live in
+`packages/repo-tools/fixtures/clean-install/`; compiled implementations and
+repository TypeScript configuration are not copied into consumers. The check
+requires npm, tar, external registry access, and loopback access. All consumers,
+the npm cache, and the local registry are disposable. Results are written to
+`reports/clean-install.json` in the existing CI artifact. Nothing is published
+and workspace installs are unchanged.
+
 Each library's verification also runs `toolgrain-repo exports`: `publint --strict`,
 then `@arethetypeswrong/cli` with the `esm-only` profile against a Bun-packed
 archive (npm pack rejects the Bun `devEngines`). CommonJS and node10 resolution
@@ -239,7 +264,7 @@ are intentionally unsupported.
 
 - `packages/repo-tools` (`@toolgrain/repo-tools`, private) owns repository
   verification, reporting, and inspection. Its `toolgrain-repo` command provides
-  `size`, `exports`, `mcp-compat`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
+  `size`, `exports`, `mcp-compat`, `clean-install`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
   `@toolgrain/repo-tools/http-example` is the shared example smoke test.
 - Libraries and HTTP examples declare it as a development dependency. The root
   does not, because a root dependency on an internal package invalidates every

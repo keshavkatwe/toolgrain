@@ -29,6 +29,17 @@
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/repo-tools/src/**"]
     },
+    "//#test:clean-install": {
+      "cache": false,
+      "dependsOn": [
+        "@toolgrain/protocol#test:package",
+        "@toolgrain/mcp#test:package",
+        "@toolgrain/http#test:package",
+        "@toolgrain/node#test:package",
+        "@toolgrain/jwt#test:package",
+        "@toolgrain/clerk#test:package"
+      ]
+    },
     "test:coverage": {
       "dependsOn": ["build"],
       "outputs": ["coverage/**"]
