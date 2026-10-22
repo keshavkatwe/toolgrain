@@ -14,13 +14,33 @@ let callbacks;
 let resolve;
 const versions = [];
 const clients = [];
+const diagnostics = [];
+const failure = new Error("private database details");
 const response = new Promise((yes) => {
   resolve = yes;
 });
 const server = createServer({
   name: "smoke",
   version: "1.0",
+  onError(error, details) {
+    diagnostics.push({ error, details });
+  },
   tools: {
+    fails: tool({
+      input: z.object({}),
+      execute: () => {
+        throw failure;
+      },
+    }),
+    publicError: tool({
+      input: z.object({}),
+      output: z.string(),
+      execute: () =>
+        mcpResult({
+          isError: true,
+          content: [{ type: "text", text: "Project unavailable" }],
+        }),
+    }),
     greet: tool({
       title: "Greeting",
       annotations: { readOnlyHint: true },
@@ -109,6 +129,39 @@ for (const protocolVersion of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
   assert.deepEqual(result.result.structuredContent, {
     message: "Hello, Mini!",
   });
+  for (const [name, text] of [
+    ["fails", "Tool execution failed"],
+    ["publicError", "Project unavailable"],
+  ]) {
+    const request = {
+      jsonrpc: "2.0",
+      id: "error-check",
+      method: "tools/call",
+      params: { ...resultParams(protocolVersion), name, arguments: {} },
+    };
+    const response = await server.handle(request, { protocolVersion });
+    assert.equal(response.result.isError, true);
+    assert.deepEqual(response.result.content, [{ type: "text", text }]);
+    assert.equal(Object.hasOwn(response.result, "structuredContent"), false);
+  }
+  const diagnostic = diagnostics.at(-1);
+  assert.equal(diagnostic.error, failure);
+  assert.equal(diagnostic.details.toolName, "fails");
+  assert.equal(diagnostic.details.request.id, "error-check");
+  assert.equal(diagnostic.details.request.protocolVersion, protocolVersion);
+  assert.ok(Object.isFrozen(diagnostic.details));
+}
+assert.equal(diagnostics.length, 2);
+
+function resultParams(protocolVersion) {
+  return protocolVersion === PROTOCOL_VERSION
+    ? {
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": protocolVersion,
+          "io.modelcontextprotocol/clientCapabilities": {},
+        },
+      }
+    : {};
 }
 const legacyClient = {
   info: { name: "legacy", version: "1", icons: "legacy extension" },

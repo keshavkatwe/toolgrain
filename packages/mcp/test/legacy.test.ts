@@ -294,7 +294,9 @@ it("preserves validation, execution errors, and asynchronous cancellation for le
       request("tools/call", { name: "fails" }),
       legacyOptions,
     ),
-  ).toHaveProperty("result.content", [{ type: "text", text: "failed" }]);
+  ).toHaveProperty("result.content", [
+    { type: "text", text: "Tool execution failed" },
+  ]);
   expect(
     await server.handle(
       request("tools/call", { name: "invalid" }),

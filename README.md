@@ -223,6 +223,44 @@ advertised output schemas are limited to objects.
 Other values remain available as JSON text in legacy results. Legacy listings
 retain titles, annotations, and `_meta`, and omit icons.
 
+### Errors and diagnostics
+
+Return `mcpResult({ isError: true, content: [...] })` for an error intended for
+the client. Valid explicit errors preserve their content, structured data, and
+metadata under the existing output-validation rules. Input validation failures
+also return public feedback identifying the rejected fields.
+
+Unexpected exceptions from input parsing, handlers, or context providers, along
+with invalid outputs, return `isError: true` with the generic text
+`Tool execution failed`, without structured data. Exception messages, stacks,
+and causes remain private. These failures reach the server's optional
+`onError(error, details)` callback once, with the original thrown value:
+
+```ts
+const server = createServer({
+  name: "projects",
+  version: "1.0.0",
+  tools: { listProjects },
+  onError(error, details) {
+    console.error("Unexpected server failure", error, details);
+  },
+});
+```
+
+For unexpected tool failures, `details` is a frozen `ToolErrorDetails` containing
+the exposed `toolName` and the context's frozen `request`: ID, protocol revision,
+optional client information, and request metadata. Toolgrain adds no arguments,
+verified identity, or bearer token to these details. Request metadata and client
+information retain the client-supplied values; keep diagnostics private.
+Transport and other internal request failures omit `details`. Existing callbacks
+taking only `error` remain supported. Callback throws and asynchronous rejections
+cannot replace the response or interrupt cleanup; diagnostics are not awaited.
+
+Explicit tool errors, ordinary input validation failures, and protocol errors do
+not reach `onError`. Failures after cancellation remain discarded without
+diagnostics. Direct definition `execute()` and provider accessor calls keep their
+raw return and rejection behavior; this boundary applies to server execution.
+
 ## Internal protocol package
 
 `@toolgrain/protocol` is a private workspace package containing the pinned official

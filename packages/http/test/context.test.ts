@@ -4,6 +4,7 @@ import {
   createContext,
   createServer,
   type ToolContext,
+  type ToolErrorDetails,
   tool,
 } from "@toolgrain/mcp";
 import {
@@ -110,6 +111,70 @@ it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
     ]);
     expect(resolve).toHaveBeenCalledTimes(2);
     expect(identities[0]).not.toBe(identities[1]);
+    await server.close();
+  },
+);
+
+it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
+  "keeps authenticated provider failures private and reports isolated %s HTTP request details",
+  async (revision) => {
+    const failures = {
+      alice: new Error("private Alice database detail"),
+      bob: new Error("private Bob database detail"),
+    };
+    const services = createContext({
+      name: "services",
+      async resolve(ctx) {
+        const { userId } = useAuth(ctx);
+        throw failures[userId as keyof typeof failures];
+      },
+    });
+    const onError =
+      vi.fn<(error: unknown, details?: ToolErrorDetails) => void>();
+    const server = createServer({
+      name: "test",
+      version: "1",
+      auth: {
+        type,
+        authorizationServers: ["https://auth.example.com"],
+        async verify(token) {
+          return { userId: token };
+        },
+      },
+      context: [services],
+      onError,
+      tools: {
+        read: tool({
+          input: z.object({}),
+          execute: (_input, ctx) => services.use(ctx),
+        }),
+      },
+    });
+    const handle = createHttpHandler(server);
+    const responses = await Promise.all(
+      ["alice", "bob"].map((token) => handle(request(revision, token))),
+    );
+    for (const response of responses) {
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        result: {
+          isError: true,
+          content: [{ type: "text", text: "Tool execution failed" }],
+        },
+      });
+    }
+    expect(onError).toHaveBeenCalledTimes(2);
+    for (const error of Object.values(failures)) {
+      expect(onError).toHaveBeenCalledWith(error, {
+        toolName: "read",
+        request: expect.objectContaining({ id: 1, protocolVersion: revision }),
+      });
+    }
+    const details = onError.mock.calls.map(([, detail]) => detail);
+    expect(details[0]?.request).not.toBe(details[1]?.request);
+    expect(Object.isFrozen(details[0]?.request)).toBe(true);
+    for (const token of ["alice", "bob"])
+      expect(JSON.stringify(details)).not.toContain(token);
     await server.close();
   },
 );

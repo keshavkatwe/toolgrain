@@ -150,8 +150,12 @@ behavior applies to providers too.
 A missing registration rejects when accessed, naming the missing provider.
 Cycles among pending provider resolutions reject with a diagnostic chain such
 as `Context dependency cycle: services -> database -> services`. Concurrent
-readers and shared dependency diamonds are valid. Resolver failures propagate
-through existing tool-error handling; no new HTTP authorization status is added.
+readers and shared dependency diamonds are valid. Direct accessors reject with
+the original error. During server execution, missing providers, cycles, and
+resolver exceptions produce generic `Tool execution failed` tool results. The
+original errors and frozen tool/request details reach `onError(error, details)`;
+see [errors and diagnostics](../README.md#errors-and-diagnostics). No new HTTP
+authorization status is added.
 
 TypeScript infers accessor results and checks overrides. It cannot prove a
 standalone tool's dynamically accessed providers are registered on every server;
