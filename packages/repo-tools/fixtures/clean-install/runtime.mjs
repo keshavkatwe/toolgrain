@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { realpathSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { isAbsolute, relative, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -36,7 +36,9 @@ test("imports resolve to installed archives, without repository tooling", () => 
     Boolean(process.versions.bun),
     process.env.TOOLGRAIN_EXPECT_RUNTIME === "bun",
   );
-  const modules = realpathSync(join(process.cwd(), "node_modules"));
+  const modules = realpathSync(
+    fileURLToPath(new URL("./node_modules/", import.meta.url)),
+  );
   for (const name of [
     "protocol",
     "mcp",

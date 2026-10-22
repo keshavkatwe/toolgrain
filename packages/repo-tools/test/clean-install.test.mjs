@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -161,6 +162,70 @@ function command(command, args, cwd) {
     child.once("close", (status) => resolve({ status, stdout, stderr }));
   });
 }
+
+test("archive import checks follow the fixture location and reject external package links", async () => {
+  const temporary = mkdtempSync(join(tmpdir(), "toolgrain-import-root-"));
+  const consumer = join(temporary, "consumer");
+  const unrelated = join(temporary, "other-cwd");
+  const installed = join(consumer, "node_modules/@toolgrain/mcp");
+  const external = join(temporary, "external-package");
+  const fixture = join(consumer, "entry-runtime.mjs");
+  const writePackage = (directory) => {
+    mkdirSync(join(directory, "dist"), { recursive: true });
+    writeFileSync(
+      join(directory, "package.json"),
+      JSON.stringify({
+        name: "@toolgrain/mcp",
+        type: "module",
+        exports: "./dist/index.js",
+      }),
+    );
+    writeFileSync(
+      join(directory, "dist/index.js"),
+      "export const value = 1;\n",
+    );
+  };
+  try {
+    writePackage(installed);
+    writePackage(external);
+    mkdirSync(unrelated);
+    cpSync(
+      new URL("../fixtures/clean-install/entry-runtime.mjs", import.meta.url),
+      fixture,
+    );
+    for (const [runtime, flags] of [
+      ["node", []],
+      ["bun", ["--no-install"]],
+    ]) {
+      const valid = await command(
+        runtime,
+        [...flags, fixture, "@toolgrain/mcp"],
+        unrelated,
+      );
+      assert.equal(valid.status, 0, valid.stderr);
+    }
+    rmSync(installed, { recursive: true });
+    symlinkSync(
+      external,
+      installed,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    for (const [runtime, flags] of [
+      ["node", []],
+      ["bun", ["--no-install"]],
+    ]) {
+      const escaped = await command(
+        runtime,
+        [...flags, fixture, "@toolgrain/mcp"],
+        unrelated,
+      );
+      assert.notEqual(escaped.status, 0);
+      assert.match(escaped.stderr, /AssertionError/);
+    }
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});
 
 test("single-entry archive installs expose missing dependencies and preserve version constraints", {
   timeout: 60000,
