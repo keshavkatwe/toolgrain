@@ -5,7 +5,8 @@ These items are proposals for discussion, with no timelines or implementation co
 - Default client compatibility and supported protocol revisions.
 - Interoperability testing with Codex, Claude, Cursor, and Inspector.
 - Public API review and stabilization.
-- Clean installation tests using packed npm artifacts.
+- Clean installation tests using packed npm artifacts — implemented in root
+  `bun run test:package`; broader package-manager/runtime matrices remain proposals.
 - Supported runtime and dependency version policy.
 - Package metadata, licensing, and npm configuration.
 - Documentation and quickstarts using Docusaurus, hosted on GitHub Pages — platform selected; implementation deferred.

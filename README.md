@@ -596,6 +596,30 @@ version under Node with source maps enabled and check a TypeScript stack locatio
 The isolated MCP copy includes its sources. Pinned compatibility dependencies are development tooling;
 verification requires no additional downloads or workspace dependency changes.
 
+Root `bun run test:package` also schedules an uncached clean installation task
+after the six library package checks. Turbo flags such as `--filter`, `--force`,
+and `--dry=json` retain their normal behavior. A package filter that excludes the
+root excludes this installation task, too; dry runs perform no installations.
+
+The check packs all six libraries with Bun and serves their unchanged archives
+through a temporary loopback registry scoped to `@toolgrain`. Six fresh npm
+consumers each install one library as their only direct Toolgrain dependency,
+letting npm resolve its declared dependencies and versions. Each imports the
+installed library and checks its declaration fixture with strict TypeScript and
+`skipLibCheck: false`. This catches dependencies hidden by installing every
+library together. A separate full consumer exercises both protocol revisions
+over stdio, Web HTTP, Node HTTP, and the managed HTTP transport, including input
+validation, rich results, and a context provider. JWT and Clerk initialize with
+test configuration; no live credentials or external authorization calls are used.
+
+This check needs npm, tar, registry access for external dependencies, and loopback
+access. Zod, TypeScript, and Node types use their development versions, and all
+consumers share a disposable npm cache. Workspace links and unresolved local
+runtime dependencies are rejected. Temporary files and listeners are cleaned up;
+a pass/fail report is saved to `reports/clean-install.json` in the existing CI
+artifact. After building, run just this check with `bun run test:clean-install`
+or `node packages/repo-tools/src/cli.mjs clean-install`. Nothing is published.
+
 ### Coverage checks
 
 `bun run test:coverage` runs through Turborepo, building each workspace before

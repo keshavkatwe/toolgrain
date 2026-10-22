@@ -14,6 +14,10 @@ const commands = {
     "./mcp-compatibility.mjs",
     "Check MCP consumers with minimum and development TypeScript/Zod versions",
   ],
+  "clean-install": [
+    "./clean-install.mjs",
+    "Install packed libraries in isolation and verify a compiled Node consumer",
+  ],
   audit: ["./audit.mjs", "Audit the Bun lockfile and write reports/audit.json"],
   "ci-report": [
     "./ci-report.mjs",
