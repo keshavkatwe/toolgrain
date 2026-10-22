@@ -132,9 +132,11 @@ it("suppresses failures from a tool cancelled during execution", async () => {
     started.resolve();
     return result.promise;
   });
-  const adapter = createToolAdapter({
-    failure: tool({ input: z.object({}), execute }),
-  });
+  const onError = vi.fn();
+  const adapter = createToolAdapter(
+    { failure: tool({ input: z.object({}), execute }) },
+    onError,
+  );
   const response = adapter.execute(
     "failure",
     {},
@@ -145,4 +147,5 @@ it("suppresses failures from a tool cancelled during execution", async () => {
   result.reject(new Error("handler failed after cancellation"));
   expect(await response).toBeUndefined();
   expect(execute).toHaveBeenCalledOnce();
+  expect(onError).not.toHaveBeenCalled();
 });

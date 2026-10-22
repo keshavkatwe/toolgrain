@@ -147,7 +147,7 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
         expect(invalidOutput).toMatchObject({
           result: {
             isError: true,
-            content: [{ text: "Invalid output for tool: count" }],
+            content: [{ text: "Tool execution failed" }],
           },
         });
         expect(invalidOutput).not.toHaveProperty("result.structuredContent");

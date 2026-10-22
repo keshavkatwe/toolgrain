@@ -185,7 +185,7 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
       ).toMatchObject({
         result: {
           isError: true,
-          content: [{ text: "Invalid output for tool: invalid" }],
+          content: [{ text: "Tool execution failed" }],
         },
       });
     });
@@ -428,9 +428,7 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
       expect(invalid).toMatchObject({
         result: {
           isError: true,
-          content: [
-            { type: "text", text: "Invalid output for tool: invalidError" },
-          ],
+          content: [{ type: "text", text: "Tool execution failed" }],
         },
       });
       expect(invalid).not.toHaveProperty("result.structuredContent");
@@ -513,7 +511,7 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
           name: "invalid",
         });
         expect(invalid).toHaveProperty("result.content", [
-          { type: "text", text: "Invalid output for tool: invalid" },
+          { type: "text", text: "Tool execution failed" },
         ]);
         expect(invalid).not.toHaveProperty("result.structuredContent");
       }
@@ -655,7 +653,7 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
       ).toMatchObject({
         result: {
           isError: true,
-          content: [{ text: "Tool output must be a JSON value" }],
+          content: [{ text: "Tool execution failed" }],
         },
       });
     });

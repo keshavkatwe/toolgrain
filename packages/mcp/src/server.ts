@@ -9,6 +9,7 @@ import type { AuthMetadata, AuthProvider, AuthScope } from "./auth/types.js";
 import { createConnection } from "./connection.js";
 import type { RegisteredContextProvider } from "./context/definition.js";
 import { createContextRegistry } from "./context/registry.js";
+import type { ErrorHandler } from "./diagnostics.js";
 import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
@@ -25,7 +26,8 @@ export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   version: string;
   tools: Tools;
   instructions?: string;
-  onError?: (error: unknown) => void;
+  /** Tool failures include frozen tool/request details; other diagnostics omit them. */
+  onError?: ErrorHandler;
   auth?: AuthProvider;
   context?: readonly RegisteredContextProvider[];
 }
@@ -56,7 +58,7 @@ export function createServer<const Tools extends ToolMap>(
   options: ServerOptions<Tools>,
 ): Server {
   const authorization = createAuthorization(options.auth);
-  const tools = createToolAdapter(options.tools);
+  const tools = createToolAdapter(options.tools, options.onError);
   const dispatch = createDispatcher(
     tools,
     { name: options.name, version: options.version },

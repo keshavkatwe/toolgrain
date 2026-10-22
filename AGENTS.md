@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-21
+Updated: 2026-10-22
 
 ## Working agreement
 
@@ -90,6 +90,7 @@ Confirmed semantics:
 - Exposed names follow the recommended 1–128 ASCII letters/digits/underscore/hyphen/dot rules, enforced at server construction with `ToolNameError`.
 - `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and result `_meta`. It validates/copies content during conversion and supplies serialized text for structured content. Undefined optional envelope/content fields and optional properties parsing to undefined are absent; undefined inside unparsed data is rejected. Output parsing replaces text that serialized the original structured data. Ordinary result-shaped objects remain data.
 - Unknown names use protocol errors; invalid input/output and handler failures produce tool errors. Handlers receive a `ToolContext`; see the handler context section below.
+- Confirmed on 2026-10-22: valid explicit `mcpResult({ isError: true, ... })` results and ordinary input validation feedback remain public. Unexpected parsing, handler/provider, and output failures produce generic `Tool execution failed` results without structured content. `onError(error, details?)` receives the original thrown value and frozen `ToolErrorDetails { toolName, request }` for unexpected tool failures; `request` is the existing frozen `ToolRequest`. Arguments and auth identity/credentials are not added. Transport/internal request diagnostics retain their one-argument form. Existing single-argument callbacks remain valid; synchronous throws and asynchronous rejections from diagnostics cannot disrupt responses/cleanup. Expected validation/protocol/explicit tool errors are not reported. Cancelled late failures remain suppressed. Direct handlers/accessors keep raw behavior.
 - Build ESM and declarations with TypeScript; use Vitest and compile-time type checks. CI also verifies compiled imports and declarations.
 - MCP emits external JavaScript source maps and declaration maps and packages `src/**/*.ts` alongside `dist`. Public exports remain compiled files in `dist`; sources support debugging and editor navigation. Other libraries retain their existing output policies.
 

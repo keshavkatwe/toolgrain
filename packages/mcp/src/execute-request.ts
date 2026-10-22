@@ -3,6 +3,7 @@ import {
   type ProtocolResponse,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import { type ErrorHandler, reportError } from "./diagnostics.js";
 import type { Dispatcher, RequestScope } from "./dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { ProtocolError, protocolError } from "./protocol/responses.js";
@@ -12,7 +13,7 @@ export async function executeRequest(
   dispatch: Dispatcher,
   request: Request,
   scope: RequestScope,
-  onError?: (error: unknown) => void,
+  onError?: ErrorHandler,
   protocolVersion?: SupportedProtocolVersion,
 ): Promise<ProtocolResponse | undefined> {
   const isActive = () => !scope.signal.aborted;
@@ -23,11 +24,7 @@ export async function executeRequest(
     if (!isActive()) return;
     if (error instanceof ProtocolError)
       return protocolError(error.code, error.message, request.id, error.data);
-    try {
-      onError?.(error);
-    } catch {
-      /* Diagnostics cannot break delivery. */
-    }
+    reportError(onError, error);
     return protocolError(
       INTERNAL_ERROR,
       "Internal error",

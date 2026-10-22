@@ -5,6 +5,7 @@ import {
   createServer,
   mcpResult,
   type ToolContext,
+  type ToolErrorDetails,
   type Transport,
   type TransportCallbacks,
   tool,
@@ -59,6 +60,21 @@ const transport: Transport = {
 const server = createServer({
   name: "smoke",
   version: "1.0",
+  onError(error, details) {
+    const original: unknown = error;
+    const diagnostic: ToolErrorDetails | undefined = details;
+    if (diagnostic) {
+      const name: string = diagnostic.toolName;
+      const request: ToolContext["request"] = diagnostic.request;
+      void name;
+      void request;
+      // @ts-expect-error Diagnostic details are readonly.
+      diagnostic.toolName = "changed";
+      // @ts-expect-error Request details retain their readonly types.
+      diagnostic.request.id = 2;
+    }
+    void original;
+  },
   tools: {
     mini: miniTool,
     greet: tool({

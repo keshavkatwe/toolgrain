@@ -1,4 +1,5 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
+import { type ErrorHandler, reportError } from "../diagnostics.js";
 import type { ToolContext } from "./context.js";
 import { ToolInputError } from "./errors.js";
 import { createRegistry, type ToolMap } from "./registry.js";
@@ -19,7 +20,10 @@ export interface ToolAdapter {
   ): Promise<ToolExecutionResult | undefined>;
 }
 
-export function createToolAdapter(tools: ToolMap): ToolAdapter {
+export function createToolAdapter(
+  tools: ToolMap,
+  onError?: ErrorHandler,
+): ToolAdapter {
   const registry = createRegistry(tools);
   const entries = registry.list();
   const names = new Set(entries.map(({ name }) => name));
@@ -46,19 +50,26 @@ export function createToolAdapter(tools: ToolMap): ToolAdapter {
         return isActive() ? converted : undefined;
       } catch (error) {
         if (!isActive()) return;
-        if (error instanceof ToolInputError) {
-          return toolError(
-            error.issues
-              .map(
-                (issue) =>
-                  `${issue.path.map(String).join(".") || "input"}: ${issue.message}`,
-              )
-              .join("; "),
-          );
+        try {
+          if (error instanceof ToolInputError) {
+            return toolError(
+              error.issues
+                .map(
+                  (issue) =>
+                    `${issue.path.map(String).join(".") || "input"}: ${issue.message}`,
+                )
+                .join("; "),
+            );
+          }
+        } catch {
+          // Inspecting a thrown value can fail, including revoked or trapped proxies.
         }
-        return toolError(
-          error instanceof Error ? error.message : "Tool execution failed",
+        reportError(
+          onError,
+          error,
+          Object.freeze({ toolName: name, request: ctx.request }),
         );
+        return isActive() ? toolError("Tool execution failed") : undefined;
       }
     },
   };

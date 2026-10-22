@@ -278,7 +278,7 @@ it("turns validation and handler failures into tool errors without stacks", asyn
     result(await response(transport, request("tools/call", { name: "fails" }))),
   ).toMatchObject({
     isError: true,
-    content: [{ text: "Service unavailable" }],
+    content: [{ text: "Tool execution failed" }],
   });
   expect(
     result(
@@ -476,7 +476,7 @@ it("reports unsupported handler outputs as tool errors", async () => {
   expect(reply).toMatchObject({
     resultType: "complete",
     isError: true,
-    content: [{ type: "text", text: "Tool output must be a JSON value" }],
+    content: [{ type: "text", text: "Tool execution failed" }],
   });
   expect(reply).not.toHaveProperty("structuredContent");
 });

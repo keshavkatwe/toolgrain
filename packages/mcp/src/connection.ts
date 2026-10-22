@@ -3,6 +3,7 @@ import {
   PARSE_ERROR,
   type ProtocolResponse,
 } from "@toolgrain/protocol";
+import { type ErrorHandler, reportError } from "./diagnostics.js";
 import type { Dispatcher } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { createLegacyConnection } from "./legacy/connection.js";
@@ -20,7 +21,7 @@ import { claimTransport } from "./transport-ownership.js";
 
 export function createConnection(
   dispatch: Dispatcher,
-  onError?: (error: unknown) => void,
+  onError?: ErrorHandler,
   onClose?: () => void,
 ): ConnectionLifecycle {
   return new Connection(dispatch, onError, onClose);
@@ -43,7 +44,7 @@ class Connection implements ConnectionLifecycle {
 
   constructor(
     private readonly dispatch: Dispatcher,
-    private readonly onError?: (error: unknown) => void,
+    private readonly onError?: ErrorHandler,
     private readonly onClose?: () => void,
   ) {}
 
@@ -120,11 +121,7 @@ class Connection implements ConnectionLifecycle {
   }
 
   private report(error: unknown): void {
-    try {
-      this.onError?.(error);
-    } catch {
-      /* Diagnostics must not break cleanup. */
-    }
+    reportError(this.onError, error);
   }
 
   private async terminate(error: unknown): Promise<void> {

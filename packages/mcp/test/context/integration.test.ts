@@ -140,10 +140,12 @@ it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
         throw new Error("provider failed");
       },
     });
+    const onError = vi.fn();
     const server = createServer({
       name: "test",
       version: "1",
       context: [cyclic, failed],
+      onError,
       tools: {
         missing: tool({
           input: z.object({}),
@@ -169,8 +171,21 @@ it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
           protocolVersion: revision,
         }),
       ).toMatchObject({
-        result: { isError: true, content: [{ type: "text", text }] },
+        result: {
+          isError: true,
+          content: [{ type: "text", text: "Tool execution failed" }],
+        },
       });
+      expect(onError).toHaveBeenLastCalledWith(
+        expect.objectContaining({ message: text }),
+        {
+          toolName: name,
+          request: expect.objectContaining({
+            id: 1,
+            protocolVersion: revision,
+          }),
+        },
+      );
     }
     await server.close();
   },
