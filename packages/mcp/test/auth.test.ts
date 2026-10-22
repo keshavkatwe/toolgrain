@@ -58,6 +58,103 @@ const authorize = (
     ...(signal ? { signal } : {}),
   });
 
+it.each([
+  new Error("private provider outage"),
+  new AuthError("temporarily_unavailable", {
+    cause: new Error("private cause"),
+  }),
+  "non-Error provider failure",
+])(
+  "reports an unexpected auth failure once with no request details: %s",
+  async (failure) => {
+    const onError = vi.fn();
+    const server = createServer({
+      name: "diagnostics",
+      version: "1",
+      tools: {},
+      onError,
+      auth: auth(async () => {
+        throw failure;
+      }),
+    });
+    await expect(authorize(server)).rejects.toBe(failure);
+    expect(onError.mock.calls).toEqual([[failure]]);
+    await server.close();
+  },
+);
+
+it.each(["invalid_request", "invalid_token", "access_denied"] as const)(
+  "does not report expected auth rejection %s",
+  async (code) => {
+    const onError = vi.fn();
+    const server = createServer({
+      name: "expected",
+      version: "1",
+      tools: {},
+      onError,
+      auth: auth(async () => {
+        throw new AuthError(code);
+      }),
+    });
+    await expect(authorize(server)).rejects.toMatchObject({ code });
+    expect(onError).not.toHaveBeenCalled();
+    await server.close();
+  },
+);
+
+it.each([false, true])(
+  "isolates failing auth diagnostics (async: %s)",
+  async (asyncCallback) => {
+    const failure = new Error("provider failed");
+    const callbackFailure = new Error("diagnostics failed");
+    const onError = vi.fn(
+      asyncCallback
+        ? async () => {
+            throw callbackFailure;
+          }
+        : () => {
+            throw callbackFailure;
+          },
+    );
+    const server = createServer({
+      name: "diagnostics",
+      version: "1",
+      tools: {},
+      onError,
+      auth: auth(async () => {
+        throw failure;
+      }),
+    });
+    await expect(authorize(server)).rejects.toBe(failure);
+    expect(onError.mock.calls).toEqual([[failure]]);
+    await server.close();
+  },
+);
+
+it.each(["cancel", "close"] as const)(
+  "suppresses auth diagnostics after %s, including late provider failure",
+  async (action) => {
+    const pending = deferred<object>();
+    const onError = vi.fn();
+    const server = createServer({
+      name: "cancel",
+      version: "1",
+      tools: {},
+      onError,
+      auth: auth(() => pending.promise),
+    });
+    const controller = new AbortController();
+    const verifying = authorize(server, controller.signal);
+    if (action === "cancel") controller.abort();
+    else await server.close();
+    await expect(verifying).rejects.toMatchObject({ name: "AbortError" });
+    pending.reject(new Error("late provider outage"));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(onError).not.toHaveBeenCalled();
+    await server.close();
+  },
+);
+
 it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
   "exposes a copied, deeply readonly identity for %s without changing standalone tools",
   async (protocolVersion) => {

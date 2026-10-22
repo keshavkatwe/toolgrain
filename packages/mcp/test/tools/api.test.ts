@@ -49,6 +49,92 @@ function invoke(
 describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
   "tool API (%s)",
   (revision) => {
+    it("rechecks tool variants while preserving schemas and parsed execution", async () => {
+      const base = tool({
+        input: z.object({ name: z.string().default("Ada") }),
+        execute: ({ name }) => `Hello, ${name}`,
+      });
+      const output = z.object({
+        count: z.string().transform(Number).pipe(z.number()),
+      });
+      const structured = tool({
+        input: z.object({}),
+        output,
+        execute: async () =>
+          mcpResult({ content: [], structuredContent: { count: "2" } }),
+      });
+      const variant = tool({ ...base, title: "Variant" });
+      const structuredVariant = tool({
+        ...structured,
+        title: "Structured variant",
+      });
+      expectTypeOf(structuredVariant.output).toEqualTypeOf<typeof output>();
+      expectTypeOf(variant.input).toEqualTypeOf<typeof base.input>();
+      const server = createServer({
+        name: "variants",
+        version: "1",
+        tools: { variant, structuredVariant },
+      });
+      expect(
+        await invoke(server, revision, "tools/call", { name: "variant" }),
+      ).toHaveProperty("result.content.0.text", "Hello, Ada");
+      expect(
+        await invoke(server, revision, "tools/call", {
+          name: "structuredVariant",
+        }),
+      ).toHaveProperty("result.structuredContent", { count: 2 });
+      expect(server.getToolDefinitions().map(({ title }) => title)).toEqual([
+        "Variant",
+        "Structured variant",
+      ]);
+      expect(base.title).toBeUndefined();
+      expect(Object.isFrozen(variant)).toBe(true);
+      await server.close();
+    });
+
+    it("accepts frozen content and icons with readonly nested arrays", async () => {
+      const sizes = Object.freeze(["48x48"] as const);
+      const icons = Object.freeze([
+        Object.freeze({ src: "https://example.com/icon.png", sizes }),
+      ]);
+      const audience = Object.freeze(["assistant"] as const);
+      const content = Object.freeze([
+        Object.freeze({
+          type: "text",
+          text: "Report",
+          annotations: Object.freeze({ audience }),
+        } as const),
+        Object.freeze({
+          type: "resource_link",
+          name: "Report",
+          uri: "https://example.com/report",
+          icons,
+        } as const),
+      ]);
+      const report = tool({
+        input: z.object({}),
+        icons,
+        execute: () => mcpResult({ content }),
+      });
+      const server = createServer({
+        name: "readonly",
+        version: "1",
+        tools: { report },
+      });
+      const definitions = server.getToolDefinitions();
+      expect(definitions[0]?.icons).toEqual(icons);
+      expect(definitions[0]?.icons).not.toBe(icons);
+      definitions[0]?.icons?.[0]?.sizes?.push("96x96");
+      expect(server.getToolDefinitions()[0]?.icons).toEqual(icons);
+      const result = await invoke(server, revision, "tools/call", {
+        name: "report",
+      });
+      expect(result).toHaveProperty("result.content.0", content[0]);
+      expect(result).toHaveProperty("result.content.1.name", "Report");
+      expect(sizes).toEqual(["48x48"]);
+      await server.close();
+    });
+
     it("snapshots direct metadata and exposes compatible output schemas", async () => {
       const annotations = {
         readOnlyHint: true,
@@ -530,6 +616,7 @@ describe.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
           }),
           missing: tool({
             input: z.object({}),
+            // @ts-expect-error Successful rich output requires structured data.
             output: z.object({}),
             execute: () => mcpResult({ content: [] }),
           }),
@@ -751,6 +838,30 @@ it("checks handler output types against the optional output schema", () => {
   expectTypeOf(definition.execute({}, toolContext())).toEqualTypeOf<{
     count: number;
   }>();
+  tool({
+    ...definition,
+    input: z.object({ count: z.number() }),
+    // @ts-expect-error A changed schema must still match the inherited handler.
+    execute: (input: { count: string }) => ({ count: input.count.length }),
+  });
+  // @ts-expect-error A variant must recheck the inherited output handler.
+  tool({ ...definition, output: z.string() });
+  const textOnlySuccess = () => mcpResult({ content: [] });
+  const uncertainError = () => mcpResult({ content: [], isError: Boolean(1) });
+  tool({
+    input: z.object({}),
+    // @ts-expect-error Successful explicit results require structuredContent.
+    output: z.object({ count: z.number() }),
+    execute: textOnlySuccess,
+  });
+  tool({
+    input: z.object({}),
+    // @ts-expect-error Async successful explicit results also require structuredContent.
+    output: z.object({ count: z.number() }),
+    execute: async () => textOnlySuccess(),
+  });
+  // @ts-expect-error A boolean isError flag does not guarantee a text-only error.
+  tool({ input: z.object({}), output: z.number(), execute: uncertainError });
   // @ts-expect-error The handler must return data accepted by the output schema.
   tool({ input: z.object({}), output: z.number(), execute: () => "wrong" });
   tool({

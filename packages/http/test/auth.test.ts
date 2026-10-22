@@ -40,15 +40,18 @@ function setup(provider = makeProvider()) {
   const execute = vi.fn(
     (_input: object, ctx: ToolContext) => useAuth(ctx).userId,
   );
+  const onError = vi.fn();
   const server = createServer({
     name: "auth",
     version: "1",
     auth: provider,
+    onError,
     tools: { who: tool({ input: z.object({}), execute }) },
   });
   return {
     server,
     execute,
+    onError,
     handle: createHttpHandler(server, options),
     metadata: createProtectedResourceMetadataHandler(server, options),
   };
@@ -160,9 +163,10 @@ it.each([
 ] as const)(
   "maps provider %s to HTTP %s in both eras",
   async (code, status) => {
+    const failure = new AuthError(code, { cause: new Error("invalid-secret") });
     const f = setup(
       makeProvider(async () => {
-        throw new AuthError(code, { cause: new Error("invalid-secret") });
+        throw failure;
       }),
     );
     for (const revision of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
@@ -171,16 +175,20 @@ it.each([
       expect(await response.json()).toEqual({ error: code });
     }
     expect(f.execute).not.toHaveBeenCalled();
+    expect(f.onError.mock.calls).toEqual(
+      code === "temporarily_unavailable" ? [[failure], [failure]] : [],
+    );
     await f.server.close();
   },
 );
 
 it("keeps provider outages private and authenticates before parsing the body", async () => {
+  const failure = Object.assign(new Error("secret provider detail"), {
+    description: "secret description",
+  });
   const f = setup(
     makeProvider(async () => {
-      throw Object.assign(new Error("secret provider detail"), {
-        description: "secret description",
-      });
+      throw failure;
     }),
   );
   const req = request();
@@ -192,6 +200,7 @@ it("keeps provider outages private and authenticates before parsing the body", a
   const response = await f.handle(malformed);
   expect(response.status).toBe(503);
   expect(await response.json()).toEqual({ error: "temporarily_unavailable" });
+  expect(f.onError.mock.calls).toEqual([[failure]]);
   await f.server.close();
 });
 

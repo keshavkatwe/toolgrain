@@ -288,6 +288,14 @@ and private provider errors retain generic responses. Raw error messages and
 causes are never automatically exposed. Challenge descriptions use Bearer-safe
 ASCII; the JSON body preserves the readable description.
 
+Unexpected verification failures, including provider
+`AuthError("temporarily_unavailable")` outages, reach the server's `onError(error)`
+callback once with the original thrown value and its private cause, if present.
+No tool/request details or credentials are added. Expected auth rejections
+(`invalid_request`, `invalid_token`, and `access_denied`), closed-server rejections,
+and failures after cancellation do not reach the callback. Callback throws and
+asynchronous rejections cannot disrupt the response or cleanup.
+
 Public metadata uses `Cache-Control: no-store` and is available without a bearer
 token.
 
