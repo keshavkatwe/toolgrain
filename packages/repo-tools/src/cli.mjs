@@ -2,6 +2,10 @@
 // Commands load on demand, so ci-report (which must work without installed
 // dependencies) and verify-inspector (which checks Node) can run under Node.
 const commands = {
+  release: [
+    "./release.mjs",
+    "Check aligned library versions or synchronize Bun workspace metadata",
+  ],
   size: [
     "./package-size.mjs",
     "Check this package's tarball against its size budget",

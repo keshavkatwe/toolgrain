@@ -6,7 +6,7 @@ Implemented and completed statuses describe the agreed scope below. Partial
 verification does not imply full client compatibility. Remaining work is for
 discussion, with no timelines or implementation commitments; publication and
 deployment require separate authorization. All six libraries remain private and
-unpublished at `0.0.0`.
+unpublished, with `0.1.0` selected as the first release version.
 
 ## Implemented and reviewed
 
@@ -29,7 +29,7 @@ unpublished at `0.0.0`.
 | Supported runtime and dependency version policy | Adopted; CI matrix implemented | Node 24.20.0+/24.x and Bun 1.4.4+/1.x; strict TypeScript 5.5.4 and Zod `^4.0.0` retained. Minimum/current declarations cover all six libraries. Runtime/platform and weekly upstream jobs are configured; hosted combinations require passing CI before verification claims. Node 26 remains preview. See the [support policy](./docs/support-policy.md). |
 | Package metadata, licensing, and npm configuration | Metadata and licensing prepared; npm release configuration pending | All six libraries have descriptions, repository/homepage/issue links, keywords, package READMEs, and package-root license files. Toolgrain-owned code is MIT licensed with copyright attribution to Keshav Katwe; vendored protocol material retains its upstream terms. `standardwebhooks` licensing is resolved from the exact release's parent-directory MIT license, with Svix/Deno notices preserved in the Clerk package. Eventual npm publication configuration remains separate. Packages remain private and unpublished. |
 | Documentation and quickstarts website | Deferred implementation | Docusaurus and GitHub Pages are selected. README, guides, and framework examples exist; the public documentation site and its deployment remain separate work. |
-| Versioning, changelogs, and release workflow | Pending design | Agree on versioning/changelog policy and the release process. Existing package verification is available for release checks. |
+| Versioning, changelogs, and release workflow | Adopted; preparation implemented | The six libraries share version `0.1.0` initially and one root changelog. Changesets fixed-group records drive versioning; release PRs finalize shared notes; a manual release-verification workflow runs baseline and supported-matrix checks. Custom release tooling is limited to version alignment and the Bun metadata workaround; the shared changelog is edited manually. npm publication remains separately authorized and unconfigured. See the [release guide](./docs/releases.md). |
 | Initial npm release | Not started | Requires release preparation and explicit publication authorization. |
 | Protocol updates and compatibility maintenance | Ongoing | Pinned schemas, provenance, checksums, and integrity checks are in place. Future upstream schema/revision updates require explicit review and renewed interoperability verification. |
 

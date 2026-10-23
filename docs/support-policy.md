@@ -91,6 +91,10 @@ is performed by these workflows. New matrix check names must be selected in
 repository branch protection when configuring required checks; workflow files
 alone do not change GitHub repository settings.
 
+The manual [Release verification workflow](releases.md#verify-the-release) reuses
+both workflows at the selected source commit, including weekly stable dependency
+and intermediate TypeScript checks. It does not produce candidate archives.
+
 Reports are retained as separate job artifacts with runtime/package-manager
 identity. Linux/macOS/Windows hosted results are required before claiming those
 specific combinations verified. Local runs cannot stand in for another OS.

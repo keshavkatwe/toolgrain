@@ -1,0 +1,33 @@
+{
+  "changelog": false,
+  "commit": false,
+  "fixed": [
+    [
+      "@toolgrain/protocol",
+      "@toolgrain/mcp",
+      "@toolgrain/http",
+      "@toolgrain/node",
+      "@toolgrain/jwt",
+      "@toolgrain/clerk"
+    ]
+  ],
+  "linked": [],
+  "access": "restricted",
+  "baseBranch": "main",
+  "format": false,
+  "privatePackages": {
+    "version": true,
+    "tag": false
+  },
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "@toolgrain/repo-tools",
+    "@toolgrain/elysia-example",
+    "@toolgrain/express-example",
+    "@toolgrain/hono-example",
+    "@toolgrain/http-example",
+    "@toolgrain/jwt-example",
+    "@toolgrain/nextjs-example",
+    "@toolgrain/stdio-example"
+  ]
+}
