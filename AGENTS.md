@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-22
+Updated: 2026-10-23
 
 ## Working agreement
 
@@ -34,6 +34,8 @@ Toolgrain is MCP-first. `@toolgrain/mcp` owns the complete tool authoring API; v
 - Scoped packages are sufficient. A separate unscoped `toolgrain` package is optional and is not reserved by organization creation.
 - Use GitHub and GitHub Pages. No custom domain purchase is planned.
 - Current workspace names and the MCP authoring boundary are confirmed; packages remain private and unpublished.
+- Package release preparation includes descriptions, repository/homepage/issue links, keywords, and package-local READMEs for all six libraries. README installation commands describe future consumer dependencies and explicitly identify the current unpublished state. On 2026-10-23 the user chose MIT for Toolgrain-owned code with copyright attribution to Keshav Katwe. Root/package license files preserve that grant; vendored protocol material retains its unchanged upstream terms. Five library manifests declare `MIT`; protocol uses `SEE LICENSE IN LICENSE` with a package-root explanation and NOTICE covering its mixed contents. Publication configuration remains separate.
+- The `standardwebhooks@1.1.1` licensing question is resolved: its exact npm source commit `b4d2c14fc5b4ccff3ff271e3b087dff812254c59` retains an MIT `libraries/LICENSE`, copyright (c) 2023 Svix, introduced alongside the JavaScript library. Its `timing_safe_equal.ts` also carries the Deno authors' 2018-2022 MIT attribution. The upstream npm archive omits that parent license and source attribution; `packages/clerk/NOTICE` preserves both notices and full MIT texts with provenance, and must be included in the Clerk archive. No dependency/implementation changes or external contact were required. Renew the notice review when changing the dependency release.
 
 ## Confirmed developer API
 
@@ -365,13 +367,16 @@ no checkout and does not execute repository code.
   and its TypeScript sources must be packed. Verification checks map JSON,
   relative source targets, matching compiled files, and mapping comments in the
   actual archive. Only existing `src/**/*.ts` files are allowed under this policy;
-  other packages keep their source-file restrictions. MCP's budgets are 69 KiB
-  packed and 296 KiB unpacked, retaining approximately 20% headroom after maps.
+  other packages keep their source-file restrictions. After adding package metadata
+  and READMEs, MCP's budgets are 85 KiB packed and 355 KiB unpacked, retaining
+  approximately 20% headroom before license additions. Every library requires its
+  package-root README and LICENSE; protocol and Clerk additionally require their
+  package-root NOTICE files.
 - Library builds remove `dist` before compiling. Turbo cache restores do not
   remove extra files, so the size check also fails on any compiled `dist` module
   without a matching `src/**/*.ts` source; rerun `bun run build --force`. Reports include the complete inventory under each package's
   `reports/size.json`; sizes exclude dependencies and retain required vendor files.
-- Initial size budgets allow approximately 20% growth, rounded up to KiB. The Node HTTP listener addition uses 9 KiB packed and 31 KiB unpacked budgets, retaining roughly 20% headroom for the new listener/declarations.
+- Size budgets initially allow approximately 20% growth, rounded up to KiB. The metadata/README refresh uses packed/unpacked budgets of 14/48 KiB for HTTP, 11/36 KiB for Node, and 6/15 KiB for JWT. Clerk's 7/19 KiB budgets include its full Svix/Deno third-party notices and retain approximately 20% headroom after remeasurement. Protocol retains its existing budget. The MIT license files and protocol NOTICE fit their existing budgets.
   Intentional growth requires reviewing the relevant budget. Size checks are uncached
   and run after successful installation even if an unrelated application build fails.
 - `bun run test:audit` runs `bun audit --json` once for the complete lockfile and

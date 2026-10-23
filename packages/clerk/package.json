@@ -1,6 +1,25 @@
 {
   "name": "@toolgrain/clerk",
   "version": "0.0.0",
+  "description": "Clerk OAuth access-token authorization for Toolgrain MCP servers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavkatwe/toolgrain.git",
+    "directory": "packages/clerk"
+  },
+  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/clerk#readme",
+  "bugs": {
+    "url": "https://github.com/keshavkatwe/toolgrain/issues"
+  },
+  "keywords": [
+    "toolgrain",
+    "mcp",
+    "model-context-protocol",
+    "clerk",
+    "oauth",
+    "authorization"
+  ],
   "private": true,
   "type": "module",
   "exports": {
@@ -10,7 +29,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",

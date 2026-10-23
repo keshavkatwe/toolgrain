@@ -268,6 +268,8 @@ test("real packing produces a report and rejects unexpected contents without pub
 
 test("packed protocol archives must retain internal modules and both revisions' vendor artifacts", () => {
   fixture(({ root, write }) => {
+    for (const name of ["README.md", "LICENSE", "NOTICE"])
+      write(name, "fixture\n");
     const manifest = {
       name: "@toolgrain/protocol",
       version: "0.0.0",
@@ -295,7 +297,7 @@ test("packed protocol archives must retain internal modules and both revisions' 
     }
     for (const path of files) write(path, "fixture\n");
     const execute = (included, expectedExit) => {
-      write("package.json", { ...manifest, files: included });
+      write("package.json", { ...manifest, files: [...included, "NOTICE"] });
       const result = spawnSync(process.execPath, [cli, "size"], {
         cwd: root,
         encoding: "utf8",
@@ -336,6 +338,7 @@ test("packed protocol archives must retain internal modules and both revisions' 
 
 test("packed MCP archives retain maps and sources and reject dangling or invalid map targets", () => {
   fixture(({ root, write }) => {
+    for (const name of ["README.md", "LICENSE"]) write(name, "fixture\n");
     const paths = [];
     for (const stem of ["index", "tools/example"]) {
       const source = `src/${stem}.ts`;
@@ -547,6 +550,8 @@ test("library size reports still run after an unrelated application build fails"
       scripts: { build: "node -e 'process.exit(1)'" },
     };
     write("packages/library/package.json", library);
+    for (const name of ["README.md", "LICENSE"])
+      write(`packages/library/${name}`, "fixture\n");
     write(
       "packages/library/build.mjs",
       'import {mkdirSync,writeFileSync} from "node:fs";mkdirSync("dist",{recursive:true});for(const name of ["index.js","index.d.ts"])writeFileSync("dist/"+name,"export {};\\n");',

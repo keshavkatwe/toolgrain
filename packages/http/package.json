@@ -1,6 +1,24 @@
 {
   "name": "@toolgrain/http",
   "version": "0.0.0",
+  "description": "Streamable HTTP handlers for Toolgrain MCP servers using Web Request and Response.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavkatwe/toolgrain.git",
+    "directory": "packages/http"
+  },
+  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/http#readme",
+  "bugs": {
+    "url": "https://github.com/keshavkatwe/toolgrain/issues"
+  },
+  "keywords": [
+    "toolgrain",
+    "mcp",
+    "model-context-protocol",
+    "http",
+    "streamable-http"
+  ],
   "private": true,
   "type": "module",
   "exports": {

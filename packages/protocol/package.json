@@ -1,6 +1,24 @@
 {
   "name": "@toolgrain/protocol",
   "version": "0.0.0",
+  "description": "Pinned MCP wire types, protocol versions, and upstream provenance for Toolgrain.",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavkatwe/toolgrain.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/protocol#readme",
+  "bugs": {
+    "url": "https://github.com/keshavkatwe/toolgrain/issues"
+  },
+  "keywords": [
+    "toolgrain",
+    "mcp",
+    "model-context-protocol",
+    "protocol",
+    "typescript"
+  ],
   "private": true,
   "type": "module",
   "exports": {
@@ -14,7 +32,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "NOTICE"
   ],
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && bun scripts/copy-vendor.ts",

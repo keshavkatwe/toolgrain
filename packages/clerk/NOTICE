@@ -1,0 +1,91 @@
+Third-party notices for @toolgrain/clerk
+
+Toolgrain-owned code is licensed under MIT; see LICENSE. The dependencies
+identified below retain their own copyright and license terms.
+
+standardwebhooks 1.1.1
+
+This dependency is installed through @clerk/backend 3.26.0. Its JavaScript
+package declares MIT. The authoritative MIT license is in its parent
+libraries/LICENSE directory, not the repository's Apache-2.0 root LICENSE.
+That parent license was introduced alongside the JavaScript library and remains
+unchanged at the npm release's gitHead.
+
+The npm tarball omits the parent license and strips source comments. This file
+preserves the applicable upstream license text and the Deno helper attribution
+for Toolgrain consumers. It does not vendor or modify the implementation.
+
+npm release: https://www.npmjs.com/package/standardwebhooks/v/1.1.1
+Release source commit: b4d2c14fc5b4ccff3ff271e3b087dff812254c59
+npm archive integrity:
+sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==
+
+Source of the following unmodified license:
+https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/libraries/LICENSE
+
+---
+
+The MIT License
+
+Copyright (c) 2023 Svix (https://www.svix.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+---
+
+Deno timing-safe comparison helper
+
+standardwebhooks' libraries/javascript/src/timing_safe_equal.ts contains this
+source attribution, retained here verbatim:
+
+Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+https://github.com/denoland/deno_std/blob/main/crypto/timing_safe_equal.ts
+
+Source of that attribution:
+https://github.com/standard-webhooks/standard-webhooks/blob/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/libraries/javascript/src/timing_safe_equal.ts
+
+The matching MIT license and copyright years are preserved below from Deno's
+0.161.0 snapshot. This identifies the license text; it does not claim that
+standardwebhooks pinned its helper to that particular Deno release.
+
+https://github.com/denoland/std/blob/c8d8a08e45eae9e5f8a07fefabbb04a51650ab68/LICENSE
+
+---
+
+MIT License
+
+Copyright 2018-2022 the Deno authors.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

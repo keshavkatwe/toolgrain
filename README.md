@@ -8,6 +8,10 @@ Zod 4 validation, output schemas, rich results, and server composition. It suppo
 MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
 same tool definitions. All packages are private and unpublished.
 
+Toolgrain-owned code is [MIT licensed](./LICENSE), copyright 2026 Keshav Katwe.
+Vendored MCP schemas retain their upstream licenses; see [NOTICE](./NOTICE) and
+the [protocol package's license](./packages/protocol/LICENSE).
+
 See [project decisions](./AGENTS.md) and
 [client compatibility verification](./docs/compatibility.md), and
 [JWT/Clerk authorization](./docs/authorization.md), and
@@ -702,8 +706,11 @@ MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaratio
 maps, and the TypeScript sources in the archive. Verification rejects malformed
 maps, missing or incorrect source targets, and missing mapping comments. Packaged
 sources are limited to existing `src/**/*.ts` files; other libraries retain their
-existing restrictions. MCP's budgets are 69 KiB packed and 296 KiB unpacked,
-allowing approximately 20% growth above the build with maps and sources.
+existing restrictions. MCP's budgets are 85 KiB packed and 355 KiB unpacked,
+allowing approximately 20% growth after package metadata and README additions.
+Every library archive must include its package-root README and LICENSE; protocol
+and Clerk also require their package-root NOTICE files. Size budgets include the
+required legal notices.
 
 `bun run test:audit` queries Bun's advisory service once for the complete
 `bun.lock`, then attributes known advisories to each workspace using its locked

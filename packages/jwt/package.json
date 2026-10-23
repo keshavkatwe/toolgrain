@@ -1,6 +1,25 @@
 {
   "name": "@toolgrain/jwt",
   "version": "0.0.0",
+  "description": "JWT bearer-token authorization for Toolgrain MCP servers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavkatwe/toolgrain.git",
+    "directory": "packages/jwt"
+  },
+  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/jwt#readme",
+  "bugs": {
+    "url": "https://github.com/keshavkatwe/toolgrain/issues"
+  },
+  "keywords": [
+    "toolgrain",
+    "mcp",
+    "model-context-protocol",
+    "jwt",
+    "oauth",
+    "authorization"
+  ],
   "private": true,
   "type": "module",
   "exports": {
