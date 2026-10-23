@@ -1,6 +1,25 @@
 {
   "name": "@toolgrain/mcp",
   "version": "0.0.0",
+  "description": "Define reusable, typed MCP tools and servers with Zod validation.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavkatwe/toolgrain.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/keshavkatwe/toolgrain/issues"
+  },
+  "keywords": [
+    "toolgrain",
+    "mcp",
+    "model-context-protocol",
+    "typescript",
+    "zod",
+    "tools"
+  ],
   "private": true,
   "type": "module",
   "exports": {

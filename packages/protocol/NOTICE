@@ -1,0 +1,27 @@
+@toolgrain/protocol
+Copyright (c) 2026 Keshav Katwe
+
+Toolgrain-owned files are licensed under MIT as described in LICENSE.
+
+Model Context Protocol schemas
+
+src/vendor/2026-07-28/ and src/vendor/2025-06-18/ contain unchanged upstream
+schemas and their license/provenance artifacts from:
+
+https://github.com/modelcontextprotocol/modelcontextprotocol
+Commit: 271ecc9accafdd9b83a3c869fa67c22953b2af80
+
+The upstream license identifies:
+Copyright (c) 2024-2025 Model Context Protocol a Series of LF Projects, LLC.
+
+The distributed package retains the unchanged schema.ts, LICENSE, and
+provenance.json for both revisions under dist/vendor/<revision>/, alongside
+compiled JavaScript and declarations derived from the schemas. The preserved
+upstream LICENSE describes an MIT to Apache-2.0 transition, with different terms
+applying to different contributions; it is not a choice of either license for
+all upstream material. Those terms continue to apply to the vendored schemas
+and their compiled forms. Toolgrain's MIT grant does not replace them.
+
+The upstream license's CC-BY-4.0 statement concerns documentation excluding
+specifications. This package vendors the protocol schemas, not upstream
+documentation pages. The complete upstream license text is retained unchanged.

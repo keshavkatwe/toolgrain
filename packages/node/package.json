@@ -1,6 +1,25 @@
 {
   "name": "@toolgrain/node",
   "version": "0.0.0",
+  "description": "Node.js stdio and HTTP transports for Toolgrain MCP servers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshavkatwe/toolgrain.git",
+    "directory": "packages/node"
+  },
+  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/node#readme",
+  "bugs": {
+    "url": "https://github.com/keshavkatwe/toolgrain/issues"
+  },
+  "keywords": [
+    "toolgrain",
+    "mcp",
+    "model-context-protocol",
+    "nodejs",
+    "stdio",
+    "http"
+  ],
   "private": true,
   "type": "module",
   "exports": {

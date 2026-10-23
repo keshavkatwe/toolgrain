@@ -1,6 +1,6 @@
 # Roadmap
 
-Status updated: 2026-10-22.
+Status updated: 2026-10-23.
 
 Implemented and completed statuses describe the agreed scope below. Partial
 verification does not imply full client compatibility. Remaining work is for
@@ -27,7 +27,7 @@ unpublished at `0.0.0`.
 | Default client compatibility and interoperability | Partial | Inspector checks pass. Codex and Claude Code tool flows work with documented timeout/rich-result limitations. Cursor discovery/auth checks pass; tool execution and cancellation remain unverified. Modern Claude Code coverage, live OAuth login, and GUI flows remain open. See the [2026-10-22 report](./docs/interoperability-2026-10-22.md) for exact versions and limits. |
 | Public API stabilization | Ongoing | The review fixes are merged; the product and API are still being designed. Release compatibility/versioning commitments remain to be agreed. |
 | Supported runtime and dependency version policy | Adopted; CI matrix implemented | Node 24.20.0+/24.x and Bun 1.4.4+/1.x; strict TypeScript 5.5.4 and Zod `^4.0.0` retained. Minimum/current declarations cover all six libraries. Runtime/platform and weekly upstream jobs are configured; hosted combinations require passing CI before verification claims. Node 26 remains preview. See the [support policy](./docs/support-policy.md). |
-| Package metadata, licensing, and npm configuration | Pending release preparation | Review release metadata, licensing decisions, and npm configuration. Packages remain private and unpublished; vendored protocol provenance/licenses are already retained. |
+| Package metadata, licensing, and npm configuration | Metadata and licensing prepared; npm release configuration pending | All six libraries have descriptions, repository/homepage/issue links, keywords, package READMEs, and package-root license files. Toolgrain-owned code is MIT licensed with copyright attribution to Keshav Katwe; vendored protocol material retains its upstream terms. `standardwebhooks` licensing is resolved from the exact release's parent-directory MIT license, with Svix/Deno notices preserved in the Clerk package. Eventual npm publication configuration remains separate. Packages remain private and unpublished. |
 | Documentation and quickstarts website | Deferred implementation | Docusaurus and GitHub Pages are selected. README, guides, and framework examples exist; the public documentation site and its deployment remain separate work. |
 | Versioning, changelogs, and release workflow | Pending design | Agree on versioning/changelog policy and the release process. Existing package verification is available for release checks. |
 | Initial npm release | Not started | Requires release preparation and explicit publication authorization. |

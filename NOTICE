@@ -1,0 +1,35 @@
+Toolgrain
+Copyright (c) 2026 Keshav Katwe
+
+Toolgrain-owned code is licensed under the MIT License in LICENSE. The MIT grant
+does not replace the terms applying to third-party material.
+
+Model Context Protocol schemas
+
+packages/protocol/src/vendor/2026-07-28/ and
+packages/protocol/src/vendor/2025-06-18/ retain upstream MCP schemas, license
+files, and provenance from:
+
+https://github.com/modelcontextprotocol/modelcontextprotocol
+Commit: 271ecc9accafdd9b83a3c869fa67c22953b2af80
+
+The upstream license identifies:
+Copyright (c) 2024-2025 Model Context Protocol a Series of LF Projects, LLC.
+
+The complete upstream license in each revision directory describes the MIT to
+Apache-2.0 transition and the terms applying to different contributions. Those
+terms remain in effect. They are not an unrestricted choice of MIT or Apache-2.0
+for all upstream material. Refer to the preserved LICENSE and provenance.json
+files for each revision. Protocol packages also retain these artifacts under
+dist/vendor/<revision>/, along with a package-root licensing explanation.
+
+standardwebhooks (Clerk dependency)
+
+standardwebhooks 1.1.1 is installed through @clerk/backend. Its parent-directory
+libraries/LICENSE supplies the MIT license, copyright (c) 2023 Svix. Its
+timing-safe comparison source also carries a Deno authors MIT attribution.
+packages/clerk/NOTICE preserves both notices and their full license texts,
+with release provenance. No standardwebhooks implementation is vendored here.
+
+Other third-party dependencies are installed separately and retain their own
+licenses. Toolgrain's MIT grant does not relicense those dependencies.

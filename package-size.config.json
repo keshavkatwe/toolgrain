@@ -8,28 +8,36 @@
       "dist/vendor/2026-07-28/LICENSE",
       "dist/vendor/2025-06-18/schema.ts",
       "dist/vendor/2025-06-18/provenance.json",
-      "dist/vendor/2025-06-18/LICENSE"
+      "dist/vendor/2025-06-18/LICENSE",
+      "README.md",
+      "LICENSE",
+      "NOTICE"
     ]
   },
   "@toolgrain/mcp": {
-    "packedBytes": 70656,
-    "unpackedBytes": 303104,
-    "sourceMaps": true
+    "packedBytes": 87040,
+    "unpackedBytes": 363520,
+    "sourceMaps": true,
+    "requiredFiles": ["README.md", "LICENSE"]
   },
   "@toolgrain/http": {
-    "packedBytes": 11264,
-    "unpackedBytes": 38912
+    "packedBytes": 14336,
+    "unpackedBytes": 49152,
+    "requiredFiles": ["README.md", "LICENSE"]
   },
   "@toolgrain/node": {
-    "packedBytes": 9216,
-    "unpackedBytes": 31744
+    "packedBytes": 11264,
+    "unpackedBytes": 36864,
+    "requiredFiles": ["README.md", "LICENSE"]
   },
   "@toolgrain/jwt": {
-    "packedBytes": 5120,
-    "unpackedBytes": 12288
+    "packedBytes": 6144,
+    "unpackedBytes": 15360,
+    "requiredFiles": ["README.md", "LICENSE"]
   },
   "@toolgrain/clerk": {
-    "packedBytes": 3072,
-    "unpackedBytes": 9216
+    "packedBytes": 7168,
+    "unpackedBytes": 19456,
+    "requiredFiles": ["README.md", "LICENSE", "NOTICE"]
   }
 }
