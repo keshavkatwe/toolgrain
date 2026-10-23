@@ -1,0 +1,52 @@
+name: Release verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Prepared version to verify (X.Y.Z, without a v prefix)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate prepared release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.20.0"
+      - name: Require the requested version across all libraries
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node packages/repo-tools/src/cli.mjs release check --version "$RELEASE_VERSION"
+
+  baseline:
+    name: Baseline
+    needs: validate
+    # CI also defines a PR-report job. It is skipped for workflow_dispatch;
+    # reusable workflows cannot request permissions beyond the caller's grants.
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    uses: ./.github/workflows/ci.yml
+
+  support:
+    name: Supported runtimes and dependencies
+    needs: validate
+    # The caller's workflow_dispatch event also enables all weekly stable
+    # dependency and intermediate TypeScript checks in the reused workflow.
+    uses: ./.github/workflows/support.yml
+

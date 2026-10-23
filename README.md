@@ -12,8 +12,9 @@ Toolgrain-owned code is [MIT licensed](./LICENSE), copyright 2026 Keshav Katwe.
 Vendored MCP schemas retain their upstream licenses; see [NOTICE](./NOTICE) and
 the [protocol package's license](./packages/protocol/LICENSE).
 
-See [project decisions](./AGENTS.md) and
-[client compatibility verification](./docs/compatibility.md), and
+See the [versioning and release guide](./docs/releases.md),
+[shared changelog](./CHANGELOG.md), [project decisions](./AGENTS.md),
+[client compatibility verification](./docs/compatibility.md),
 [JWT/Clerk authorization](./docs/authorization.md), and
 [lazy context providers](./docs/context.md).
 

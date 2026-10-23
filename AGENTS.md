@@ -173,9 +173,40 @@ Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
   requires explicit review around upstream EOL. Protocol/schema updates remain
   separate reviewed work. No commit/publication is authorized by implementation.
 
+## Confirmed versioning and release policy
+
+Adopted on 2026-10-23; implementation does not authorize commits or publication.
+
+- The six libraries share version `0.1.0` initially and one root `CHANGELOG.md`.
+  Changesets 3.0.3 owns release planning, version selection, and dependency updates.
+  Its explicit fixed group in `.changeset/config.json` lists only the six libraries;
+  their manifests are the version source of truth. Examples/tooling are ignored.
+- Changesets versions private libraries, but automatic commits, private-package
+  tags, and package changelogs are disabled. All packages remain private and
+  unpublished. npm publication configuration is separate work.
+- During `0.x`, compatible fixes use patch records; features and breaking changes
+  use minor records. From `1.0`, follow semantic versioning. Existing runtime/peer
+  minimum and removal notice rules still apply; prerelease channels are deferred.
+- Record release intent with `bun run changeset` and maintain editorial Unreleased
+  notes in the root changelog. `release:status` previews the plan. Repository-only
+  work uses empty records; the initial empty record preserves the selected 0.1.0.
+- `release:version` runs Changesets and synchronizes only Bun workspace version
+  metadata. The custom release helper only checks version alignment and maintains
+  that Bun workaround. It does not handle changelogs, archives, or checksums.
+- The shared root changelog is edited and reviewed manually, including dated
+  version entries and migration notes. Version/notes changes go through a release
+  PR. No script finalizes or validates the changelog or release readiness.
+- Normal CI checks manifest/lockfile alignment. The manual Release verification
+  workflow checks the expected version and reruns baseline plus the full supported
+  matrix including weekly stable/intermediate checks. Existing preview probes
+  remain informational. Existing package verification covers packed contents and
+  consumers; the release workflow creates no candidate archives or checksums.
+  Publication requires green supported CI and explicit approval. See
+  `docs/releases.md`.
+
 ## Confirmed protocol package decisions
 
-- `@toolgrain/protocol` is a private workspace package, version `0.0.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- `@toolgrain/protocol` is a private workspace package, version `0.1.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
 - Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
 - Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
 - Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
@@ -184,7 +215,7 @@ Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
 
 ## Confirmed MCP package decisions
 
-- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.0.0`, private and unpublished.
+- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.1.0`, private and unpublished.
 - The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Response server identity (`name`, `version`) is copied per response in modern result metadata and legacy initialization, so callers cannot mutate other responses or the server's internal identity.
@@ -298,7 +329,7 @@ are intentionally unsupported.
 
 - `packages/repo-tools` (`@toolgrain/repo-tools`, private) owns repository
   verification, reporting, and inspection. Its `toolgrain-repo` command provides
-  `size`, `exports`, `mcp-compat`, `clean-install`, `support-matrix`, `audit`, `ci-report`, `inspect-http`, and `verify-inspector`;
+  `size`, `exports`, `mcp-compat`, `clean-install`, `support-matrix`, `audit`, `ci-report`, `release`, `inspect-http`, and `verify-inspector`;
   `@toolgrain/repo-tools/http-example` is the shared example smoke test.
 - Libraries and HTTP examples declare it as a development dependency. The root
   does not, because a root dependency on an internal package invalidates every

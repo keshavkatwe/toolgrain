@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/jwt",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "JWT bearer-token authorization for Toolgrain MCP servers.",
   "license": "MIT",
   "repository": {
