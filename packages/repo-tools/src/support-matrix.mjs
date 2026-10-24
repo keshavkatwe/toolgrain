@@ -48,7 +48,7 @@ export function driftManifest(source, compiler) {
         : `^${version}`;
   if (manifest.devDependencies?.typescript)
     manifest.devDependencies.typescript = compiler;
-  if (manifest.devDependencies?.zod) manifest.devDependencies.zod = "^4.0.0";
+  if (manifest.devDependencies?.zod) manifest.devDependencies.zod = "^4.6.6";
   return manifest;
 }
 

@@ -6,7 +6,7 @@ composition live in
 
 ## Installation
 
-Toolgrain packages are private and unpublished. These commands describe consumer
+Toolgrain packages are unpublished. These commands describe consumer
 dependencies for a future release; use the
 [repository examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
 to try Toolgrain today.
@@ -81,7 +81,7 @@ Auth-configured servers require HTTP. See the
 
 ## Requirements and protocol support
 
-ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.0.0` through MCP;
+ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. Both MCP `2026-07-28` and
 `2025-06-18` are supported over stdio and independent HTTP POSTs with JSON
 responses. See the

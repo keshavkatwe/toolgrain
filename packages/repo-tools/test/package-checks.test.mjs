@@ -423,7 +423,7 @@ test("MCP compatibility checks isolate Zod versions and fail on consumer or runt
       exports: {
         ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
       },
-      peerDependencies: { zod: "^4.0.0" },
+      peerDependencies: { zod: "^4.6.6" },
     });
     write(
       "packages/mcp/dist/index.js",
@@ -479,7 +479,7 @@ test("MCP compatibility checks isolate Zod versions and fail on consumer or runt
     const currentZod = JSON.parse(
       readFileSync(new URL("packages/mcp/node_modules/zod/package.json", repo)),
     ).version;
-    for (const version of ["4.0.0", currentZod]) {
+    for (const version of ["4.6.6", currentZod]) {
       assert.ok(passed.stdout.includes(`Resolved Zod ${version}`));
       assert.ok(passed.stdout.includes(`TypeScript 5.5.4 / Zod ${version}`));
     }

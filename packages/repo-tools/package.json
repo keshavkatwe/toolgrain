@@ -17,6 +17,6 @@
     "@arethetypeswrong/cli": "0.18.5",
     "publint": "0.3.25",
     "typescript-minimum": "npm:typescript@5.5.4",
-    "zod-minimum": "npm:zod@4.0.0"
+    "zod-minimum": "npm:zod@4.6.6"
   }
 }

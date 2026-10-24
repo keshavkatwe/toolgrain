@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-23
+Updated: 2026-10-24
 
 ## Working agreement
 
@@ -33,7 +33,7 @@ Toolgrain is MCP-first. `@toolgrain/mcp` owns the complete tool authoring API; v
 - The user has created the `toolgrain` npm organization, providing the `@toolgrain` scope.
 - Scoped packages are sufficient. A separate unscoped `toolgrain` package is optional and is not reserved by organization creation.
 - Use GitHub and GitHub Pages. No custom domain purchase is planned.
-- Current workspace names and the MCP authoring boundary are confirmed; packages remain private and unpublished.
+- Current workspace names and the MCP authoring boundary are confirmed; packages remain unpublished.
 - Package release preparation includes descriptions, repository/homepage/issue links, keywords, and package-local READMEs for all six libraries. README installation commands describe future consumer dependencies and explicitly identify the current unpublished state. On 2026-10-23 the user chose MIT for Toolgrain-owned code with copyright attribution to Keshav Katwe. Root/package license files preserve that grant; vendored protocol material retains its unchanged upstream terms. Five library manifests declare `MIT`; protocol uses `SEE LICENSE IN LICENSE` with a package-root explanation and NOTICE covering its mixed contents. Publication configuration remains separate.
 - The `standardwebhooks@1.1.1` licensing question is resolved: its exact npm source commit `b4d2c14fc5b4ccff3ff271e3b087dff812254c59` retains an MIT `libraries/LICENSE`, copyright (c) 2023 Svix, introduced alongside the JavaScript library. Its `timing_safe_equal.ts` also carries the Deno authors' 2018-2022 MIT attribution. The upstream npm archive omits that parent license and source attribution; `packages/clerk/NOTICE` preserves both notices and full MIT texts with provenance, and must be included in the Clerk archive. No dependency/implementation changes or external contact were required. Renew the notice review when changing the dependency release.
 
@@ -86,7 +86,7 @@ Confirmed semantics:
 - `mcpResult()` explicitly marks rich MCP content and result metadata; plain objects remain application data.
 - Transport selection is explicit.
 - Zod 4 is the initial schema library. Classic and Mini user schemas are accepted through `zod/v4/core`; internal protocol, metadata, and content validators remain Classic. Independence from the MCP SDK does not mean zero dependencies.
-- The MCP authoring API's minimum supported TypeScript version is 5.5.4 with strict mode; its Zod peer floor remains 4.0.0.
+- The MCP authoring API's minimum supported TypeScript version is 5.5.4 with strict mode; its Zod peer floor is 4.6.6.
 
 ## Confirmed tool execution decisions
 
@@ -127,7 +127,7 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 
 ## Confirmed authorization decisions
 
-Implemented after user approval on 2026-10-21; packages remain private and unpublished.
+Implemented after user approval on 2026-10-21; packages remain unpublished.
 
 - Configure HTTP endpoint authorization with `createServer({ auth })`. Shared `AuthProvider<T>` and `AuthError` live in MCP; `@toolgrain/jwt` and `@toolgrain/clerk` implement the interface. Tools remain standalone and `ToolContext` remains non-generic.
 - Unexpected authorization failures, including provider `temporarily_unavailable` errors, reach `onError` once with the original thrown value and no request details. Expected auth rejections and cancelled/late failures remain unreported; diagnostics cannot disrupt responses or cleanup.
@@ -139,11 +139,11 @@ Implemented after user approval on 2026-10-21; packages remain private and unpub
 - `server.listen()` accepts message `Transport` and independent `RequestTransport` contracts. Auth-configured servers accept request transports such as Node `http()` and reject message transports such as stdio before startup. One transport may attach; each transport instance is claimed once before startup, across compatible package copies, without mutating frozen custom transports. A rejected second attachment leaves the owner running and the other server free to attach a fresh transport. Close remains terminal, idempotent, and re-entrant across both contracts. `authorize(token, { resource, signal? })` produces a server-bound, single-use scope passed to `handle({ ... }, { auth })` and disposed in `finally`. Verification, body reading, and tool execution observe cancellation and server close; late verification results are discarded.
 - Token issuance/login/consent/client registration and per-tool scope policies remain separate work. Lazy context providers are described below; authorization remains eagerly verified before lazy provider work.
 - `apps/elysia-example` also offers an explicitly protected Clerk variant: `dev:clerk` / `start:clerk` on loopback port 3007, `inspect:clerk`, and a standalone `whoAmI` tool. The complete protected teaching example (keys, both tools, server, and Elysia startup) lives in `src/clerk.ts`; its direct-run guard allows tests to import it without opening a listener. Keys load from the workspace's ignored `.env.local`; missing keys fail startup. The ordinary Elysia/root dev flow remains on port 3003 without credentials. Its README documents manual public-client PKCE setup in Inspector; live Clerk login needs local keys and OAuth application configuration.
-- See `docs/authorization.md` and `apps/jwt-example`. New adapter packages use the same 95% coverage and compiled export/consumer verification as existing libraries, including TypeScript 5.5.4 and Zod 4.0.0 declaration consumers.
+- See `docs/authorization.md` and `apps/jwt-example`. New adapter packages use the same 95% coverage and compiled export/consumer verification as existing libraries, including TypeScript 5.5.4 and Zod 4.6.6 declaration consumers.
 
 ## Confirmed lazy context provider decisions
 
-Approved and implemented on 2026-10-21; packages remain private and unpublished.
+Approved and implemented on 2026-10-21; packages remain unpublished.
 
 - `createContext({ name, resolve(ctx) })` lives in `@toolgrain/mcp` and infers a `ContextProvider<Awaited<Value>>`. Export `provider.use` as an application-specific accessor such as `useDatabase`; accessors always return promises, even for synchronous resolvers. `ToolContext` remains non-generic, and existing synchronous `useAuth(ctx)` is unchanged.
 - Register explicit `context: [services, database]` arrays on `createServer()` or `toolContext()`. Order does not matter. Dependencies resolve through accessor calls, without `dependsOn` or automatic registration. Factories start only on access after authorization/input validation; discovery, listings, invalid input, unknown tools, and unused providers do no work.
@@ -154,7 +154,7 @@ Approved and implemented on 2026-10-21; packages remain private and unpublished.
 - Missing providers reject on access; factory errors use existing tool-error behavior. TypeScript checks inferred values and overrides, not registration completeness for standalone tools. Accessors reject unsupported hand-written contexts.
 - Cancellation checks run before access, before factory startup, and after resolution. Provider work is cooperative through `ctx.signal`; ignored cancellation may keep a factory running, while late values/responses are suppressed as before.
 - Provider values are returned unchanged and may contain mutable clients, class instances, or functions. Application-owned pools/resources remain application-owned. Automatic disposal, transactions, cleanup hooks, lifecycle hooks, synchronous provider accessors, and background-work support are outside this version.
-- See `docs/context.md`. Coverage and compiled consumer checks retain the existing 95% floor and TypeScript 5.5.4/Zod 4.0.0 compatibility requirements. Implementation alone does not authorize commits or publication.
+- See `docs/context.md`. Coverage and compiled consumer checks retain the existing 95% floor and TypeScript 5.5.4/Zod 4.6.6 compatibility requirements. Implementation alone does not authorize commits or publication.
 
 ## Confirmed runtime and dependency support policy
 
@@ -164,7 +164,7 @@ Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
   Bun 1.3.14 cannot report Node HTTP disconnects; the supported application runtime
   starts at 1.4.4. Keep repository Bun pinned at 1.3.14.
   TypeScript remains strict 5.5.4 minimum;
-  Zod remains `^4.0.0`. Node 26 is preview until explicitly promoted after LTS
+  Zod remains `^4.6.6`. Node 26 is preview until explicitly promoted after LTS
   and passing checks. Other runtimes/package managers have no support commitment.
 - CI retains the complete baseline and adds real packed npm/Node and Bun/Bun
   consumers on Linux, macOS and Windows. Every library checks minimum/current
@@ -190,9 +190,9 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
   Changesets 3.0.3 owns release planning, version selection, and dependency updates.
   Its explicit fixed group in `.changeset/config.json` lists only the six libraries;
   their manifests are the version source of truth. Examples/tooling are ignored.
-- Changesets versions private libraries, but automatic commits, private-package
-  tags, and package changelogs are disabled. All packages remain private and
-  unpublished. npm publication configuration is separate work.
+- Changesets manages the six libraries; automatic commits, private-package
+  tags, and package changelogs are disabled. All libraries remain unpublished.
+  npm publication setup is described below.
 - During `0.x`, compatible fixes use patch records; features and breaking changes
   use minor records. From `1.0`, follow semantic versioning. Existing runtime/peer
   minimum and removal notice rules still apply; prerelease channels are deferred.
@@ -213,9 +213,75 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
   Publication requires green supported CI and explicit approval. See
   `docs/releases.md`.
 
+## Confirmed npm publication setup
+
+Prepared at the user's request on 2026-10-24. The user authorized the release
+commit and PR that day; publication requires separate approval.
+
+- The six library manifests are publishable with public npm access and an explicit
+  npmjs registry; Changesets uses public access. Root, examples, and repo-tools
+  remain private. Versions stay at the initial `0.1.0` baseline.
+- The manual `publish.yml` workflow defaults to a dry run and reuses Release
+  verification for the same selected commit/version before building and packing
+  the libraries in dependency order. Actual publication additionally requires
+  main, an explicit non-dry-run choice, matching version confirmation text,
+  the `npm` environment, and configured per-package OIDC trusted publishers.
+  It creates no commits, Git tags, or GitHub Releases.
+- npm requires packages to exist before trusted-publisher setup. The first real
+  release uses an explicitly approved interactive npm login and reviewed Bun
+  archives, with npm run outside the checkout. Subsequent releases use the
+  workflow's pinned npm 11.21.1 and OIDC without an npm token secret. Newly
+  configured trust must be used successfully within two days.
+- The source repository is currently private. Provenance is enabled by the
+  workflow only for real publishes from a public source repository. The GitHub
+  `npm` environment has one exact deployment branch rule for `main`; it has no
+  secrets or required reviewers configured. Reviewer availability depends on the
+  GitHub plan. Manual dispatch and matching version confirmation remain required.
+- All six archives pass local npm 11.21.1 dry runs and isolated consumer checks.
+  On 2026-10-24, read-only `npm whoami` and `npm org ls toolgrain keshav.katwe`
+  checks verified an authenticated `keshav.katwe` account with the organization
+  `owner` role, which permits creating and publishing packages in `@toolgrain`.
+  First-release publication setup is complete; no actual publish or publish-time
+  authentication challenge was exercised. OIDC trust bindings remain deferred
+  until packages exist. See `docs/releases.md`.
+
+## 0.1.0 release preparation status
+
+Started at the user's request on 2026-10-24 on `codex/release-0.1.0`, based on
+main `31aa4e9c06da9eab2f83a97d20218b61cb6c8c7c`. This branch includes the
+roadmap and npm publication setup from this chat.
+
+- Changesets consumed the initial baseline, brand-kit, and npm-setup empty
+  records. All six library versions and Bun workspace metadata remain `0.1.0`.
+  `CHANGELOG.md` has a prepared `0.1.0` entry dated 2026-10-24 and an empty
+  Unreleased section; publication has not occurred.
+- Review found parallel Vitest 5 processes clearing the same workspace-root
+  module cache. Every Vitest workspace now sets its own
+  `fsModuleCachePath: "node_modules/.vitest-cache"`. Parallel coverage, examples,
+  and type checks pass with the existing coverage floors.
+- The reviewed lockfile updates `body-parser` 2.3.0 to 2.4.0 and `fast-uri`
+  3.1.8 to 3.1.9 for upstream security fixes, alongside the approved Zod minimum
+  update below. Other direct dependency pins, runtime implementation, and
+  vendored schemas remain unchanged.
+- Local Node 24.20.0 checks pass for types, coverage, examples, compiled exports,
+  minimum/current declarations, isolated installed consumers, package size and
+  contents, formatting, workflow lint, and all 23 repository-tooling tests.
+  Fresh npm consumers pass all six isolated entry points and all ten full
+  stdio/HTTP/auth/context/cancellation cases at both Zod 4.6.6 and 4.6.7. All six
+  final archives pass npm 11.21.1 dry runs. Ignored JSON evidence is in `reports/`.
+- On 2026-10-24 the user explicitly approved raising the initial Zod peer and
+  test floor from 4.0.0 to 4.6.6 for `GHSA-mrhx-c7xc-m3w5`. MCP's peer range,
+  `zod-minimum`, the support policy, CI probes, and consumer fixtures now use
+  4.6.6; the development pin stays 4.6.7. The initial release remains 0.1.0 and
+  strict TypeScript 5.5.4 remains the minimum. The dependency audit passes with
+  zero advisories; no audit gate is waived.
+- On 2026-10-24 the user explicitly authorized committing these prepared changes
+  and opening the `0.1.0` release PR. PR review and merge, final hosted release
+  verification, tags, publication, and deployment remain separate steps.
+
 ## Confirmed protocol package decisions
 
-- `@toolgrain/protocol` is a private workspace package, version `0.1.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- `@toolgrain/protocol` is an unpublished workspace package, version `0.1.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
 - Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
 - Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
 - Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
@@ -224,8 +290,8 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
 
 ## Confirmed MCP package decisions
 
-- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.1.0`, private and unpublished.
-- The private `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
+- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.1.0`, unpublished.
+- The unpublished `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Response server identity (`name`, `version`) is copied per response in modern result metadata and legacy initialization, so callers cannot mutate other responses or the server's internal identity.
 - Modern requests carry version and client capabilities individually. Legacy stdio uses connection-scoped `initialize` / `notifications/initialized` negotiation and supports `ping`; modern requests remain independent and can interleave. Legacy initialization negotiates `2025-06-18` and never claims modern semantics through `initialize`.
@@ -268,7 +334,7 @@ Protocol, MCP, Node stdio, and Streamable HTTP support are implemented. The unif
 HTTP support and independent framework examples were merged in PR #6
 (`e8e2895`) on 2026-10-16 after review and passing CI. Keep Bun 1.3.14,
 pinned Turbo, root-level Biome, and shared strict TypeScript defaults.
-All packages remain private and unpublished.
+All packages remain unpublished.
 
 Dual-era compatibility verification on 2026-10-16 passes the existing tools flow
 over stdio and plain Node HTTP with Inspector 2.11.0 CLI and Codex CLI/app-server
@@ -369,7 +435,7 @@ are intentionally unsupported.
   schemas match vendored protocol types, including nested field paths.
 - MCP's `test:package` runs `toolgrain-repo mcp-compat` before export checks. It
   reuses `smoke/consumer.mts` with TypeScript 5.5.4 and the development compiler
-  against Zod 4.0.0 and the development version, checking declarations with
+  against Zod 4.6.6 and the development version, checking declarations with
   `skipLibCheck: false` and no ambient workspace types. The existing runtime
   fixture runs under Node with `--enable-source-maps` for each Zod version and
   checks a stack location in MCP's TypeScript source. Compiled MCP/protocol packages,

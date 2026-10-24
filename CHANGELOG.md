@@ -1,9 +1,14 @@
 # Changelog
 
-All six Toolgrain libraries share one version and this changelog. Entries under
-Unreleased describe work that has not been published to npm.
+All six Toolgrain libraries share one version and this changelog. Dated entries
+record release preparation; the date does not establish npm publication.
+Unreleased tracks changes after the latest prepared version.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-24
+
+Initial release prepared for review. All six libraries remain unpublished.
 
 ### Added
 
@@ -18,9 +23,51 @@ Unreleased describe work that has not been published to npm.
   protected-resource metadata and verified request identities.
 - Framework examples, packed-consumer verification, and a supported runtime and
   dependency matrix. See the [support policy](docs/support-policy.md).
+- Package metadata, MIT licensing for Toolgrain-owned code, and preserved
+  upstream protocol and dependency notices. Public npm settings and a manual
+  publishing workflow are prepared; the first publication uses an approved
+  interactive maintainer login. See the [release guide](docs/releases.md).
+
+### Requirements and migration
+
+- The six libraries start at the shared version `0.1.0`: `@toolgrain/protocol`,
+  `@toolgrain/mcp`, `@toolgrain/http`, `@toolgrain/node`, `@toolgrain/jwt`, and
+  `@toolgrain/clerk`. This is the initial release; there is no migration from an
+  earlier published Toolgrain version.
+- Consumer runtimes are Node.js `^24.20.0` or Bun `>=1.4.4 <2`. Repository
+  development retains its separate Bun 1.3.14 pin.
+- TypeScript consumers require strict mode and TypeScript 5.5.4 or later. The
+  Zod peer range is `^4.6.6`, accepting Classic and Mini authoring schemas.
+- Packages expose compiled ESM JavaScript and declarations. CommonJS and legacy
+  `node10` module resolution are unsupported.
+
+### Security
+
+- Require Zod `^4.6.6` and test against minimum 4.6.6 to exclude the versions
+  affected by [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+  This approved change establishes the initial release's minimum; it does not
+  change the selected `0.1.0` version or TypeScript 5.5.4 minimum.
+- Refresh locked example/test dependencies to `body-parser` 2.4.0 and `fast-uri`
+  3.1.9 for their upstream security fixes. Other direct dependency pins are
+  unchanged.
 
 ### Known limitations
 
-- Client interoperability remains partially verified. See the
-  [interoperability report](docs/interoperability-2026-10-22.md) for tested
-  versions, client behavior limitations, and outstanding checks.
+- HTTP serves independent POST requests with JSON responses. Persistent
+  sessions, SSE streaming, progress, resumability, and subscriptions are outside
+  this release's implemented scope. MCP resources, prompts, and elicitation are
+  also unimplemented.
+- Cancellation is cooperative: work that ignores the handler's signal can
+  continue after its response is discarded. The tested Codex direct-call
+  timeout path did not promptly cancel server work; applications doing
+  expensive work should enforce their own execution deadlines.
+- The tested Claude Code client hides supplemental text when structured content
+  is present. Put essential narrative information in structured content, or use
+  text-only results without an output schema when that matches the tool's
+  contract.
+- Client interoperability remains partially verified. Cursor tool execution
+  and cancellation, modern Claude Code coverage, live OAuth login, and GUI
+  flows remain unverified. See the
+  [interoperability report](docs/interoperability-2026-10-22.md) for exact tested
+  versions and the scope of these findings. Final supported hosted CI results
+  are required before publication; local checks do not verify other platforms.

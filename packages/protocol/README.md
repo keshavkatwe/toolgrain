@@ -6,7 +6,7 @@ This package has no runtime dependencies. Tool authoring lives in
 
 ## Installation
 
-This is a private, unpublished workspace package. The command below describes
+This is an unpublished workspace package. The command below describes
 consumer dependencies for a future release; use the
 [repository examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
 to try Toolgrain today.
