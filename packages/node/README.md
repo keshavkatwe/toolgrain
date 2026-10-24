@@ -6,13 +6,11 @@ composition live in
 
 ## Installation
 
-Toolgrain packages are unpublished. These commands describe consumer
-dependencies for a future release; use the
-[repository examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
-to try Toolgrain today.
+Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
+A stable Toolgrain release is not yet available.
 
 ```sh
-npm install @toolgrain/node @toolgrain/mcp zod
+npm install @toolgrain/node@next @toolgrain/mcp@next zod
 npm install --save-dev typescript @types/node
 ```
 

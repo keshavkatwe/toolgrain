@@ -1,39 +1,39 @@
 # Roadmap
 
-Status updated: 2026-10-24.
+Status updated: 2026-10-25.
 
-All six libraries are configured for public npm access but remain unpublished. The first release version is
-`0.1.0`. **✅ Done** covers the agreed scope; **🟡 Partial** means implementation or
+All six libraries are configured for public npm access. The first candidate is
+`0.1.0-rc.0` under `next`, before stable `0.1.0`; publication is pending.
+**✅ Done** covers the agreed scope; **🟡 Partial** means implementation or
 verification remains. Proposed items are unapproved, with no timelines or
 implementation commitments. Publication and deployment require separate approval.
 
-## First release blockers — `0.1.0`
+## First release blockers — `0.1.0-rc.0` → `0.1.0`
 
 These are the required gates from the [release policy](./docs/releases.md).
-First-release publication setup is complete. Release preparation and review pass
-locally, including the approved Zod 4.6.6 minimum; the release PR still requires
-review and merge.
+The stable baseline and canary fix were merged in PRs #29 and #30. The first RC
+is now prepared on a separate branch with explicit `next` tag controls.
 
 1. **✅ Done — First-release npm publication setup.** Public package settings and a manual
    dry-run workflow are verified locally; the GitHub `npm` environment permits
    only main. The authenticated npm account `keshav.katwe` is a `toolgrain`
    organization owner with publishing rights. The initial release uses approved
    interactive publication; OIDC bindings follow once packages exist.
-2. **🟡 Partial — Release preparation and review.** The `0.1.0` notes are dated,
-   Changesets records consumed, and all six versions aligned. Parallel test
-   cache isolation, two transitive security updates, and the approved Zod 4.6.6
-   minimum are prepared. Local release checks pass, including a clean dependency
-   audit and fresh npm consumers at minimum/current Zod.
-   The release commit and PR are authorized; PR review and merge remain pending.
+2. **🟡 Partial — RC preparation and review.** All six libraries are prepared at
+   `0.1.0-rc.0`. Changesets owns the RC counter and stable promotion; manifests
+   default to `next`, and workflow guards enforce version/tag matching.
+   Committing the RC, opening its release PR, and merging after green CI are
+   authorized on 2026-10-25 and remain pending.
 3. **🟡 Pending verification — Green release checks.** Run Release verification
-   on the prepared main commit with expected version `0.1.0`. Baseline and the
+   on the prepared main commit with expected version `0.1.0-rc.0`. Baseline and the
    full supported runtime/platform/dependency checks must pass, including the
    stable weekly probes. The workflow exists; passing results for the final
    release commit still need review. Node 26 and prerelease probes remain
    informational.
-4. **🔒 Approval required — Publish authorization.** Obtain explicit approval
-   to publish the reviewed `0.1.0` packages after the gates above pass. Release
-   tags, GitHub Releases, and deployment also require their own authorization.
+4. **🟡 Authorized, pending gates — Publish the RC.** The user authorized the
+   prerelease on 2026-10-24. Publish the reviewed `0.1.0-rc.0` archives under
+   `next` only after the gates above pass. Stable `0.1.0`, Git tags, GitHub
+   Releases, and deployment require separate authorization.
 
 The documentation website and proposed features below are outside these release
 gates. Client verification gaps remain tracked below: disclose known limitations
@@ -74,7 +74,7 @@ behavior must be resolved or explicitly scoped out before release.
     metadata, READMEs, and licenses. Toolgrain-owned code is MIT licensed;
     upstream protocol and Clerk dependency notices are preserved.
 11. **✅ Done — Versioning and release verification.** Changesets manages the six
-    libraries as a fixed group starting at `0.1.0`. One manually maintained root
+    libraries as a fixed group, with `0.1.0-rc.0` before stable `0.1.0`. One manually maintained root
     changelog and a manual release-verification workflow are in place. See
     [release guide](./docs/releases.md).
 12. **✅ Done — Brand kit.** The approved Monolith logo, wordmark, colors,
@@ -94,10 +94,10 @@ behavior must be resolved or explicitly scoped out before release.
     checked locally. The GitHub `npm` environment is restricted to main; npm
     login and organization-owner publishing rights are verified. See
     [publishing process](./docs/releases.md#npm-publication-setup).
-17. **🟡 Partial — Initial npm release.** Release notes and versions are prepared,
-    including the approved Zod 4.6.6 minimum, and local verification passes.
-    Complete the release PR and supported hosted CI, then obtain explicit
-    publication approval.
+17. **🟡 Partial — Initial npm prerelease.** `0.1.0-rc.0` is prepared under
+    `next`, with the approved Zod 4.6.6 minimum. Finish the RC release PR and
+    supported hosted verification, then perform the authorized publication.
+    Stable `0.1.0` follows candidate testing and separate approval.
 18. **⏸️ Deferred — Documentation and quickstarts website.** Docusaurus and GitHub
     Pages are selected. README, guides, and framework examples exist; website
     implementation and deployment remain separate work.

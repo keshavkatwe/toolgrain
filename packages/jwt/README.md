@@ -4,13 +4,11 @@ JWT bearer-token authorization for Toolgrain MCP servers.
 
 ## Installation
 
-Toolgrain packages are unpublished. This command describes consumer
-dependencies for a future release; use the
-[JWT example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/jwt-example#readme)
-to try the integration today.
+Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
+A stable Toolgrain release is not yet available.
 
 ```sh
-npm install @toolgrain/jwt @toolgrain/mcp @toolgrain/node zod
+npm install @toolgrain/jwt@next @toolgrain/mcp@next @toolgrain/node@next zod
 ```
 
 ## Protect an HTTP server

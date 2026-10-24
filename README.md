@@ -6,7 +6,7 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 `@toolgrain/mcp` provides the complete authoring API: reusable tool definitions,
 Zod 4 validation, output schemas, rich results, and server composition. It supports
 MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
-same tool definitions. All libraries remain unpublished.
+same tool definitions. This checkout prepares `0.1.0-rc.0`, the first release candidate for stable `0.1.0`.
 
 Toolgrain-owned code is [MIT licensed](./LICENSE), copyright 2026 Keshav Katwe.
 Vendored MCP schemas retain their upstream licenses; see [NOTICE](./NOTICE) and
@@ -362,7 +362,7 @@ Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, multi-round-trip input-required results, subscriptions, and
-extensions remain future work. All libraries remain unpublished.
+extensions remain future work. This checkout prepares `0.1.0-rc.0`, the first release candidate for stable `0.1.0`.
 
 ## Node stdio and complete flow
 
