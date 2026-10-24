@@ -1,0 +1,17 @@
+{
+  "fontSha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+  "generator": "fonttools 4.60.1",
+  "wordmark": "Outlined Manrope ExtraBold, 800 weight, -0.045em tracking",
+  "files": {
+    "brand-sheet.svg": "1a17185bf6f363359390bcba9d2ed98b71afbc5c64b5829277cc446c20625b64",
+    "logo-dark.svg": "ba21d2c2deb50590b9dd98571814d484fd0a9e1ed9fb08a5636a5bc92af6d12c",
+    "logo-light.svg": "0ee2c6dd5a7e2ba7f5628646977814d6a3a85324fadcb0f41678810aa91b2cfb",
+    "logo.svg": "91ff487605f123b67596c2a51525cc075bd684142e4387e6a05071f1553b4837",
+    "mark-dark.svg": "402e9052fd260745589c677fbfec6292f1ec44aa62007fac29c0c536050c6215",
+    "mark-light.svg": "9b0f824c9fc5874efed2e64c0cf09036bdaa9abacb8b88efaa9e90e4cf7e8d9f",
+    "mark.svg": "537d7b72c2fee47b35374c755c32c5ba5b4e45c5975e80110d2d3a44456eba5e",
+    "wordmark-dark.svg": "524be05d4386c8728b13275876c7c5247d7eae91cdae766be36868b65fb26f68",
+    "wordmark-light.svg": "a221d42731a02e6ea7d044b0be2bd8bfbbc6a65ed7cf76927f4748deedb14ac7",
+    "wordmark.svg": "6459192a57ebb42652483ebbda9224bd399f92b8e40ddbc1dca25e63a3e0c5e1"
+  }
+}

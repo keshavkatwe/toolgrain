@@ -37,6 +37,15 @@ Toolgrain is MCP-first. `@toolgrain/mcp` owns the complete tool authoring API; v
 - Package release preparation includes descriptions, repository/homepage/issue links, keywords, and package-local READMEs for all six libraries. README installation commands describe future consumer dependencies and explicitly identify the current unpublished state. On 2026-10-23 the user chose MIT for Toolgrain-owned code with copyright attribution to Keshav Katwe. Root/package license files preserve that grant; vendored protocol material retains its unchanged upstream terms. Five library manifests declare `MIT`; protocol uses `SEE LICENSE IN LICENSE` with a package-root explanation and NOTICE covering its mixed contents. Publication configuration remains separate.
 - The `standardwebhooks@1.1.1` licensing question is resolved: its exact npm source commit `b4d2c14fc5b4ccff3ff271e3b087dff812254c59` retains an MIT `libraries/LICENSE`, copyright (c) 2023 Svix, introduced alongside the JavaScript library. Its `timing_safe_equal.ts` also carries the Deno authors' 2018-2022 MIT attribution. The upstream npm archive omits that parent license and source attribution; `packages/clerk/NOTICE` preserves both notices and full MIT texts with provenance, and must be included in the Clerk archive. No dependency/implementation changes or external contact were required. Renew the notice review when changing the dependency release.
 
+## Confirmed brand kit
+
+- On 2026-10-23 the user approved the Monolith logo mark, wordmark, lockup,
+  colors, typography, and motion direction. `brand/` is the shared source for
+  editable artwork, outlined SVG exports, design tokens, provenance, and usage.
+- Reuse these assets rather than recreating the logo. Preserve the bundled
+  Manrope font's OFL and FONTLOG files. Toolgrain-owned artwork follows MIT.
+- Website implementation and broad asset rollout remain separate work.
+
 ## Confirmed developer API
 
 The public authoring API lives in `@toolgrain/mcp`. Package name remains MCP-specific.
