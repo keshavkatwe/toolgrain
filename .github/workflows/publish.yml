@@ -4,16 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Reviewed release version (X.Y.Z, without a v prefix)
+        description: Reviewed version, for example 0.1.0-rc.0 or 0.1.0 (without v)
         required: true
         type: string
+      dist_tag:
+        description: npm channel (next for RC versions, latest for stable)
+        required: true
+        type: choice
+        options: [next, latest]
+        default: next
       dry_run:
         description: Check packages without publishing (leave enabled during preparation)
         required: true
         type: boolean
         default: true
       confirmation:
-        description: For a real publish, type publish followed by the exact version (for example, publish 0.1.0)
+        description: For a real publish, type publish followed by the exact version (for example, publish 0.1.0-rc.0)
         required: false
         type: string
 
@@ -34,13 +40,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Require the source repository and main for a real publish
+      - name: Validate the version and npm tag; require main for a real publish
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           test "$GITHUB_REPOSITORY" = keshavkatwe/toolgrain
+          version_core='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+          if [[ "$RELEASE_VERSION" =~ ^${version_core}-rc\.(0|[1-9][0-9]*)$ ]]; then
+            test "$RELEASE_DIST_TAG" = next
+          elif [[ "$RELEASE_VERSION" =~ ^${version_core}$ ]]; then
+            test "$RELEASE_DIST_TAG" = latest
+          else
+            echo "Expected a stable version or an rc.N candidate" >&2
+            exit 1
+          fi
           if [ "$DRY_RUN" != true ]; then
             test "$GITHUB_REF" = refs/heads/main
             test "$CONFIRMATION" = "publish $RELEASE_VERSION"
@@ -94,8 +110,12 @@ jobs:
       - name: Check aligned versions and packed contents
         env:
           RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
         run: |
           bun run release:check --version "$RELEASE_VERSION"
+          for package in protocol mcp http node jwt clerk; do
+            test "$(jq -r .publishConfig.tag "packages/$package/package.json")" = "$RELEASE_DIST_TAG"
+          done
           bun run test:size
 
       - name: Pack the six libraries in dependency order
@@ -112,6 +132,7 @@ jobs:
         working-directory: ${{ runner.temp }}/toolgrain-npm
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
           # npm cannot generate provenance from a private repository. Enable it
           # automatically if the source repository becomes public in the future.
           NPM_CONFIG_PROVENANCE: ${{ !inputs.dry_run && !github.event.repository.private }}
@@ -122,5 +143,6 @@ jobs:
           fi
           for package in protocol mcp http node jwt clerk; do
             npm publish "./$package.tgz" --ignore-scripts --access public \
-              --registry=https://registry.npmjs.org/ "${publish_options[@]}"
+              --registry=https://registry.npmjs.org/ --tag "$RELEASE_DIST_TAG" \
+              "${publish_options[@]}"
           done

@@ -6,9 +6,10 @@ Unreleased tracks changes after the latest prepared version.
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-10-24
+## [0.1.0-rc.0] - 2026-10-24
 
-Initial release prepared for review. All six libraries remain unpublished.
+First release candidate for stable `0.1.0`, prepared for verification and
+publication under npm's `next` tag. This entry does not establish publication.
 
 ### Added
 
@@ -30,10 +31,11 @@ Initial release prepared for review. All six libraries remain unpublished.
 
 ### Requirements and migration
 
-- The six libraries start at the shared version `0.1.0`: `@toolgrain/protocol`,
+- The six libraries start at the shared candidate version `0.1.0-rc.0`: `@toolgrain/protocol`,
   `@toolgrain/mcp`, `@toolgrain/http`, `@toolgrain/node`, `@toolgrain/jwt`, and
   `@toolgrain/clerk`. This is the initial release; there is no migration from an
-  earlier published Toolgrain version.
+  earlier published Toolgrain version. Stable `0.1.0` follows candidate testing;
+  install candidates explicitly with the `next` tag.
 - Consumer runtimes are Node.js `^24.20.0` or Bun `>=1.4.4 <2`. Repository
   development retains its separate Bun 1.3.14 pin.
 - TypeScript consumers require strict mode and TypeScript 5.5.4 or later. The
@@ -50,6 +52,12 @@ Initial release prepared for review. All six libraries remain unpublished.
 - Refresh locked example/test dependencies to `body-parser` 2.4.0 and `fast-uri`
   3.1.9 for their upstream security fixes. Other direct dependency pins are
   unchanged.
+
+### Fixed
+
+- Explicitly type the server's HTTP invocation options so the TypeScript 7.1
+  nightly compiler can build MCP without implicit-any errors. Emitted
+  JavaScript and public declarations are unchanged.
 
 ### Known limitations
 

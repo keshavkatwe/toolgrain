@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Prepared version to verify (X.Y.Z, without a v prefix)
+        description: Prepared version to verify, for example 0.1.0-rc.0 (without v)
         required: true
         type: string
   workflow_call:
     inputs:
       version:
-        description: Prepared version to verify (X.Y.Z, without a v prefix)
+        description: Prepared version to verify, for example 0.1.0-rc.0 (without v)
         required: true
         type: string
 

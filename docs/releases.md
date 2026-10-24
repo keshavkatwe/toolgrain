@@ -1,8 +1,10 @@
 # Versioning and releases
 
-Adopted: 2026-10-23. The first planned stable release is **0.1.0**. All six libraries
-are configured for public npm access but remain unpublished. Commits,
-publication, and deployment require their own authorization.
+Adopted: 2026-10-23. The first planned stable release is **0.1.0**, preceded by
+**0.1.0-rc.0** under npm's **next** tag. All six libraries are prepared at that
+candidate version and configured for public access. The preparation date does
+not establish npm publication. Commits, publication, and deployment require
+their own authorization.
 
 ## Changesets and the shared version
 
@@ -19,17 +21,25 @@ steps. The [support policy](support-policy.md#upgrade-and-deprecation-rules),
 including minimum increases and removal notices, still applies.
 
 On 2026-10-24 the user selected **0.1.0-rc.0** under npm's **next** tag as the
-first publication, before stable `0.1.0`. Preparing prerelease versions and
-explicit publication-tag controls is the next release step; current manifests
-remain at the prepared `0.1.0` baseline. This decision does not authorize a publish.
+first publication, before stable `0.1.0`, and subsequently authorized merging the
+canary fix and making that prerelease. Publication still waits for review and
+green supported verification of the prepared candidate on main.
+
+Changesets prerelease mode uses `rc` for the version suffix; npm publication uses
+the separate `next` dist-tag. `.changeset/pre.json` tracks the mode, and Changesets
+retains the initial release record under `.changeset/pre/` for stable promotion.
+The initial conversion used an unpublished `0.0.0` planning baseline and a minor
+record so Changesets selected exactly `0.1.0-rc.0`. No `0.0.0` package is released;
+do not repeat that bootstrap. The release tests cover RC0, RC1, stable promotion,
+and packed internal dependency versions.
 
 ## Record changes and prepare a release PR
 
 For user-facing library changes, run `bun run changeset`, select affected
 libraries and a bump type, and write a summary. Include that record with the
 change when committing is authorized. Use `bun run changeset --empty` for
-repository-only work needing no library release. The initial empty record keeps
-our already-selected 0.1.0 baseline without another bump.
+repository-only work needing no library release. The initial candidate is already
+versioned; add records only for subsequent changes.
 
 Maintain the root [CHANGELOG.md](../CHANGELOG.md) manually. Add user-facing notes
 under Unreleased, grouped as useful under Added, Changed, Fixed, Removed, and
@@ -50,11 +60,12 @@ bun run release:check
 `release:status` shows Changesets' plan and can report missing change records.
 `release:version` runs Changesets, consumes records, and synchronizes the six
 Bun lockfile workspace versions. It does not commit, tag, push, open a PR, or
-publish. For the initial empty record, the version stays 0.1.0.
+publish. In the current `rc` mode, new records advance the candidate series.
 
 Run `release:status` before versioning. Once records are consumed, the unmerged
-release branch can report changed packages with no Changesets records when
-compared with main. Review the consumed records and prepared version changes;
+release branch can report changed packages with no active Changesets records when
+compared with main. Review consumed records, records moved to `.changeset/pre/`,
+and prepared version changes;
 do not add replacement records just to make that comparison pass. Normal CI
 checks the prepared versions with `release:check`.
 
@@ -70,6 +81,11 @@ responsible for exports, contents, installation, declarations, and runtime check
 Review the six versions, consumed records, lockfile, shared changelog, and
 migration steps. Once committing and opening a PR are authorized, create a
 normal `Release vX.Y.Z` PR and merge through review and required CI.
+
+To prepare stable `0.1.0` after candidate testing, run `bun run changeset pre exit`
+and `bun run release:version`, change all six `publishConfig.tag` values to
+`latest`, and prepare the stable changelog entry. Review that release PR and run
+the same full verification before a separately approved stable publication.
 
 ## Verify the release
 
@@ -90,9 +106,9 @@ those decisions or untested client/platform compatibility.
 Only the six libraries in the Changesets fixed group are publishable. Their
 `publishConfig` selects public access and `https://registry.npmjs.org/`;
 Changesets also uses public access. The root, examples, and repository tooling
-remain private. Library versions stay at the selected `0.1.0` baseline during
-this setup. Do not run Changesets publication or tagging commands during
-preparation.
+remain private. The current candidate manifests also set `publishConfig.tag`
+to `next` as a defensive default. Do not run Changesets publication or tagging
+commands; the explicit archive publishing process below owns npm dist-tags.
 
 `.github/workflows/publish.yml` is manually triggered and defaults to a dry run.
 It reruns Release verification for the selected commit and version, builds the
@@ -101,8 +117,11 @@ protocol, MCP, HTTP, Node, JWT, Clerk. npm publishes the resulting archives with
 lifecycle scripts disabled. Run npm outside the checkout: the repository's Bun
 `devEngines` intentionally rejects npm operating on the workspace itself.
 
-A real workflow publish requires main, `dry_run: false`, and confirmation text
-`publish X.Y.Z` matching the version input. It uses the `npm` GitHub environment
+A workflow dispatch selects `dist_tag`: RC versions require `next`, and stable
+versions require `latest`. Other prerelease suffixes are rejected. The workflow
+checks all six manifest tags and passes the selected tag explicitly to npm.
+A real workflow publish also requires main, `dry_run: false`, and confirmation
+text `publish VERSION` matching the version input. It uses the `npm` GitHub environment
 and OIDC; no npm token secret is configured. The GitHub `npm` environment is
 configured to permit only the `main` branch. Required reviewers are not configured;
 add them where supported by the GitHub plan.
@@ -115,14 +134,14 @@ jobs use this same environment and therefore also require main.
 
 [npm requires the package to exist before trusted publishing can be configured](https://docs.npmjs.com/cli/v11/commands/npm-trust/#prerequisites).
 The first release therefore uses an interactive maintainer login with access to
-the `@toolgrain` scope. Publish the real, reviewed `0.1.0` archives after release
+the `@toolgrain` scope. Publish the real, reviewed `0.1.0-rc.0` archives after release
 verification and explicit approval; OIDC is for subsequent releases.
 
 To prepare and dry-run the archives from the reviewed checkout:
 
 ```sh
 set -e
-bun run release:check --version 0.1.0
+bun run release:check --version 0.1.0-rc.0
 bun run build --filter='./packages/*'
 bun run test:size
 release_packages="$(mktemp -d)"
@@ -136,7 +155,7 @@ done
   cd "$release_packages"
   for package in protocol mcp http node jwt clerk; do
     npm publish "./$package.tgz" --dry-run --ignore-scripts --access public \
-      --registry=https://registry.npmjs.org/
+      --registry=https://registry.npmjs.org/ --tag next
   done
 )
 ```
@@ -145,9 +164,12 @@ A dry run validates publication inputs; it does not prove npm account permission
 or OIDC authentication. Keep these archives for review. After publication is
 approved, authenticate from that directory with
 `npm login --registry=https://registry.npmjs.org/` and run the same archive loop
-without `--dry-run`. Stop on any failure and inspect which packages were
+without `--dry-run`, retaining `--tag next`. Stop on any failure and inspect which packages were
 published before deciding how to resume; publication of six packages is not
 atomic. Never rerun a published package/version or change an archive silently.
+Verify each published version's integrity and dist-tags against the reviewed
+archive, then exercise a fresh registry consumer using the `next` tag. Never
+promote a candidate to `latest` as part of this prerelease.
 
 ### Subsequent releases with OIDC
 

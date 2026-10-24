@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { checkRelease, syncLockfile } from "../src/release.mjs";
 
-function fixture(t) {
+function fixture(t, version = "0.1.0") {
   const directory = mkdtempSync(join(tmpdir(), "toolgrain-release-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const write = (path, value) =>
@@ -42,7 +42,7 @@ function fixture(t) {
     mkdirSync(join(directory, "packages", short), { recursive: true });
     const manifest = {
       name: `@toolgrain/${short}`,
-      version: short === "repo-tools" ? "0.0.0" : "0.1.0",
+      version: short === "repo-tools" ? "0.0.0" : version,
       ...(short === "repo-tools"
         ? { private: true }
         : {
@@ -140,4 +140,51 @@ test("the initial empty record preserves 0.1.0 and does not generate package cha
   assert(!existsSync(join(directory, ".changeset/initial.md")));
   for (const name of ["protocol", "mcp"])
     assert(!existsSync(join(directory, "packages", name, "CHANGELOG.md")));
+});
+
+test("the initial RC series stays in its fixed group and promotes to 0.1.0", (t) => {
+  const { directory, write } = fixture(t, "0.0.0");
+  const changeset = (type) =>
+    `---\n"@toolgrain/mcp": ${type}\n---\nCandidate release.\n`;
+  const run = (...args) =>
+    execFileSync("node", [cli, ...args], { cwd: directory, timeout: 30000 });
+  const assertVersion = (version) => {
+    syncLockfile(directory);
+    assert.equal(checkRelease(directory, version).packages.length, 2);
+  };
+
+  write(".changeset/initial-release.md", changeset("minor"));
+  run("pre", "enter", "rc");
+  run("version");
+  assertVersion("0.1.0-rc.0");
+  assert(existsSync(join(directory, ".changeset/pre/initial-release.md")));
+
+  const archive = join(directory, "candidate.tgz");
+  execFileSync(
+    "bun",
+    ["pm", "pack", "--ignore-scripts", "--quiet", "--filename", archive],
+    { cwd: join(directory, "packages/mcp"), timeout: 10000 },
+  );
+  const packed = JSON.parse(
+    execFileSync("tar", ["-xOf", archive, "package/package.json"], {
+      encoding: "utf8",
+    }),
+  );
+  assert.equal(packed.version, "0.1.0-rc.0");
+  assert.equal(packed.dependencies["@toolgrain/protocol"], "0.1.0-rc.0");
+
+  write(".changeset/candidate-fix.md", changeset("patch"));
+  run("version");
+  assertVersion("0.1.0-rc.1");
+  run("pre", "exit");
+  run("version");
+  assertVersion("0.1.0");
+  assert(!existsSync(join(directory, ".changeset/pre.json")));
+  assert(!existsSync(join(directory, ".changeset/pre/initial-release.md")));
+  assert.equal(
+    JSON.parse(
+      readFileSync(join(directory, "packages/repo-tools/package.json")),
+    ).version,
+    "0.0.0",
+  );
 });

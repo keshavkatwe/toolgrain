@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/protocol",
-  "version": "0.1.0",
+  "version": "0.1.0-rc.0",
   "description": "Pinned MCP wire types, protocol versions, and upstream provenance for Toolgrain.",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -21,7 +21,8 @@
   ],
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "tag": "next"
   },
   "type": "module",
   "exports": {

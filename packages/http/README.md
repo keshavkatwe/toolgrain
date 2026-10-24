@@ -5,13 +5,11 @@ Streamable HTTP handlers for Toolgrain MCP servers using Web `Request` and
 
 ## Installation
 
-Toolgrain packages are unpublished. This command describes consumer
-dependencies for a future release; use the
-[framework examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
-to try Toolgrain today.
+Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
+A stable Toolgrain release is not yet available.
 
 ```sh
-npm install @toolgrain/http @toolgrain/mcp zod
+npm install @toolgrain/http@next @toolgrain/mcp@next zod
 ```
 
 ## Mount a Web handler

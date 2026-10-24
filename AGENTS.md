@@ -1,6 +1,6 @@
 # Toolgrain: agent instructions and project context
 
-Updated: 2026-10-24
+Updated: 2026-10-25
 
 ## Working agreement
 
@@ -186,7 +186,7 @@ Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
 
 Adopted on 2026-10-23; implementation does not authorize commits or publication.
 
-- The six libraries share version `0.1.0` initially and one root `CHANGELOG.md`.
+- The six libraries share candidate `0.1.0-rc.0` before stable `0.1.0`, with one root `CHANGELOG.md`.
   Changesets 3.0.3 owns release planning, version selection, and dependency updates.
   Its explicit fixed group in `.changeset/config.json` lists only the six libraries;
   their manifests are the version source of truth. Examples/tooling are ignored.
@@ -197,10 +197,10 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
   use minor records. From `1.0`, follow semantic versioning. Existing runtime/peer
   minimum and removal notice rules still apply.
 - On 2026-10-24 the user chose the first npm publication as `0.1.0-rc.0` under
-  npm's `next` tag, before stable `0.1.0`. Prerelease version preparation and
-  explicit dist-tag controls remain to be implemented after the canary fix;
-  this decision does not authorize publication. Current manifests remain at
-  the prepared `0.1.0` baseline until that preparation step.
+  npm's `next` tag, before stable `0.1.0`. The user subsequently requested
+  "Merge and prerelease", authorizing the RC publication after its release gates.
+  Candidate versions and explicit dist-tag controls are prepared as described
+  below; stable publication remains separate.
 - Record release intent with `bun run changeset` and maintain editorial Unreleased
   notes in the root changelog. `release:status` previews the plan. Repository-only
   work uses empty records; the initial empty record preserves the selected 0.1.0.
@@ -225,7 +225,8 @@ commit and PR that day; publication requires separate approval.
 
 - The six library manifests are publishable with public npm access and an explicit
   npmjs registry; Changesets uses public access. Root, examples, and repo-tools
-  remain private. Versions stay at the initial `0.1.0` baseline.
+  remain private. Setup retained the initial `0.1.0` baseline; the RC preparation
+  below replaces it with `0.1.0-rc.0`.
 - The manual `publish.yml` workflow defaults to a dry run and reuses Release
   verification for the same selected commit/version before building and packing
   the libraries in dependency order. Actual publication additionally requires
@@ -250,7 +251,33 @@ commit and PR that day; publication requires separate approval.
   authentication challenge was exercised. OIDC trust bindings remain deferred
   until packages exist. See `docs/releases.md`.
 
-## 0.1.0 release preparation status
+## 0.1.0-rc.0 preparation status
+
+- PR #29 prepared the stable baseline and was merged as `e819f87`. Its full
+  Release verification passed; the informational canary exposed a compiler
+  inference error. PR #30 fixed it and was merged as `60c5ce6` after green PR CI.
+- The user selected RC0 under `next` before stable `0.1.0`, then authorized the
+  prerelease. On 2026-10-25 the user explicitly authorized committing the RC,
+  opening its release PR, and merging after green CI. The RC is prepared on
+  `codex/release-0.1.0-rc.0`; the release
+  preparation commit/PR, review/merge, and full hosted RC verification must
+  precede actual publication. No candidate has been published yet.
+- Changesets 3.0.3 selected all six `0.1.0-rc.0` versions from an unpublished
+  `0.0.0` planning baseline and an initial minor record. No package is published
+  at `0.0.0`; do not repeat the bootstrap. `.changeset/pre.json` uses `rc`, and
+  the initial record is retained under `.changeset/pre/` for stable promotion.
+  A release test covers RC0, RC1, stable `0.1.0`, and packed internal versions.
+- All six RC manifests use `publishConfig.tag: "next"`. The manual publication
+  workflow requires RC versions with `next`, stable versions with `latest`, and
+  matching manifest tags. npm always receives an explicit tag. First publication
+  remains interactive; package OIDC bindings follow package creation.
+- The user is authenticated as `keshav.katwe`; the organization has no published
+  packages at preparation time. Publish only reviewed archives after the RC's
+  supported verification passes, then check registry integrity/tags and a fresh
+  `next` consumer. Stable promotion changes manifest tags to `latest` and needs
+  separate approval. Git tags, GitHub Releases, and deployment remain separate.
+
+## 0.1.0 stable baseline preparation history
 
 Started at the user's request on 2026-10-24 on `codex/release-0.1.0`, based on
 main `31aa4e9c06da9eab2f83a97d20218b61cb6c8c7c`. This branch includes the
@@ -286,7 +313,7 @@ roadmap and npm publication setup from this chat.
 
 ## Confirmed protocol package decisions
 
-- `@toolgrain/protocol` is an unpublished workspace package, version `0.1.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- `@toolgrain/protocol` is a release-candidate workspace package, version `0.1.0-rc.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
 - Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
 - Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
 - Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
@@ -295,7 +322,7 @@ roadmap and npm publication setup from this chat.
 
 ## Confirmed MCP package decisions
 
-- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.1.0`, unpublished.
+- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.1.0-rc.0`, prepared for publication.
 - The unpublished `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Response server identity (`name`, `version`) is copied per response in modern result metadata and legacy initialization, so callers cannot mutate other responses or the server's internal identity.

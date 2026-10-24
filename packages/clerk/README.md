@@ -4,13 +4,11 @@ Clerk OAuth access-token authorization for Toolgrain MCP servers.
 
 ## Installation
 
-Toolgrain packages are unpublished. This command describes consumer
-dependencies for a future release; use the
-[protected Clerk example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/elysia-example#clerk-authorization-and-inspector)
-to try the integration today.
+Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
+A stable Toolgrain release is not yet available.
 
 ```sh
-npm install @toolgrain/clerk @toolgrain/mcp @toolgrain/node zod
+npm install @toolgrain/clerk@next @toolgrain/mcp@next @toolgrain/node@next zod
 ```
 
 ## Protect an HTTP server

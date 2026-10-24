@@ -6,13 +6,11 @@ This package has no runtime dependencies. Tool authoring lives in
 
 ## Installation
 
-This is an unpublished workspace package. The command below describes
-consumer dependencies for a future release; use the
-[repository examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
-to try Toolgrain today.
+Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
+A stable Toolgrain release is not yet available.
 
 ```sh
-npm install @toolgrain/protocol
+npm install @toolgrain/protocol@next
 ```
 
 ## Protocol versions and wire types

@@ -5,13 +5,11 @@ implements MCP directly, independently of `@modelcontextprotocol/sdk`.
 
 ## Installation
 
-Toolgrain packages are unpublished. These commands describe consumer
-dependencies for a future release; use the
-[repository examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
-to try Toolgrain today.
+Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
+A stable Toolgrain release is not yet available.
 
 ```sh
-npm install @toolgrain/mcp @toolgrain/node zod
+npm install @toolgrain/mcp@next @toolgrain/node@next zod
 npm install --save-dev typescript @types/node
 ```
 
