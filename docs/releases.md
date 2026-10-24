@@ -1,6 +1,6 @@
 # Versioning and releases
 
-Adopted: 2026-10-23. The first planned release is **0.1.0**. All six libraries
+Adopted: 2026-10-23. The first planned stable release is **0.1.0**. All six libraries
 are configured for public npm access but remain unpublished. Commits,
 publication, and deployment require their own authorization.
 
@@ -16,8 +16,12 @@ During `0.x`, use patch records for compatible fixes and minor records for
 features or breaking changes. From `1.0`, use patch/minor/major for
 fixes/compatible features/breaking changes. Explain breaking changes and migration
 steps. The [support policy](support-policy.md#upgrade-and-deprecation-rules),
-including minimum increases and removal notices, still applies. Prerelease
-channels remain a separate decision.
+including minimum increases and removal notices, still applies.
+
+On 2026-10-24 the user selected **0.1.0-rc.0** under npm's **next** tag as the
+first publication, before stable `0.1.0`. Preparing prerelease versions and
+explicit publication-tag controls is the next release step; current manifests
+remain at the prepared `0.1.0` baseline. This decision does not authorize a publish.
 
 ## Record changes and prepare a release PR
 

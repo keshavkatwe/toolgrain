@@ -195,7 +195,12 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
   npm publication setup is described below.
 - During `0.x`, compatible fixes use patch records; features and breaking changes
   use minor records. From `1.0`, follow semantic versioning. Existing runtime/peer
-  minimum and removal notice rules still apply; prerelease channels are deferred.
+  minimum and removal notice rules still apply.
+- On 2026-10-24 the user chose the first npm publication as `0.1.0-rc.0` under
+  npm's `next` tag, before stable `0.1.0`. Prerelease version preparation and
+  explicit dist-tag controls remain to be implemented after the canary fix;
+  this decision does not authorize publication. Current manifests remain at
+  the prepared `0.1.0` baseline until that preparation step.
 - Record release intent with `bun run changeset` and maintain editorial Unreleased
   notes in the root changelog. `release:status` previews the plan. Repository-only
   work uses empty records; the initial empty record preserves the selected 0.1.0.

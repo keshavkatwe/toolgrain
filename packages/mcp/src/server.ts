@@ -125,7 +125,10 @@ export function createServer<const Tools extends ToolMap>(
         throw error;
       }
     },
-    async handle(message, { signal, protocolVersion, auth } = {}) {
+    async handle(
+      message,
+      { signal, protocolVersion, auth }: HandleOptions = {},
+    ) {
       if (closed) throw new Error("Server is closed");
       const identity = authorization.consume(auth);
       if (auth?.signal.aborted) return;
