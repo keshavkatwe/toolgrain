@@ -599,7 +599,7 @@ applies across apps and packages; installed skills are excluded from checks.
 - `apps/http-example/`: plain Node HTTP server.
 - Other `apps/*-example/` workspaces: independent Express, Hono, Elysia, and Next.js applications.
 - Packages compile ESM/declarations with TypeScript and use Vitest.
-- `apps/`: examples and future documentation applications.
+- `apps/docs/`: Monolith documentation site; see its [authoring and preview guide](./apps/docs/README.md).
 - `tsconfig.base.json`: shared strict TypeScript defaults; future workspaces extend
   it and define their own input files, output paths, and runtime-specific options.
 - `turbo.json`: build, test, and type-check orchestration for future workspaces.

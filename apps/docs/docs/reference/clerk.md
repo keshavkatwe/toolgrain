@@ -1,0 +1,26 @@
+# @toolgrain/clerk
+
+## clerk
+
+```ts
+clerk(options: ClerkOptions): AuthProvider<ClerkAuth>
+```
+
+`ClerkOptions` requires `publishableKey: string` and `secretKey: string`, with optional `resource: string`. Issuer is derived from the publishable key; resource defaults to the validated public HTTP endpoint. Keys are server configuration, not tool inputs.
+
+The provider accepts verified Clerk OAuth JWT or opaque access tokens for a user and client. JWT token types must identify an access token, and required user/client claims must be present. Revoked/expired opaque tokens are rejected. Sessions, API keys, and M2M tokens are unsupported.
+
+## useAuth
+
+```ts
+useAuth(ctx: ToolContext): AuthReadonly<ClerkAuth>
+interface ClerkAuth {
+  readonly userId: string;
+  readonly clientId: string;
+  readonly scopes: readonly string[];
+}
+```
+
+The accessor is synchronous and provider-specific. Identity is copied/frozen per request; raw credentials and Clerk SDK methods are not exposed. Application code still enforces action-specific permissions/scopes. Toolgrain does not configure Clerk OAuth applications or run client login flows.
+
+See [Clerk setup](../authentication/clerk.md) and the [full authorization guide](../guides/authorization.md).

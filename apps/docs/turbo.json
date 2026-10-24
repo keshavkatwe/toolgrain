@@ -1,0 +1,36 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/brand/**",
+        "$TURBO_ROOT$/docs/**",
+        "$TURBO_ROOT$/CHANGELOG.md"
+      ],
+      "outputs": [
+        "build/**",
+        ".docusaurus/**",
+        "src/generated/**",
+        "static/brand/**",
+        "static/fonts/**",
+        "docs/guides/context.md",
+        "docs/guides/authorization.md",
+        "docs/compatibility/protocol.md",
+        "docs/compatibility/clients.md",
+        "docs/project/support-policy.md",
+        "docs/project/releases.md",
+        "docs/project/changelog.md"
+      ]
+    },
+    "check-types": {
+      "dependsOn": ["build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/brand/**",
+        "$TURBO_ROOT$/docs/**",
+        "$TURBO_ROOT$/CHANGELOG.md"
+      ]
+    }
+  }
+}

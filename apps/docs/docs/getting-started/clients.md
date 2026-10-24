@@ -1,0 +1,43 @@
+# Connect a client
+
+A server defines capabilities. An MCP client starts or connects to it, discovers tools, and issues calls. Start with Inspector to distinguish server behavior from a model's choices or a client's presentation.
+
+## Inspector
+
+The repository pins Inspector **2.11.0**. Its stdio example script starts the compiled server; the HTTP examples connect to a server that you start separately:
+
+```bash
+# Terminal 1, from the repository root:
+bun run --cwd apps/http-example dev
+```
+
+```bash
+# Terminal 2:
+bun run --cwd apps/http-example inspect
+```
+
+The HTTP example defaults to `http://127.0.0.1:3000/mcp`. The shared Inspector launcher selects the modern protocol explicitly. Select discovery, list tools, inspect the input/output schemas, and call `greet`. Reconnect after rebuilding a stdio server so the client launches the new compiled code.
+
+## Stdio client configuration
+
+Most clients ask for an executable, an argument list, and optionally environment variables. Use absolute paths to both the executable, when needed, and the compiled server. Do not put a shell command and its arguments into one executable field.
+
+For Codex's TOML configuration, the verified legacy-compatible shape is:
+
+```toml
+[mcp_servers.hello]
+command = "node"
+args = ["/absolute/path/to/dist/server.js"]
+```
+
+Toolgrain accepts the supported legacy initialization revision without requiring a modern feature flag. Exact modern flags and tested client versions are in the [protocol verification guide](../compatibility/protocol.md#normal-codex-setup). Treat client-specific instructions as versioned evidence, not a promise about future clients.
+
+## HTTP clients
+
+Use the full MCP endpoint URL, including `/mcp`. Protected endpoints additionally require the client's OAuth configuration or a valid Bearer access token. The endpoint and protected-resource metadata must be publicly reachable for remote clients; a loopback address points to the client's own machine.
+
+Toolgrain does not issue tokens or run an OAuth login UI. See [authentication](../authentication/overview.md) before configuring protected clients.
+
+## What has been verified
+
+Inspector checks pass. Tested Codex and Claude Code flows work with documented timeout and rich-result presentation limitations. Cursor discovery and auth checks passed, but execution and cancellation remain unverified in the report. See the [dated interoperability report](../compatibility/clients.md) before making a client-compatibility claim.

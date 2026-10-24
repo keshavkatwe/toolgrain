@@ -1,0 +1,29 @@
+# @toolgrain/jwt
+
+## jwt
+
+```ts
+jwt(options: JwtOptions): AuthProvider<JwtAuth>
+```
+
+| `JwtOptions` field | Contract |
+| --- | --- |
+| `issuer: string` | Required trusted exact issuer URL |
+| `jwksUrl?: string` | Explicit signing-key endpoint; otherwise discover from issuer |
+| `resource?: string` | Explicit expected audience/resource; otherwise use validated HTTP resource |
+| `algorithms?: readonly string[]` | Defaults to RS256 and ES256; nonempty asymmetric allowlist |
+
+Supported asymmetric algorithms are RS256/384/512, PS256/384/512, ES256/384/512, EdDSA, and Ed25519. Availability still depends on the supported runtime/crypto implementation. Token signatures, issuer, required expiration, optional not-before, audience, and standard claim shapes are checked. Key discovery/rotation caches are internal, not a public key-management API.
+
+## useAuth
+
+```ts
+useAuth(ctx: ToolContext): AuthReadonly<JwtAuth>
+interface JwtAuth { readonly claims: JwtClaims; }
+```
+
+`JwtClaims` has required `iss: string`, `aud: string | readonly string[]`, and `exp: number`. Optional standard fields are `sub`, `iat`, `nbf`, and `jti`. Other claims remain `unknown` through the index signature and require application validation. NumericDate fields are finite; audience arrays contain only strings.
+
+The synchronous accessor requires a matching verified JWT identity. It does not expose a token or refresh/login methods. Missing/mismatched audiences receive safe public resource guidance. Unexpected key/discovery failures are provider outages and remain private in diagnostics.
+
+See the [JWT guide](../authentication/jwt.md) and [shared auth contracts](auth.md).

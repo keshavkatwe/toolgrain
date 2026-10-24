@@ -1,0 +1,35 @@
+# Custom transports and direct handling
+
+Most applications should use the supplied adapters. Custom integrations can implement a message `Transport` or independent `RequestTransport`, or call `server.handle()` directly. Protocol methods do not belong in the framing adapter.
+
+## Message transport
+
+`Transport` has `start(callbacks)`, `send(response)`, and `close()` methods; optional `mode` is `"message"`. On startup, retain callbacks for messages, parse failures, unexpected errors, and connection closure. Callbacks are synchronous; message processing runs independently.
+
+Own UTF-8 framing, JSON decoding, write ordering/backpressure, and stream cleanup. Do not call the MCP dispatcher yourself. Message transports are unsuitable for servers with HTTP authorization configured.
+
+## Request transport
+
+`RequestTransport` declares `mode: "request"`. Its `start(server, callbacks)` receives the composed server plus `onError` and `onClose`; `close()` stops its listener. Each incoming request has its own validation, authorization scope, and cancellation signal. Never reuse a scope across requests.
+
+The server claims one transport before startup, across compatible package copies. Reusing a transport or attaching a second one is rejected; the existing owner remains running. Closure is terminal, idempotent, and re-entrant.
+
+## Handle a complete protocol message
+
+```ts
+const controller = new AbortController();
+const response = await server.handle({
+  jsonrpc: "2.0", id: 1, method: "tools/call",
+  params: {
+    name: "greet", arguments: { name: "Ada" },
+    _meta: {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+    },
+  },
+}, { signal: controller.signal });
+```
+
+`handle()` returns a protocol response or `undefined` for notifications/cancelled work. It does not perform HTTP method, host, Origin, content-type, or body-size checks. Implement those boundaries before direct handling, or reuse an HTTP adapter.
+
+For protected calls, obtain a server-bound scope with `authorize()`, pass it as `{ auth }`, and dispose it in `finally`. Scopes are single-use. The [detailed authorization guide](../guides/authorization.md#custom-providers-and-direct-invocation) shows that lifecycle.

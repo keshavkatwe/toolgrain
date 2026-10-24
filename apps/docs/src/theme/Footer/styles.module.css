@@ -1,0 +1,134 @@
+.footer {
+  background: #161f1b;
+  border-top: 1px solid #3b4c3f;
+  color: #e8eddf;
+}
+.inner {
+  max-width: 1400px;
+  margin: auto;
+  padding: 50px 5.5% 25px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 50px;
+  padding-bottom: 40px;
+}
+.eyebrow {
+  font: 9px / 1.7 var(--ifm-font-family-monospace);
+  text-transform: uppercase;
+  letter-spacing: 1.3px;
+  color: #9bb29c;
+}
+.cta {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  color: #e8eddf;
+  font-size: clamp(25px, 3vw, 38px);
+  letter-spacing: -0.05em;
+  margin-top: 12px;
+}
+.cta:hover {
+  color: #e8eddf;
+}
+.cta span {
+  color: #d8e65a;
+}
+.top nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 40px;
+}
+.top nav a {
+  font-size: 11px;
+  color: #b8cbb6;
+}
+.bottom {
+  border-top: 1px solid #6c856144;
+  border-bottom: 1px solid #6c856144;
+  padding: 22px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+}
+.bottom img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+.bottom > span {
+  font: 9px / 1.8 var(--ifm-font-family-monospace);
+  color: #a5bba1;
+}
+.bottom > a {
+  color: #b8cbb6;
+}
+.bottom .lightLogo {
+  display: none;
+}
+.legal {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  padding-top: 22px;
+  font: 9px / 1.7 var(--ifm-font-family-monospace);
+  color: #91a88e;
+}
+.legal a {
+  color: inherit;
+}
+.legal a:last-child {
+  margin-left: auto;
+}
+:global([data-theme="light"]) .footer {
+  background: #e4e9db;
+  color: #29402e;
+  border-color: #c6d0bd;
+}
+:global([data-theme="light"]) .cta {
+  color: #29402e;
+}
+:global([data-theme="light"]) .cta span {
+  color: #5c7319;
+}
+:global([data-theme="light"]) .eyebrow,
+:global([data-theme="light"]) .top nav a,
+:global([data-theme="light"]) .bottom > span,
+:global([data-theme="light"]) .bottom > a,
+:global([data-theme="light"]) .legal {
+  color: #526a4b;
+}
+:global([data-theme="light"]) .bottom .darkLogo {
+  display: none;
+}
+:global([data-theme="light"]) .bottom .lightLogo {
+  display: block;
+}
+@media (max-width: 700px) {
+  .inner {
+    padding-top: 35px;
+  }
+  .top {
+    align-items: start;
+    flex-direction: column;
+    gap: 30px;
+    padding-bottom: 30px;
+  }
+  .bottom {
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .bottom > span {
+    order: 3;
+    width: 100%;
+    font-size: 8px;
+  }
+  .legal {
+    gap: 14px;
+    font-size: 8px;
+  }
+}

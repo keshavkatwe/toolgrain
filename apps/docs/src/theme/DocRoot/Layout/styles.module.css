@@ -1,0 +1,25 @@
+.frame {
+  --doc-sidebar-width: 252px;
+  width: 100%;
+  max-width: 1520px;
+  margin: auto;
+}
+.frame :global(.theme-doc-sidebar-container) {
+  margin-top: 0;
+  clip-path: none;
+  border-color: var(--ifm-toc-border-color);
+}
+.frame :global([class*="sidebarViewport_"]) {
+  position: static;
+  max-height: none;
+}
+@media (max-width: 996px) {
+  .frame :global([class*="docRoot_"]) {
+    flex-direction: column;
+  }
+  .frame :global(.theme-doc-sidebar-container) {
+    display: block;
+    width: 100%;
+    border-right: 0;
+  }
+}

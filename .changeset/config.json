@@ -21,6 +21,7 @@
   },
   "updateInternalDependencies": "patch",
   "ignore": [
+    "apps-docs",
     "@toolgrain/repo-tools",
     "@toolgrain/elysia-example",
     "@toolgrain/express-example",

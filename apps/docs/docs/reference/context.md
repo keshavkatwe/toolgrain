@@ -1,0 +1,55 @@
+# Context API
+
+These exports live in `@toolgrain/mcp`. Context is request-scoped and non-generic; application services are inferred through provider accessors.
+
+## ToolContext and request types
+
+```ts
+interface ToolContext {
+  readonly signal: AbortSignal;
+  readonly request: ToolRequest;
+}
+interface ToolRequest {
+  readonly id: RequestId;
+  readonly protocolVersion: SupportedProtocolVersion;
+  readonly client?: ToolClient;
+  readonly meta: Readonly<Record<string, unknown>>;
+}
+```
+
+`RequestId` and `SupportedProtocolVersion` come from protocol. `ToolClient` has optional `info` and `capabilities`, recursively readonly modern/legacy unions. The request, metadata, and client snapshots are deeply frozen per request. Client reports are unverified. Protocol-version checks do not narrow the union automatically.
+
+## toolContext
+
+```ts
+toolContext(options?: ToolContextOptions): ToolContext
+```
+
+`ToolContextOptions` accepts `signal?`, `request?: Partial<ToolRequest>`, and `context?` registrations. Omitted or undefined fields default individually: fresh signal, ID 0, modern revision, no client, empty metadata, and no providers. Each call creates a new provider cache; reusing the returned context reuses that cache.
+
+This is the supported direct-call construction helper. Handwritten contexts are not a compatibility promise. A direct `execute()` call remains raw and does not authorize or validate data.
+
+## createContext
+
+```ts
+createContext<Value>({
+  name: string,
+  resolve: (ctx: ToolContext) => Value,
+}): ContextProvider<Awaited<Value>>
+```
+
+`name` must be nonempty and is a diagnostic label, not the provider identity. The definition is immutable and has an opaque identity. Register it explicitly in a server or direct context's `context` array.
+
+### ContextProvider
+
+| Member | Contract |
+| --- | --- |
+| `name` | Readonly diagnostic label |
+| `use(ctx)` | Always `Promise<Value>`; resolves lazily and caches a promise/value/failure per context |
+| `provide(resolve)` | Returns an immutable typed binding for the same identity |
+
+The exported abstract `ContextProvider<Value>` describes the inferred accessor/binding contract. Use the factory rather than building or subclassing a registration manually.
+
+Duplicate registrations for one identity fail construction; distinct definitions can share a name. Missing providers reject on access. Factories may await other accessors; all dependencies must be registered. Direct, indirect, and concurrent cycles reject with a diagnostic chain. Shared diamonds are supported.
+
+Authorization and input validation precede factory startup. Accessors check cancellation before access/startup and after resolution. Values are returned unchanged and can contain mutable clients or functions. There is no automatic resource disposal, transaction management, synchronous accessor, or background-work support. See [the full context guide](../guides/context.md).

@@ -52,6 +52,10 @@ metallic wordmark also flow continuously. The manual Pause control stops the
 timeline; hidden documents pause without catching up when restored.
 Reduced motion shows a complete static scene. Documentation articles stay still.
 
+The approved interactive design reference is `design/monolith-preview.html` at
+the repository root. It is a standalone design prototype, not a production
+Docusaurus implementation.
+
 ## Regeneration and provenance
 
 `mark.svg` and `brand.json` are editable sources. The outlined wordmark comes

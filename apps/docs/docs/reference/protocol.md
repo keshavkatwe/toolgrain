@@ -1,0 +1,38 @@
+# @toolgrain/protocol
+
+Wire types, protocol constants, and provenance. This package has no runtime dependencies and does not provide validators, dispatchers, transports, or a server implementation.
+
+## Revision constants
+
+```ts
+import {
+  PROTOCOL_VERSION,
+  LEGACY_PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  type SupportedProtocolVersion,
+  type ProtocolResponse,
+} from "@toolgrain/protocol";
+```
+
+`PROTOCOL_VERSION` is `"2026-07-28"`. `LEGACY_PROTOCOL_VERSION` is `"2025-06-18"`. `SUPPORTED_PROTOCOL_VERSIONS` is their readonly tuple, and `SupportedProtocolVersion` is its element union. The upstream root also exports its original `LATEST_PROTOCOL_VERSION` constant.
+
+`ProtocolResponse` is the shared response-envelope union used by transport contracts; `LegacyJSONRPCErrorResponse` models legacy errors, including null IDs that the older upstream schema cannot express.
+
+## Wire definitions
+
+Modern upstream definitions are exported unchanged from the package root, including request/result/notification types, JSON-RPC envelopes, implementation/capability types, tool/content/resource/prompt shapes, and protocol error constants. Types describing methods do not mean Toolgrain's server implements those methods. Consult the [supported feature scope](../compatibility/overview.md).
+
+Legacy definitions are a separate entry point:
+
+```ts
+import type { Tool, CallToolResult } from "@toolgrain/protocol";
+import type * as Legacy from "@toolgrain/protocol/2025-06-18";
+```
+
+Use the revision-specific type rather than coercing one era's envelope into another. The complete wire contract is the unchanged [modern schema source](https://github.com/keshavkatwe/toolgrain/blob/main/packages/protocol/src/vendor/2026-07-28/schema.ts) and [legacy schema source](https://github.com/keshavkatwe/toolgrain/blob/main/packages/protocol/src/vendor/2025-06-18/schema.ts), which are the authoritative reference for all upstream exports.
+
+## Provenance
+
+Both schemas are pinned to upstream commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`. Revision folders retain their checksums, provenance, and upstream license. Corresponding JSON schemas are test-only conformance fixtures, not runtime exports or files copied to `dist`.
+
+MCP runtime validation remains in `@toolgrain/mcp`. Import wire types directly from protocol; MCP does not re-export them. See [licensing](../project/licensing.md) for mixed-content notices and update boundaries.

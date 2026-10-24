@@ -1,0 +1,19 @@
+# Licensing and protocol provenance
+
+Toolgrain-owned code is MIT licensed with copyright attribution to Keshav Katwe. The repository and package-local license files preserve the grant. Vendored upstream material retains its own unchanged terms.
+
+## Protocol schemas
+
+`@toolgrain/protocol` vendors the TypeScript and JSON schemas for both supported revisions from pinned upstream commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`. Each revision has provenance, integrity checksums, and upstream license artifacts. The package's root LICENSE/NOTICE explain its mixed contents; its manifest uses `SEE LICENSE IN LICENSE`.
+
+TypeScript schemas and provenance are distributed with compiled outputs. The JSON schemas are test-only conformance fixtures and are not copied to `dist`. Upstream updates require separate review and renewed interoperability verification. Do not modify or format vendored sources as part of an unrelated change.
+
+## Integration notices
+
+The Clerk package includes a NOTICE preserving Svix and Deno MIT attributions associated with `standardwebhooks@1.1.1`. Its npm archive omitted upstream parent-directory license/source attribution; Toolgrain preserves the exact release's notices and provenance. Keep the NOTICE in the Clerk archive and renew the review when updating that dependency.
+
+## Brand and fonts
+
+The approved Toolgrain mark, outlined wordmarks, lockups, shared tokens, and usage guide live in [brand/](https://github.com/keshavkatwe/toolgrain/tree/main/brand). The font source used to generate the wordmark remains under its SIL Open Font License, with its original license and FONTLOG. Website builds copy those notices alongside the bundled Manrope font. The logo's outlined exports do not require a font installation.
+
+Consult the actual [root license](https://github.com/keshavkatwe/toolgrain/blob/main/LICENSE), package license/notice files, and dependency terms when redistributing artifacts.

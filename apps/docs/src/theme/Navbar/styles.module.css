@@ -1,0 +1,141 @@
+.header:global(.navbar) {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  width: 100%;
+  height: 64px;
+  padding: 0 max(22px, calc((100% - 1520px) / 2 + 22px));
+  margin: 0;
+  background: var(--ifm-background-color);
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+:global(body):has(.header) :global(.theme-announcement-bar) {
+  display: none;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-right: auto;
+}
+.identity :global(.navbar__logo) {
+  height: 29px;
+  display: flex;
+  align-items: center;
+}
+.identity :global(.navbar__logo img) {
+  display: block;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  /* Balance the wordmark's visual center, including its descending g. */
+  transform: translateY(2px);
+}
+.identity :global(.navbar__brand) {
+  margin: 0;
+  padding: 0;
+}
+.version {
+  font: 9px / 1.5 var(--ifm-font-family-monospace);
+  color: var(--ifm-font-color-base);
+  border-left: 1px solid var(--ifm-toc-border-color);
+  padding-left: 20px;
+  white-space: nowrap;
+}
+.version span {
+  display: block;
+  color: var(--ifm-font-color-secondary);
+  font-size: 8px;
+}
+.links {
+  display: flex;
+  gap: 26px;
+}
+.links a {
+  font-size: 11px;
+  color: var(--ifm-font-color-base);
+}
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.iconLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--ifm-font-color-base);
+  border-radius: 4px;
+}
+.iconLink:hover {
+  color: var(--ifm-color-primary);
+  background: var(--ifm-menu-color-background-active);
+}
+.mobile {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .version {
+    display: none;
+  }
+}
+@media (max-width: 996px) {
+  .header:global(.navbar) {
+    padding-inline: 6%;
+  }
+}
+@media (max-width: 700px) {
+  .header:global(.navbar) {
+    height: 60px;
+    gap: 8px;
+    padding: 0 6%;
+  }
+  .identity :global(.navbar__logo) {
+    height: 27px;
+  }
+  .links {
+    display: none;
+  }
+  .tools {
+    gap: 0;
+  }
+  .mobile {
+    display: block;
+  }
+  .mobile summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 36px;
+  }
+  .mobile summary::-webkit-details-marker {
+    display: none;
+  }
+  .mobile nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 24px 6%;
+    display: grid;
+    gap: 20px;
+    background: var(--ifm-background-color);
+    border-bottom: 1px solid var(--ifm-toc-border-color);
+  }
+  .mobile a {
+    color: var(--ifm-font-color-base);
+    font-size: 15px;
+  }
+  .mobile nav > span {
+    color: var(--ifm-font-color-secondary);
+    font-size: 9px;
+  }
+}

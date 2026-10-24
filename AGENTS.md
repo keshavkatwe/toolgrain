@@ -46,6 +46,48 @@ Toolgrain is MCP-first. `@toolgrain/mcp` owns the complete tool authoring API; v
   Manrope font's OFL and FONTLOG files. Toolgrain-owned artwork follows MIT.
 - Website implementation and broad asset rollout remain separate work.
 
+## Confirmed documentation design
+
+- On 2026-10-23 the user approved the documentation content outline for TypeScript
+  developers new to MCP: complete current-product coverage, stdio first, and
+  focused examples. Docusaurus and GitHub Pages remain the selected site stack.
+- The Monolith visual direction is approved for this stage: charcoal, ivory,
+  silver, and citron; a dimensional metallic hero; continuous restrained
+  atmosphere; and a repeating playful call sequence. The user refined this on 2026-10-23
+  to smooth continuous movement with no automatic pauses or held stages. Keep Pause,
+  reduced-motion support, hidden-document suspension, and static docs articles.
+  `design/monolith-preview.html` preserves the approved prototype as a visual
+  reference, not the production documentation site.
+- On 2026-10-23 the user approved and locked the reusable Toolgrain logo mark,
+  wordmark, lockup, and brand kit. `brand/` is the shared source for editable
+  mark/token sources, outlined SVG exports, provenance, and usage guidance.
+  Reuse these assets in future work rather than recreating the logo. The product
+  spelling remains Toolgrain. Broad asset rollout, site implementation,
+  deployment, and publication remain separate work. Design approval alone does
+  not authorize commits.
+- On 2026-10-23 the user authorized site design and content implementation.
+  `apps/docs` now contains the Monolith landing page, static documentation
+  articles, local search, and responsive navigation. Canonical root guides
+  are imported by `prepare:site`; edit their originals rather than generated
+  copies. See `apps/docs/README.md` for authoring and preview commands.
+  Implementation does not authorize a commit, publication, or deployment.
+
+- On 2026-10-24 the user requested lighter continuous motion and a compact,
+  sticky landing header with GitHub and search icons. Foreground motion is
+  capped at 60 fps, the slow atmosphere at 30 fps, and canvas pixel ratio at 1.
+  Keep offscreen/hidden suspension, shared Pause, reduced-motion support, and
+  continuous interpolation. Prefer reused buffers/sprites and transform-based
+  CSS effects; no battery-life or temperature claims without measurement.
+- On 2026-10-24 the user requested the same compact sticky header on docs,
+  plus a tailored docs layout and footer. The header now serves all routes;
+  docs have a custom chapter index, mobile contents browser, article spacing,
+  and a compact static brand footer. Keep docs reading pages free of the
+  landing page's continuous artwork. Mobile menus close on route changes.
+
+On 2026-10-24 the user reviewed and discarded the single-page AI design
+experiment, choosing to retain the preceding docs layout. The experiment and
+its AI handoff controls were removed; header alignment fixes remain.
+
 ## Confirmed developer API
 
 The public authoring API lives in `@toolgrain/mcp`. Package name remains MCP-specific.

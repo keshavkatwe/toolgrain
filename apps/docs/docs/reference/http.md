@@ -1,0 +1,40 @@
+# @toolgrain/http
+
+Runtime-independent Web Request/Response integration. It owns shared HTTP routing, host/origin checks, body limits, authorization integration, and protocol response shaping. It does not open a listener.
+
+## createHttpHandler
+
+```ts
+createHttpHandler(server: Server, options?: HttpOptions): HttpHandler
+
+interface HttpHandler {
+  (request: Request): Promise<Response>;
+  readonly matches: (pathname: string) => boolean;
+}
+```
+
+The combined handler owns the MCP path and, when configured, public auth metadata. Use `matches()` for framework routing. Mount at the root before body parsing; caller signals and disconnects propagate to execution. Supplied option arrays are copied.
+
+## HttpOptions
+
+| Field | Default | Contract |
+| --- | --- | --- |
+| `path?: string` | `/mcp` | Absolute endpoint path; no query, fragment, whitespace, or dot-segment normalization |
+| `allowedHosts?: readonly string[]` | Loopback hosts, any port for externally owned listeners | Exact authorities, optionally port-qualified; empty denies all |
+| `allowedOrigins?: readonly string[]` | Empty | Exact URL origins; an absent Origin is allowed |
+| `maxMessageBytes?: number` | 1 MiB | Positive safe integer |
+
+Allowed authorities normalize case and default ports. Wildcards, schemes, and paths are invalid. Both URL authority and any supplied Host header must be allowed. `allowedOrigins` is validation, not CORS response generation. Applications own TLS, proxy trust, and listener lifecycle.
+
+## createProtectedResourceMetadataHandler
+
+```ts
+createProtectedResourceMetadataHandler(
+  server: Server,
+  options?: Pick<HttpOptions, "allowedHosts">,
+): (request: Request) => Promise<Response>
+```
+
+Standalone metadata factory for explicit route registration. It serves configured protected-resource metadata for public GET/HEAD requests with host validation. The combined handler includes that behavior already; filesystem routers must separately expose the metadata path.
+
+HTTP supports independent requests with JSON results. There is no event-stream GET, session state, or resumability. See [HTTP behavior](../transports/http.md), [framework recipes](../transports/frameworks.md), and [auth routing](../guides/authorization.md).
