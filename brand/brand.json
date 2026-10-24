@@ -1,0 +1,54 @@
+{
+  "name": "Toolgrain",
+  "wordmark": "toolgrain",
+  "direction": "Monolith",
+  "status": {
+    "siteDirection": "approved",
+    "logo": "approved",
+    "approvedOn": "2026-10-23"
+  },
+  "colors": {
+    "obsidian": "#101214",
+    "graphite": "#20282B",
+    "ivory": "#F6F4EE",
+    "silver": "#C9CFD0",
+    "slate": "#A4A9AA",
+    "citron": "#E4EE85"
+  },
+  "typography": {
+    "display": { "family": "Manrope", "weight": 800 },
+    "body": { "family": "Manrope", "weight": 400 },
+    "code": { "family": "DM Mono", "weight": 400 },
+    "wordmark": { "family": "Manrope", "weight": 800, "trackingEm": -0.045 }
+  },
+  "logo": {
+    "sourceMark": "mark.svg",
+    "darkBackground": "logo-dark.svg",
+    "lightBackground": "logo-light.svg",
+    "inheritColor": "logo.svg",
+    "markDarkBackground": "mark-dark.svg",
+    "markLightBackground": "mark-light.svg",
+    "wordmarkDarkBackground": "wordmark-dark.svg",
+    "wordmarkLightBackground": "wordmark-light.svg",
+    "minimumLockupWidthPx": 132,
+    "minimumMarkHeightPx": 24,
+    "clearSpaceInMarkStemWidths": 1
+  },
+  "motion": {
+    "repeat": true,
+    "callDurationMs": 6500,
+    "restDurationMs": 0,
+    "ambientSpeedRadiansPerSecond": 0.19,
+    "reducedMotion": "static completed scene",
+    "hiddenDocument": "pause and resume without catch-up",
+    "documentation": "static"
+  },
+  "fontSource": {
+    "repository": "https://github.com/aaronbell/manrope",
+    "commit": "6f81ebecdf65e4463b798cc07b16a4f8d5216917",
+    "path": "fonts/variable/Manrope[wght].ttf",
+    "localPath": "source/Manrope.ttf",
+    "license": "OFL-1.1",
+    "licenseFile": "source/OFL.txt"
+  }
+}
