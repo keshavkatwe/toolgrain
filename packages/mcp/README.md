@@ -5,7 +5,7 @@ implements MCP directly, independently of `@modelcontextprotocol/sdk`.
 
 ## Installation
 
-Toolgrain packages are private and unpublished. These commands describe consumer
+Toolgrain packages are unpublished. These commands describe consumer
 dependencies for a future release; use the
 [repository examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
 to try Toolgrain today.
@@ -76,7 +76,7 @@ for tested clients and limitations.
 
 ## Requirements
 
-ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.0.0`; TypeScript 5.5.4
+ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6`; TypeScript 5.5.4
 or later with `strict` enabled. Node stack traces can use the included source
 maps with `node --enable-source-maps server.mjs`. See the
 [support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md)

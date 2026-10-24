@@ -31,6 +31,7 @@ function fixture(t) {
     changelog: false,
     commit: false,
     format: false,
+    access: "public",
     fixed: [["@toolgrain/protocol", "@toolgrain/mcp"]],
     privatePackages: { version: true, tag: false },
     ignore: ["@toolgrain/repo-tools"],
@@ -42,7 +43,14 @@ function fixture(t) {
     const manifest = {
       name: `@toolgrain/${short}`,
       version: short === "repo-tools" ? "0.0.0" : "0.1.0",
-      private: true,
+      ...(short === "repo-tools"
+        ? { private: true }
+        : {
+            publishConfig: {
+              access: "public",
+              registry: "https://registry.npmjs.org/",
+            },
+          }),
       ...(short === "mcp"
         ? { dependencies: { "@toolgrain/protocol": "workspace:*" } }
         : {}),

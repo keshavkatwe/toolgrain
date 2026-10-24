@@ -1,6 +1,6 @@
 # Runtime and dependency support
 
-Adopted: 2026-10-22. All libraries remain private and unpublished. This policy
+Adopted: 2026-10-22. All libraries remain unpublished. This policy
 sets the intended release contract; adding CI jobs does not establish that an
 unrun platform has passed. Publication requires a green supported matrix.
 
@@ -12,7 +12,7 @@ unrun platform has passed. Publication requires a green supported matrix.
 | Bun runtime | 1.x from 1.4.4, for all six libraries | Minimum on Linux and latest stable 1.x on Linux, macOS, and Windows |
 | Repository tools | Bun 1.3.14 and Node 24.20.0 baseline | Frozen lockfile; the Bun development pin is independent of consumer runtime support |
 | TypeScript | 5.5.4 minimum, with strict mode | Minimum and development compiler for each installed library; MCP/JWT/Clerk also cross minimum/current Zod |
-| Zod | `^4.0.0`, Classic and Mini | Minimum 4.0.0 and development version; weekly current 4.x |
+| Zod | `^4.6.6`, Classic and Mini | Minimum 4.6.6 and development version; weekly current 4.x |
 | Modules | ESM, compiled `dist` exports and declarations | Package exports, isolated imports, and declaration consumers; CommonJS/node10 resolution are unsupported |
 | Operating systems | Linux, macOS, Windows on the architectures exercised by CI | Real packed consumers, stdio subprocesses, HTTP listeners, disconnect/cancellation and cleanup; reports/logs record runtime/platform/architecture |
 | Installation | npm and Bun | Unchanged Bun-packed archives installed through each package manager's resolver |
@@ -31,6 +31,11 @@ an in-flight handler. Bun 1.4.0 also failed the disconnect test; 1.4.4 passed it
 The application runtime floor is therefore 1.4.4, while repository tooling
 remains pinned at 1.3.14. Earlier Bun example checks established only their tested subset, not the
 complete adapter contract. See [Bun 1.4's Node compatibility changes](https://bun.com/blog/bun-v1.4#nodejs-compatibility).
+
+On 2026-10-24 the user approved an initial Zod floor of 4.6.6 because earlier
+versions are affected by [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+This replaces the earlier unpublished 4.0.0 floor. The first release stays
+`0.1.0`; strict TypeScript 5.5.4 remains the compiler minimum.
 
 Node 26 has a non-blocking preview job. Its upstream LTS transition is scheduled
 for 2026-10-28. Promotion requires a reviewed policy/manifest/CI change after LTS

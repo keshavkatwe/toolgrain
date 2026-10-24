@@ -4,7 +4,7 @@ Clerk OAuth access-token authorization for Toolgrain MCP servers.
 
 ## Installation
 
-Toolgrain packages are private and unpublished. This command describes consumer
+Toolgrain packages are unpublished. This command describes consumer
 dependencies for a future release; use the
 [protected Clerk example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/elysia-example#clerk-authorization-and-inspector)
 to try the integration today.
@@ -70,7 +70,7 @@ for Clerk setup, HTTP mounting, resource inference, and host/proxy requirements.
 
 ## Requirements
 
-ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.0.0` through MCP;
+ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. The Node example also needs
 TypeScript and `@types/node` as development dependencies. See the
 [support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md).

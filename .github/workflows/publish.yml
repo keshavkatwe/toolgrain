@@ -1,0 +1,126 @@
+name: npm publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Reviewed release version (X.Y.Z, without a v prefix)
+        required: true
+        type: string
+      dry_run:
+        description: Check packages without publishing (leave enabled during preparation)
+        required: true
+        type: boolean
+        default: true
+      confirmation:
+        description: For a real publish, type publish followed by the exact version (for example, publish 0.1.0)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: npm-publication
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Validate publication request
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require the source repository and main for a real publish
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$GITHUB_REPOSITORY" = keshavkatwe/toolgrain
+          if [ "$DRY_RUN" != true ]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$CONFIRMATION" = "publish $RELEASE_VERSION"
+          fi
+
+  verify:
+    name: Verify the requested release
+    needs: guard
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ inputs.version }}
+
+  publish:
+    name: Pack and publish
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Restrict this environment to main; add required reviewers where the GitHub
+    # plan supports them. Each npm trusted publisher must name it exactly.
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.20.0"
+          package-manager-cache: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install the pinned OIDC-capable npm CLI
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@11.21.1 --ignore-scripts
+
+      - name: Install and build the libraries
+        run: |
+          bun install --frozen-lockfile
+          bun run build --filter='./packages/*'
+
+      - name: Check aligned versions and packed contents
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          bun run release:check --version "$RELEASE_VERSION"
+          bun run test:size
+
+      - name: Pack the six libraries in dependency order
+        run: |
+          mkdir -p "$RUNNER_TEMP/toolgrain-npm"
+          for package in protocol mcp http node jwt clerk; do
+            (
+              cd "packages/$package"
+              bun pm pack --ignore-scripts --filename "$RUNNER_TEMP/toolgrain-npm/$package.tgz"
+            )
+          done
+
+      - name: Dry run or publish the checked archives
+        working-directory: ${{ runner.temp }}/toolgrain-npm
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          # npm cannot generate provenance from a private repository. Enable it
+          # automatically if the source repository becomes public in the future.
+          NPM_CONFIG_PROVENANCE: ${{ !inputs.dry_run && !github.event.repository.private }}
+        run: |
+          publish_options=()
+          if [ "$DRY_RUN" = true ]; then
+            publish_options+=(--dry-run)
+          fi
+          for package in protocol mcp http node jwt clerk; do
+            npm publish "./$package.tgz" --ignore-scripts --access public \
+              --registry=https://registry.npmjs.org/ "${publish_options[@]}"
+          done

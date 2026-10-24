@@ -28,7 +28,7 @@ jobs:
       matrix:
         include:
           - { name: Node 24 latest / Linux, os: ubuntu-latest, node: "24", bun: "1.3.14", runtime: node, manager: npm, preview: false }
-          - { name: Bun minimum / Linux, os: ubuntu-latest, node: "24.20.0", bun: "1.4.4", runtime: bun, manager: bun, zod: "4.0.0", preview: false }
+          - { name: Bun minimum / Linux, os: ubuntu-latest, node: "24.20.0", bun: "1.4.4", runtime: bun, manager: bun, zod: "4.6.6", preview: false }
           - { name: Bun 1 latest / Linux, os: ubuntu-latest, node: "24.20.0", bun: "1.x", runtime: bun, manager: bun, preview: false }
           - { name: Node 24 / macOS, os: macos-latest, node: "24", bun: "1.3.14", runtime: node, manager: npm, preview: false }
           - { name: Node 24 / Windows, os: windows-latest, node: "24", bun: "1.3.14", runtime: node, manager: npm, preview: false }
@@ -100,7 +100,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run build --filter="./packages/*"
       - name: Check installed declarations with the selected compiler and Zod 4
-        run: node packages/repo-tools/src/cli.mjs clean-install --typescript=${{ matrix.version }} --zod=^4.0.0
+        run: node packages/repo-tools/src/cli.mjs clean-install --typescript=${{ matrix.version }} --zod=^4.6.6
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:

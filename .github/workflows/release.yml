@@ -7,6 +7,12 @@ on:
         description: Prepared version to verify (X.Y.Z, without a v prefix)
         required: true
         type: string
+  workflow_call:
+    inputs:
+      version:
+        description: Prepared version to verify (X.Y.Z, without a v prefix)
+        required: true
+        type: string
 
 permissions:
   contents: read

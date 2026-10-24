@@ -39,7 +39,7 @@ test("dependency probes preserve runtime/peer floors and exact minimum aliases",
       "@clerk/backend": "3.26.0",
       "@clerk/shared": "4.41.0",
     },
-    peerDependencies: { zod: "^4.0.0" },
+    peerDependencies: { zod: "^4.6.6" },
     devDependencies: {
       typescript: "7.0.2",
       zod: "4.6.7",
@@ -56,6 +56,7 @@ test("dependency probes preserve runtime/peer floors and exact minimum aliases",
   assert.equal(probe.dependencies["@clerk/backend"], "^3.26.0");
   assert.equal(probe.dependencies["@clerk/shared"], "^4.41.0");
   assert.equal(probe.devDependencies.typescript, "next");
+  assert.equal(probe.devDependencies.zod, "^4.6.6");
   assert.equal(
     probe.devDependencies["typescript-minimum"],
     "npm:typescript@5.5.4",

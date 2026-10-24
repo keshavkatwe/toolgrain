@@ -1,16 +1,16 @@
 # Versioning and releases
 
 Adopted: 2026-10-23. The first planned release is **0.1.0**. All six libraries
-remain private and unpublished. Commits, publication, and deployment require
-their own authorization.
+are configured for public npm access but remain unpublished. Commits,
+publication, and deployment require their own authorization.
 
 ## Changesets and the shared version
 
 The pinned Changesets CLI owns release planning, version selection, and internal
 dependency updates. `.changeset/config.json` places the six libraries in one
 explicit fixed group. Their manifests hold the shared version. Examples and
-repository tooling are ignored; private library versioning is enabled.
-Automatic commits, private-package tagging, and package changelogs are disabled.
+repository tooling stay private and are ignored. Automatic commits,
+private-package tagging, and package changelogs are disabled.
 
 During `0.x`, use patch records for compatible fixes and minor records for
 features or breaking changes. From `1.0`, use patch/minor/major for
@@ -48,6 +48,12 @@ bun run release:check
 Bun lockfile workspace versions. It does not commit, tag, push, open a PR, or
 publish. For the initial empty record, the version stays 0.1.0.
 
+Run `release:status` before versioning. Once records are consumed, the unmerged
+release branch can report changed packages with no Changesets records when
+compared with main. Review the consumed records and prepared version changes;
+do not add replacement records just to make that comparison pass. Normal CI
+checks the prepared versions with `release:check`.
+
 The Bun workaround is required by our pinned 1.3.14: `--lockfile-only` retains
 stale workspace versions that packing uses for `workspace:*` dependencies.
 The helper updates only those metadata fields, preserving external resolutions
@@ -75,9 +81,91 @@ Changelog accuracy, the chosen version, consumed change records, and readiness
 to release remain part of human review. The alignment check does not establish
 those decisions or untested client/platform compatibility.
 
-## Publication boundary
+## npm publication setup
 
-npm publication settings and the eventual approved publishing process remain
-separate work. Do not run Changesets publication or tagging commands during
-preparation. Release tags and GitHub Releases also require authorization.
+Only the six libraries in the Changesets fixed group are publishable. Their
+`publishConfig` selects public access and `https://registry.npmjs.org/`;
+Changesets also uses public access. The root, examples, and repository tooling
+remain private. Library versions stay at the selected `0.1.0` baseline during
+this setup. Do not run Changesets publication or tagging commands during
+preparation.
+
+`.github/workflows/publish.yml` is manually triggered and defaults to a dry run.
+It reruns Release verification for the selected commit and version, builds the
+libraries, checks packed contents, and Bun-packs them in dependency order:
+protocol, MCP, HTTP, Node, JWT, Clerk. npm publishes the resulting archives with
+lifecycle scripts disabled. Run npm outside the checkout: the repository's Bun
+`devEngines` intentionally rejects npm operating on the workspace itself.
+
+A real workflow publish requires main, `dry_run: false`, and confirmation text
+`publish X.Y.Z` matching the version input. It uses the `npm` GitHub environment
+and OIDC; no npm token secret is configured. The GitHub `npm` environment is
+configured to permit only the `main` branch. Required reviewers are not configured;
+add them where supported by the GitHub plan.
+[GitHub limits required reviewers for private repositories](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#required-reviewers).
+The branch restriction does not create a reviewer approval gate. Dispatching the
+real publish must be an explicitly authorized maintainer action. Dry-run workflow
+jobs use this same environment and therefore also require main.
+
+### First publication
+
+[npm requires the package to exist before trusted publishing can be configured](https://docs.npmjs.com/cli/v11/commands/npm-trust/#prerequisites).
+The first release therefore uses an interactive maintainer login with access to
+the `@toolgrain` scope. Publish the real, reviewed `0.1.0` archives after release
+verification and explicit approval; OIDC is for subsequent releases.
+
+To prepare and dry-run the archives from the reviewed checkout:
+
+```sh
+set -e
+bun run release:check --version 0.1.0
+bun run build --filter='./packages/*'
+bun run test:size
+release_packages="$(mktemp -d)"
+for package in protocol mcp http node jwt clerk; do
+  (
+    cd "packages/$package"
+    bun pm pack --ignore-scripts --filename "$release_packages/$package.tgz"
+  )
+done
+(
+  cd "$release_packages"
+  for package in protocol mcp http node jwt clerk; do
+    npm publish "./$package.tgz" --dry-run --ignore-scripts --access public \
+      --registry=https://registry.npmjs.org/
+  done
+)
+```
+
+A dry run validates publication inputs; it does not prove npm account permissions
+or OIDC authentication. Keep these archives for review. After publication is
+approved, authenticate from that directory with
+`npm login --registry=https://registry.npmjs.org/` and run the same archive loop
+without `--dry-run`. Stop on any failure and inspect which packages were
+published before deciding how to resume; publication of six packages is not
+atomic. Never rerun a published package/version or change an archive silently.
+
+### Subsequent releases with OIDC
+
+Once packages exist, configure each package's
+[npm trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
+owner `keshavkatwe`, repository `toolgrain`, workflow filename `publish.yml`,
+environment `npm`, and permission to run `npm publish`. A new trust configuration
+must complete its first successful publish within two days, so configure it
+close to the next approved release. The workflow pins npm 11.21.1, which supports
+OIDC. No local npm login or write token is needed for these workflow publishes.
+
+The GitHub source repository is currently private. npm provenance is unavailable
+for private source repositories; the workflow enables it automatically for real
+publishes if the source repository becomes public. See
+[npm provenance requirements](https://docs.npmjs.com/trusted-publishers/#automatic-provenance-generation).
+
+The environment's main-only branch rule was configured and checked separately
+from the workflow files. On 2026-10-24, read-only `npm whoami` and
+`npm org ls toolgrain keshav.katwe --json` checks confirmed an authenticated
+`keshav.katwe` account with the `owner` role in `toolgrain`. This role
+[permits creating and publishing packages in the organization scope](https://docs.npmjs.com/organization-roles-and-permissions/).
+No actual publish or publish-time authentication challenge was exercised.
+Per-package OIDC trust bindings remain deferred until packages exist.
+Release tags, GitHub Releases, and deployment require their own authorization.
 Verify all six packages are available before announcing a release.

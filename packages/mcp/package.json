@@ -20,7 +20,10 @@
     "zod",
     "tools"
   ],
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -42,7 +45,7 @@
     "test:size": "toolgrain-repo size"
   },
   "peerDependencies": {
-    "zod": "^4.0.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "24.10.0",

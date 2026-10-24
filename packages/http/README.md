@@ -5,7 +5,7 @@ Streamable HTTP handlers for Toolgrain MCP servers using Web `Request` and
 
 ## Installation
 
-Toolgrain packages are private and unpublished. This command describes consumer
+Toolgrain packages are unpublished. This command describes consumer
 dependencies for a future release; use the
 [framework examples](https://github.com/keshavkatwe/toolgrain/tree/main/apps#readme)
 to try Toolgrain today.
@@ -67,7 +67,7 @@ for JWT/Clerk configuration and public URL handling.
 
 ## Requirements
 
-ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.0.0` through MCP;
+ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. See the
 [support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md).
 

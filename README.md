@@ -6,7 +6,7 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 `@toolgrain/mcp` provides the complete authoring API: reusable tool definitions,
 Zod 4 validation, output schemas, rich results, and server composition. It supports
 MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
-same tool definitions. All packages are private and unpublished.
+same tool definitions. All libraries remain unpublished.
 
 Toolgrain-owned code is [MIT licensed](./LICENSE), copyright 2026 Keshav Katwe.
 Vendored MCP schemas retain their upstream licenses; see [NOTICE](./NOTICE) and
@@ -62,7 +62,7 @@ Toolgrain consumes user schemas through `zod/v4/core`. Its internal wire and
 metadata validators continue using Classic.
 
 The MCP authoring API supports TypeScript 5.5.4 or later with `strict` enabled.
-Supported Zod versions follow the `^4.0.0` peer range.
+Supported Zod versions follow the `^4.6.6` peer range.
 
 MCP packages JavaScript source maps, declaration maps, and their original
 TypeScript sources for debugging and editor navigation. Public imports still
@@ -284,8 +284,8 @@ raw return and rejection behavior; this boundary applies to server execution.
 
 ## Internal protocol package
 
-`@toolgrain/protocol` is a private workspace package containing the pinned official
-schemas and constants, including `PROTOCOL_VERSION`, `LEGACY_PROTOCOL_VERSION`,
+`@toolgrain/protocol` is an unpublished workspace package containing the pinned
+official schemas and constants, including `PROTOCOL_VERSION`, `LEGACY_PROTOCOL_VERSION`,
 and `SUPPORTED_PROTOCOL_VERSIONS`. Workspace code imports modern wire
 types such as `JSONRPCResponse` directly from it. Runtime validators stay in MCP;
 MCP exports server/transport interfaces without re-exporting wire definitions.
@@ -356,13 +356,13 @@ cannot be recalled.
 
 Both complete upstream schemas are vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
-under the private `@toolgrain/protocol` workspace, in sibling revision folders
+under the `@toolgrain/protocol` workspace, in sibling revision folders
 `packages/protocol/src/vendor/2026-07-28/` and `packages/protocol/src/vendor/2025-06-18/`.
 Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, multi-round-trip input-required results, subscriptions, and
-extensions remain future work. All packages are private and unpublished.
+extensions remain future work. All libraries remain unpublished.
 
 ## Node stdio and complete flow
 
@@ -568,7 +568,7 @@ run only that workspace; root `dev` starts all of them.
 Use Bun 1.3.14 and the Node version declared in `package.json`.
 
 The [support policy](./docs/support-policy.md) defines Node 24.20.0+/24.x,
-Bun 1.4.4+/1.x, strict TypeScript 5.5.4+, and Zod `^4.0.0`, plus the
+Bun 1.4.4+/1.x, strict TypeScript 5.5.4+, and Zod `^4.6.6`, plus the
 platform matrix, CI requirements, and upgrade/deprecation rules. Node 26 remains
 a preview. Each library carries its own runtime declarations.
 
@@ -591,7 +591,7 @@ bun run format
 Biome is installed and configured once at the repository root. Its configuration
 applies across apps and packages; installed skills are excluded from checks.
 
-- `packages/protocol/`: private pinned wire schema/constants, provenance, and license.
+- `packages/protocol/`: pinned wire schema/constants, provenance, and license.
 - `packages/mcp/`: tool authoring, validation/execution, protocol handling, and transport contract.
 - `packages/http/`: runtime-independent Streamable HTTP and Web handler.
 - `packages/node/`: Node stdio transport and HTTP adapter.
@@ -618,7 +618,7 @@ preview and weekly compiler/dependency probes; see the [support matrix](./docs/s
 
 MCP package verification reuses its compiled consumer and runtime fixtures in
 isolated temporary directories. It checks TypeScript 5.5.4 and the development
-compiler against both Zod 4.0.0 and the development Zod version, including Classic
+compiler against both Zod 4.6.6 and the development Zod version, including Classic
 and Mini inference and rejected definitions. Runtime checks run once per Zod
 version under Node with source maps enabled and check a TypeScript stack location.
 The isolated MCP copy includes its sources. Pinned compatibility dependencies are development tooling;
