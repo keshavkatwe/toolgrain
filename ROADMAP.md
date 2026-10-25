@@ -52,24 +52,35 @@ remains at `3d56379` as the candidate record.
 
 ## What's next
 
-**Current step — 🟡 Review pending:** adopt native Changesets release automation,
-with generated package changelogs, a bot Release PR, and automatic OIDC npm
-publication/package releases after merge and full verification. The user
-authorized the automation commit and PR against main; review, merge, and the
-first hosted automated cycle remain. The migration does not select a new
-library version.
+**✅ Done — Changesets automation is merged and active.**
+[PR #34](https://github.com/keshavkatwe/toolgrain/pull/34) merged as `b7b4b86`
+after review and 10 passing CI jobs, with three expected skips. The
+[first automatic main run](https://github.com/keshavkatwe/toolgrain/actions/runs/40193425606)
+passed selection and correctly skipped versioning and publication for this
+repository-only migration. All six versions remain `0.1.0`.
 
-After that, try published `0.1.0` in one real client/application,
-collect consumer feedback, and prioritize reproduced issues or targeted checks
-for the remaining client gaps below. This extends the documented-flow acceptance;
-it is not an unfinished stable release gate. The next application/client, release
-scope, version, and date have not been selected. Compatible fixes use patch
+**Recommended next step — 🟡 Review pending:** review
+[PR #28 — Build Toolgrain documentation site and Monolith landing page](https://github.com/keshavkatwe/toolgrain/pull/28).
+It is still open. Review/merge and GitHub Pages deployment remain separate
+steps; this status update authorizes neither.
+
+**🟡 Pending — Real-application feedback.** Try published `0.1.0` in one real
+client/application, collect feedback, and prioritize reproduced defects or the
+remaining client checks below. The application/client and implementation scope
+have not been selected. The documented-flow acceptance and first-release gates
+are already complete.
+
+**🟡 Pending — First automated release cycle.** The next real user-facing change
+should include a changeset. Verify the bot's Release PR, review and merge it,
+then verify the full checks, npm publication, package tags/releases, and fresh
+consumers. Those hosted paths were skipped by the successful no-op run and are
+not yet verified end to end. No release scope, version, or date is selected;
+do not create a release just to exercise automation. Compatible fixes use patch
 records; features and breaking changes use minor records during `0.x`.
 
-The documentation site has an open PR awaiting review; deployment remains
-separate. Proposed protocol/API features below still require a design decision.
-Keep known client limitations visible and claim compatibility only for verified
-flows; publication does not waive future supported regressions.
+Proposed protocol/API features still require a design decision. Keep known
+client limitations visible and claim compatibility only for verified flows;
+publication does not waive future supported regressions.
 
 ## Full roadmap
 
@@ -107,8 +118,9 @@ flows; publication does not waive future supported regressions.
 11. **✅ Done — Versioning and release verification.** Changesets manages the six
     libraries as a fixed group, with `0.1.0-rc.0` before stable `0.1.0`. The
     historical root changelog records the initial releases. Native package
-    changelogs and release automation are prepared for review; the complete
-    verification workflow remains a publication gate. See
+    changelogs and automation are merged in PR #34; full release verification
+    remains a publication gate. The first main run passed without a release;
+    the first real automated cycle remains pending as described above. See
     [release guide](./docs/releases.md).
 12. **✅ Done — Brand kit.** The approved Monolith logo, wordmark, colors,
     typography, motion direction, and reusable assets are in `brand/`.
@@ -123,9 +135,9 @@ flows; publication does not waive future supported regressions.
 15. **🔄 Ongoing — Public API stabilization.** The current API review is complete;
     further API changes still need design review. Versioning and compatibility
     policies are adopted.
-16. **✅ Done — npm publication setup and trusted publishers.** Public package
-    access and six validated OIDC publishers are in use. Native Changesets
-    automation replaces the manual workflow after review and merge.
+16. **✅ Done — npm publication setup, trusted publishers, and automation.**
+    Public package access and six validated OIDC publishers are in use. Native
+    Changesets automation replaced the manual workflow in merged PR #34.
     All six trusted publishers completed a successful publish through
     `publish.yml`; the GitHub `npm` environment is restricted to main. See
     [publishing process](./docs/releases.md#npm-publication-setup).

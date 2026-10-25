@@ -190,8 +190,10 @@ Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
 ## Confirmed versioning and release policy
 
 Adopted on 2026-10-23; automation format updated by the user on 2026-10-25.
-The user authorized committing the automation and opening a PR against main.
-Review, merge, and the first hosted automated release remain pending.
+After explicit user approval, PR #34 merged into main as `b7b4b86` on
+2026-10-25. Automation is active and its first hosted no-op run passed. The
+first real bot Release PR and publication cycle remain unverified; see the
+merged-automation record below.
 
 - All six library manifests and published npm libraries share stable `0.1.0`.
   Changesets 3.0.3 owns release planning, version selection, dependencies, and
@@ -243,7 +245,7 @@ Changesets Release PR under the automation policy above.
   registry. Root, examples, and repo-tools remain private. The manifests and Bun
   workspace versions are `0.1.0`; `publishConfig.tag` is `latest`. All six npm
   `latest` tags resolve to stable `0.1.0`; `next` remains `0.1.0-rc.0`.
-- `publish.yml` now prepares native Changesets automation for main pushes:
+- `publish.yml` runs native Changesets automation on main pushes:
   Release PR, full verification, separate pack and OIDC publication jobs, then
   registry/fresh-consumer checks. Stable versions require manifest tag `latest`.
   The existing main-only `npm` environment and six trust bindings are retained.
@@ -276,6 +278,30 @@ Changesets Release PR under the automation policy above.
   limitation in the initial RC publication. Do not publish a placeholder
   version or unpublish RC0 to work around it. Verify actual tags after
   every publication; an explicit `--tag` alone does not prove tag isolation.
+
+## Changesets automation merged — 2026-10-25
+
+- [PR #34](https://github.com/keshavkatwe/toolgrain/pull/34) was reviewed at
+  `b6b0fcbee4f335ce63bd41b1169bc6863d404193` with no remaining blockers.
+  All 10 executed PR CI jobs passed; three full-release/scheduled jobs were
+  intentionally skipped. After the user's merge request, it squash-merged as
+  `b7b4b8650a5bf1b9cd3f8687763942b25ac31f67`.
+- The [first automatic main workflow](https://github.com/keshavkatwe/toolgrain/actions/runs/40193425606)
+  passed its setup, stable-configuration check, and native select-mode job on
+  that exact commit. The empty repository-only changeset selected no release;
+  versioning, full release verification, packing, publication, and post-publish
+  checks were correctly skipped. This migration published no packages or
+  GitHub releases; all six manifest versions remain `0.1.0`.
+- Pre-merge validation included 28 tooling tests, six native Changesets archive
+  dry runs at synthetic `0.1.1` in a disposable checkout, byte/integrity checks
+  of all six published `0.1.0` archives, and fresh Node 24.20.0/Bun 1.4.4
+  consumers with minimum/current declarations and 10 runtime cases each.
+  Local ignored review evidence is in `reports/pr34-review.json`.
+- The next real user-facing change should carry a new changeset and exercise
+  the bot Release PR, full hosted checks, native OIDC publication, package
+  tags/GitHub releases, and registry/fresh-consumer checks. The no-op run does
+  not verify those paths end to end. Do not invent a release or republish
+  `0.1.0` to test them. Its scope, version, and date remain undecided.
 
 ## Published 0.1.0-rc.0 — 2026-10-25
 
@@ -481,7 +507,19 @@ stable GitHub release `v0.1.0` marked Latest at `526ea39`. Every first-release
 gate is complete. RC0 remains under `next` and its separate GitHub prerelease at
 `3d56379`. The documented RC scope and known limitations remain accepted.
 
-Recommended next work is to try published `0.1.0` in one real client/application,
+Native Changesets automation is merged in PR #34 at `b7b4b86` and active on
+main. Its first automatic run passed with no versioning or publication, as
+expected for the repository-only migration. The first real automated Release
+PR and publication cycle remain to be verified when a user-facing change is
+ready; use a new changeset and the reviewed Release PR merge gate. No new
+release is selected or authorized just to exercise automation.
+
+Recommended next work is to review
+[PR #28 — Build Toolgrain documentation site and Monolith landing page](https://github.com/keshavkatwe/toolgrain/pull/28),
+which remains open. Review/merge and GitHub Pages deployment are separate
+steps and require their own authorization.
+
+Also try published `0.1.0` in one real client/application,
 collect consumer feedback, and prioritize reproduced defects or targeted checks
 for the remaining client gaps. This is a recommendation, not an agreed next
 implementation step or an unfinished release gate. The application/client,
@@ -489,9 +527,7 @@ next release scope, version, and date have not been selected. Use new Changesets
 records for subsequent changes: patch for compatible fixes, minor for features
 or breaking changes during `0.x`.
 
-The documentation site and Monolith landing page are in open
-[PR #28](https://github.com/keshavkatwe/toolgrain/pull/28); review/merge and
-GitHub Pages deployment remain separate steps. Per-tool scope policies, context
+Per-tool scope policies, context
 lifecycle, resources, prompts, elicitation, and expanded HTTP/session features
 remain proposals. `ROADMAP.md` is the concise status list. Agree on the next
 scope with the user before starting it; this status update authorizes no
