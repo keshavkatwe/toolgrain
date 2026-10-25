@@ -11,33 +11,34 @@
       "dist/vendor/2025-06-18/LICENSE",
       "README.md",
       "LICENSE",
-      "NOTICE"
+      "NOTICE",
+      "CHANGELOG.md"
     ]
   },
   "@toolgrain/mcp": {
     "packedBytes": 87040,
     "unpackedBytes": 363520,
     "sourceMaps": true,
-    "requiredFiles": ["README.md", "LICENSE"]
+    "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/http": {
     "packedBytes": 14336,
     "unpackedBytes": 49152,
-    "requiredFiles": ["README.md", "LICENSE"]
+    "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/node": {
     "packedBytes": 11264,
     "unpackedBytes": 36864,
-    "requiredFiles": ["README.md", "LICENSE"]
+    "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/jwt": {
     "packedBytes": 6144,
     "unpackedBytes": 15360,
-    "requiredFiles": ["README.md", "LICENSE"]
+    "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/clerk": {
     "packedBytes": 7168,
     "unpackedBytes": 19456,
-    "requiredFiles": ["README.md", "LICENSE", "NOTICE"]
+    "requiredFiles": ["README.md", "LICENSE", "NOTICE", "CHANGELOG.md"]
   }
 }

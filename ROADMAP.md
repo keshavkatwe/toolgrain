@@ -7,8 +7,9 @@ The [GitHub release `v0.1.0`](https://github.com/keshavkatwe/toolgrain/releases/
 is published and marked Latest at verified commit `526ea39`.
 **✅ Done** covers the agreed scope; **🟡 Pending/Partial** means work or
 verification remains. Proposed items are unapproved, with no timelines or
-implementation commitments. Future commits, publication, and deployment still
-require their own authorization.
+implementation commitments. Local commits and deployment still require
+authorization. Future stable publication is approved by merging a reviewed
+Changesets Release PR.
 
 **npm tags:** all six packages have `latest` pointing to `0.1.0` and `next`
 pointing to `0.1.0-rc.0`. Install `@0.1.0` to pin stable or `@latest` to follow
@@ -51,7 +52,14 @@ remains at `3d56379` as the candidate record.
 
 ## What's next
 
-**Recommended next step:** try published `0.1.0` in one real client/application,
+**Current step — 🟡 Review pending:** adopt native Changesets release automation,
+with generated package changelogs, a bot Release PR, and automatic OIDC npm
+publication/package releases after merge and full verification. The user
+authorized the automation commit and PR against main; review, merge, and the
+first hosted automated cycle remain. The migration does not select a new
+library version.
+
+After that, try published `0.1.0` in one real client/application,
 collect consumer feedback, and prioritize reproduced issues or targeted checks
 for the remaining client gaps below. This extends the documented-flow acceptance;
 it is not an unfinished stable release gate. The next application/client, release
@@ -97,9 +105,10 @@ flows; publication does not waive future supported regressions.
     metadata, READMEs, and licenses. Toolgrain-owned code is MIT licensed;
     upstream protocol and Clerk dependency notices are preserved.
 11. **✅ Done — Versioning and release verification.** Changesets manages the six
-    libraries as a fixed group, with `0.1.0-rc.0` before stable `0.1.0`. One
-    manually maintained root changelog and a manual release-verification
-    workflow are in place. See
+    libraries as a fixed group, with `0.1.0-rc.0` before stable `0.1.0`. The
+    historical root changelog records the initial releases. Native package
+    changelogs and release automation are prepared for review; the complete
+    verification workflow remains a publication gate. See
     [release guide](./docs/releases.md).
 12. **✅ Done — Brand kit.** The approved Monolith logo, wordmark, colors,
     typography, motion direction, and reusable assets are in `brand/`.
@@ -115,7 +124,8 @@ flows; publication does not waive future supported regressions.
     further API changes still need design review. Versioning and compatibility
     policies are adopted.
 16. **✅ Done — npm publication setup and trusted publishers.** Public package
-    access, Changesets settings, and the manual dry-run/OIDC workflow are in use.
+    access and six validated OIDC publishers are in use. Native Changesets
+    automation replaces the manual workflow after review and merge.
     All six trusted publishers completed a successful publish through
     `publish.yml`; the GitHub `npm` environment is restricted to main. See
     [publishing process](./docs/releases.md#npm-publication-setup).

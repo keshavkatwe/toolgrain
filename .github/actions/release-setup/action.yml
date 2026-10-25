@@ -1,0 +1,23 @@
+name: Set up Changesets for the Bun workspace
+description: Install pinned tooling and adapt Changesets npm calls to Bun archives
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version: "24.20.0"
+        package-manager-cache: false
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version-file: package.json
+    - run: bun install --frozen-lockfile --ignore-scripts
+      shell: bash
+    - name: Install the pinned OIDC-capable npm CLI outside the checkout
+      working-directory: ${{ runner.temp }}
+      run: npm install --global npm@11.21.1 --ignore-scripts
+      shell: bash
+    - name: Configure the Changesets package-manager adapter
+      run: |
+        echo "TOOLGRAIN_NPM_CLI=$(npm root --global)/npm/bin/npm-cli.js" >> "$GITHUB_ENV"
+        echo "$GITHUB_WORKSPACE/packages/repo-tools/bin/changesets" >> "$GITHUB_PATH"
+      shell: bash

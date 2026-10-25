@@ -1,30 +1,11 @@
 name: npm publication
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      version:
-        description: Reviewed version, for example 0.1.0-rc.0 or 0.1.0 (without v)
-        required: true
-        type: string
-      dist_tag:
-        description: npm channel (next for RC versions, latest for stable)
-        required: true
-        type: choice
-        options: [next, latest]
-        default: next
-      dry_run:
-        description: Check packages without publishing (leave enabled during preparation)
-        required: true
-        type: boolean
-        default: true
-      confirmation:
-        description: For a real publish, type publish followed by the exact version (for example, publish 0.1.0-rc.0)
-        required: false
-        type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 defaults:
   run:
@@ -35,114 +16,173 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  guard:
-    name: Validate publication request
+  select-mode:
+    if: github.repository == 'keshavkatwe/toolgrain' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.mode.outputs.publish-plan-artifact-id }}
+      version: ${{ steps.release.outputs.version }}
     steps:
-      - name: Validate the version and npm tag; require main for a real publish
-        env:
-          DRY_RUN: ${{ inputs.dry_run }}
-          RELEASE_VERSION: ${{ inputs.version }}
-          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
-          CONFIRMATION: ${{ inputs.confirmation }}
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/release-setup
+      - name: Check the stable release configuration
+        id: release
         run: |
-          test "$GITHUB_REPOSITORY" = keshavkatwe/toolgrain
-          version_core='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
-          if [[ "$RELEASE_VERSION" =~ ^${version_core}-rc\.(0|[1-9][0-9]*)$ ]]; then
-            test "$RELEASE_DIST_TAG" = next
-          elif [[ "$RELEASE_VERSION" =~ ^${version_core}$ ]]; then
-            test "$RELEASE_DIST_TAG" = latest
-          else
-            echo "Expected a stable version or an rc.N candidate" >&2
-            exit 1
-          fi
-          if [ "$DRY_RUN" != true ]; then
-            test "$GITHUB_REF" = refs/heads/main
-            test "$CONFIRMATION" = "publish $RELEASE_VERSION"
-          fi
+          test ! -f .changeset/pre.json
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { appendFileSync } from 'node:fs';
+          import { checkRelease } from './packages/repo-tools/src/release.mjs';
+          const { version, packages } = checkRelease(process.cwd());
+          assert.match(version, /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/);
+          for (const pkg of packages) assert.equal(pkg.publishConfig.tag, 'latest');
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          JS
+      # Changesets Action v2.1.2; CLI 3 uses the v2 subactions.
+      - id: mode
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51
+
+  version:
+    if: needs.select-mode.outputs.mode == 'version'
+    needs: select-mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/release-setup
+      - uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51
+        with:
+          script: bun run release:version
+          commit-message: 'chore: version packages'
+          pr-title: 'Release Toolgrain packages'
 
   verify:
-    name: Verify the requested release
-    needs: guard
+    if: needs.select-mode.outputs.mode == 'publish'
+    needs: select-mode
     permissions:
       contents: read
       actions: read
       pull-requests: write
     uses: ./.github/workflows/release.yml
     with:
-      version: ${{ inputs.version }}
+      version: ${{ needs.select-mode.outputs.version }}
 
-  publish:
-    name: Pack and publish
-    needs: verify
+  pack:
+    needs: [select-mode, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Restrict this environment to main; add required reviewers where the GitHub
-    # plan supports them. Each npm trusted publisher must name it exactly.
-    environment: npm
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - uses: ./.github/actions/release-setup
+      - run: bun run build --filter='./packages/*'
+      - run: bun run release:check
+      - run: bun run test:size
+      - id: pack
+        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
 
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Keep this filename and environment: all six npm OIDC bindings name them.
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/release-setup
+      - name: Publish the packed artifacts, tags, and package releases
+        uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51
+        env:
+          # npm provenance requires a public source repository.
+          NPM_CONFIG_PROVENANCE: ${{ !github.event.repository.private }}
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          create-github-releases: true
+          push-git-tags: true
+
+  registry:
+    name: Verify all six published packages
+    needs: [pack, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
-          node-version: "24.20.0"
+          node-version: '24.20.0'
           package-manager-cache: false
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          path: ${{ runner.temp }}/toolgrain-published
+          merge-multiple: true
+      - run: node packages/repo-tools/src/cli.mjs verify-publication --pack-dir "$RUNNER_TEMP/toolgrain-published"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: published-registry
+          path: reports/publication.json
+          if-no-files-found: error
 
+  consumers:
+    name: Published ${{ matrix.runtime }} consumers
+    needs: registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runtime: node, manager: npm, bun: '1.3.14' }
+          - { runtime: bun, manager: bun, bun: '1.4.4' }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version-file: package.json
-
-      - name: Install the pinned OIDC-capable npm CLI
-        working-directory: ${{ runner.temp }}
-        run: npm install --global npm@11.21.1 --ignore-scripts
-
-      - name: Install and build the libraries
-        run: |
-          bun install --frozen-lockfile
-          bun run build --filter='./packages/*'
-
-      - name: Check aligned versions and packed contents
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
-          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
-        run: |
-          bun run release:check --version "$RELEASE_VERSION"
-          for package in protocol mcp http node jwt clerk; do
-            test "$(jq -r .publishConfig.tag "packages/$package/package.json")" = "$RELEASE_DIST_TAG"
-          done
-          bun run test:size
-
-      - name: Pack the six libraries in dependency order
-        run: |
-          mkdir -p "$RUNNER_TEMP/toolgrain-npm"
-          for package in protocol mcp http node jwt clerk; do
-            (
-              cd "packages/$package"
-              bun pm pack --ignore-scripts --filename "$RUNNER_TEMP/toolgrain-npm/$package.tgz"
-            )
-          done
-
-      - name: Dry run or publish the checked archives
-        working-directory: ${{ runner.temp }}/toolgrain-npm
-        env:
-          DRY_RUN: ${{ inputs.dry_run }}
-          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
-          # npm cannot generate provenance from a private repository. Enable it
-          # automatically if the source repository becomes public in the future.
-          NPM_CONFIG_PROVENANCE: ${{ !inputs.dry_run && !github.event.repository.private }}
-        run: |
-          publish_options=()
-          if [ "$DRY_RUN" = true ]; then
-            publish_options+=(--dry-run)
-          fi
-          for package in protocol mcp http node jwt clerk; do
-            npm publish "./$package.tgz" --ignore-scripts --access public \
-              --registry=https://registry.npmjs.org/ --tag "$RELEASE_DIST_TAG" \
-              "${publish_options[@]}"
-          done
+          bun-version: ${{ matrix.bun }}
+      - name: Install public npm packages and check declarations and runtime flows
+        run: node packages/repo-tools/src/cli.mjs clean-install --published --runtime=${{ matrix.runtime }} --package-manager=${{ matrix.manager }} --zod=4.6.6
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: published-${{ matrix.runtime }}-consumer
+          path: reports/clean-install.json
+          if-no-files-found: error

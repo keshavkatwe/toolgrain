@@ -22,6 +22,10 @@ const commands = {
     "./clean-install.mjs",
     "Install packed libraries; check Node/Bun runtimes and minimum/current types",
   ],
+  "verify-publication": [
+    "./verify-publication.mjs",
+    "Verify npm latest tags, registry integrity and Changesets archive bytes",
+  ],
   "support-matrix": [
     "./support-matrix.mjs",
     "Resolve weekly compiler checks or prepare CI-only dependency drift probes",

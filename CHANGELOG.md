@@ -1,15 +1,16 @@
 # Changelog
 
-All six Toolgrain libraries share one version and this changelog. Dated entries
-record release preparation; the date does not establish npm publication.
-Unreleased tracks changes after the latest prepared version.
+Historical notes for the initial Toolgrain releases. Subsequent releases use
+Changesets-generated `packages/*/CHANGELOG.md` files and package-scoped GitHub
+releases; see [the release guide](docs/releases.md). All six libraries continue
+to share a version.
 
 ## [Unreleased]
 
 ## [0.1.0] - 2026-10-25
 
-First stable release prepared for review after RC0 acceptance. Publication and
-final hosted verification of the stable commit remain pending.
+First stable release, published on npm and GitHub after RC0 acceptance and
+final hosted verification of commit `526ea39`.
 
 ### Changed
 

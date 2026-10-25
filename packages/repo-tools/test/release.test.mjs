@@ -26,9 +26,10 @@ function fixture(t, version = "0.1.0") {
     name: "fixture",
     private: true,
     workspaces: ["packages/*"],
+    packageManager: "bun@1.3.14",
+    devEngines: { packageManager: { name: "bun", version: "1.3.14" } },
   });
   write(".changeset/config.json", {
-    changelog: false,
     commit: false,
     format: false,
     access: "public",
@@ -106,6 +107,10 @@ test("Changesets and the Bun workaround produce archives with the aligned depend
   syncLockfile(directory);
   const state = checkRelease(directory, "0.2.0");
   assert.equal(state.packages.length, 2);
+  assert.match(
+    readFileSync(join(directory, "packages/mcp/CHANGELOG.md"), "utf8"),
+    /0\.2\.0[\s\S]*A new capability/,
+  );
   assert.equal(
     readFileSync(join(directory, "bun.lock"), "utf8"),
     lock.replaceAll('"version": "0.1.0"', '"version": "0.2.0"'),
@@ -131,7 +136,7 @@ test("Changesets and the Bun workaround produce archives with the aligned depend
   assert.equal(packed.dependencies["@toolgrain/protocol"], "0.2.0");
 });
 
-test("the initial empty record preserves 0.1.0 and does not generate package changelogs", (t) => {
+test("an empty record preserves 0.1.0 without creating a release", (t) => {
   const { directory, write } = fixture(t);
   write(".changeset/initial.md", "---\n\n---\n");
   execFileSync("node", [cli, "version"], { cwd: directory, timeout: 30000 });
@@ -186,5 +191,141 @@ test("the initial RC series stays in its fixed group and promotes to 0.1.0", (t)
       readFileSync(join(directory, "packages/repo-tools/package.json")),
     ).version,
     "0.0.0",
+  );
+});
+
+test("native Changesets plans, Bun-packs, publishes artifacts and reports package tags", (t) => {
+  const { directory, write } = fixture(t);
+  write(
+    ".changeset/fix.md",
+    '---\n"@toolgrain/mcp": patch\n---\nFix the consumer flow.\n',
+  );
+  const log = join(directory, "npm-calls.jsonl");
+  const fakeNpm = join(directory, "npm-cli.cjs");
+  writeFileSync(
+    fakeNpm,
+    `
+    const fs = require('node:fs');
+    const [command, ...args] = process.argv.slice(2);
+    fs.appendFileSync(process.env.TOOLGRAIN_TEST_LOG, JSON.stringify({ command, args, cwd: process.cwd() }) + '\\n');
+    if (command === 'info') console.log(JSON.stringify({ name: args[0], versions: ['0.1.0'], 'dist-tags': { latest: '0.1.0' } }));
+    else if (command === 'publish') {
+      if (!args[0].endsWith('.tgz') || !fs.existsSync(args[0])) process.exit(2);
+      if (process.env.TOOLGRAIN_TEST_FAIL) { console.log(JSON.stringify({ error: { code: 'E403', summary: 'Denied' } })); process.exit(1); }
+      console.log('{}');
+    } else process.exit(3);
+  `,
+  );
+  const shim = new URL("../bin/changesets/", import.meta.url).pathname;
+  const env = {
+    ...process.env,
+    PATH: `${shim}:${process.env.PATH}`,
+    TOOLGRAIN_NPM_CLI: fakeNpm,
+    TOOLGRAIN_TEST_LOG: log,
+  };
+  const run = (...args) =>
+    execFileSync("node", [cli, ...args], {
+      cwd: directory,
+      env,
+      timeout: 30000,
+    });
+  execFileSync("git", ["init", "-q"], { cwd: directory });
+  execFileSync("git", ["add", "."], { cwd: directory });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=Fixture",
+      "-c",
+      "user.email=fixture@example.invalid",
+      "commit",
+      "-qm",
+      "fixture",
+    ],
+    { cwd: directory },
+  );
+  env.GIT_COMMITTER_NAME = "Fixture";
+  env.GIT_COMMITTER_EMAIL = "fixture@example.invalid";
+  run("version");
+  syncLockfile(directory);
+  assert.equal(checkRelease(directory).version, "0.1.1");
+  run("publish-plan", "--output", join(directory, "plan.json"));
+  const plan = JSON.parse(
+    readFileSync(join(directory, "plan.json")),
+  ).plan.flat();
+  assert.equal(plan.length, 2);
+  assert(
+    plan.every(
+      ({ kind, version, tag }) =>
+        kind === "publish" && version === "0.1.1" && tag === "latest",
+    ),
+  );
+  const packedDirectory = join(directory, "packed");
+  run(
+    "pack",
+    "--from-publish-plan",
+    join(directory, "plan.json"),
+    "--out-dir",
+    packedDirectory,
+  );
+  const packed = JSON.parse(
+    readFileSync(join(packedDirectory, "publish-plan.json")),
+  ).plan.flat();
+  for (const entry of packed) {
+    assert.match(entry.tarball.integrity, /^sha256-/);
+    const manifest = JSON.parse(
+      execFileSync(
+        "tar",
+        [
+          "-xOf",
+          join(packedDirectory, entry.tarball.path),
+          "package/package.json",
+        ],
+        { encoding: "utf8" },
+      ),
+    );
+    assert.equal(manifest.version, "0.1.1");
+    if (entry.name === "@toolgrain/mcp")
+      assert.equal(manifest.dependencies["@toolgrain/protocol"], "0.1.1");
+  }
+  // A failed publish must fail the native command and create no success tags.
+  env.TOOLGRAIN_TEST_FAIL = "true";
+  assert.throws(() => run("publish", "--from-pack-dir", packedDirectory));
+  assert.equal(
+    execFileSync("git", ["tag"], { cwd: directory, encoding: "utf8" }).trim(),
+    "",
+  );
+  delete env.TOOLGRAIN_TEST_FAIL;
+  env.CHANGESETS_OUTPUT = join(directory, "output.jsonl");
+  run("publish", "--from-pack-dir", packedDirectory);
+  const tags = execFileSync("git", ["tag"], {
+    cwd: directory,
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n");
+  assert.deepEqual(tags.sort(), [
+    "@toolgrain/mcp@0.1.1",
+    "@toolgrain/protocol@0.1.1",
+  ]);
+  const events = readFileSync(env.CHANGESETS_OUTPUT, "utf8")
+    .trim()
+    .split("\n")
+    .map(JSON.parse);
+  assert.equal(events.filter(({ type }) => type === "git-tag").length, 2);
+  const calls = readFileSync(log, "utf8").trim().split("\n").map(JSON.parse);
+  assert(
+    calls.every(
+      ({ cwd }) =>
+        cwd !== directory && !cwd.startsWith(`${directory}/packages/`),
+    ),
+  );
+  assert(
+    calls
+      .filter(({ command }) => command === "publish")
+      .every(
+        ({ args }) =>
+          args.includes("--ignore-scripts") && args.includes("latest"),
+      ),
   );
 });

@@ -7,6 +7,11 @@ on:
     tags: ["v*"]
   workflow_dispatch:
   workflow_call:
+    inputs:
+      full:
+        description: Include intermediate TypeScript and stable dependency release gates
+        type: boolean
+        default: false
   schedule:
     - cron: "23 5 * * 1"
 
@@ -63,7 +68,7 @@ jobs:
           if-no-files-found: error
 
   typescript-versions:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ inputs.full || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.matrix.outputs.versions }}
@@ -109,7 +114,7 @@ jobs:
           retention-days: 14
 
   upstream:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ inputs.full || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
