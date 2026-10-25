@@ -6,7 +6,7 @@ Updated: 2026-10-25
 
 - Always create a branch before making changes. Never make changes directly on `main`; continue related work on its existing PR branch.
 
-- Never create a commit unless the user explicitly asks. Authorization applies to the requested commit, not future changes.
+- Never create a local agent commit unless the user explicitly asks. Authorization applies to the requested commit, not future changes. The approved Changesets workflow may create bot version commits and Release PRs; merging a reviewed Release PR approves its automated publication, tags, and package releases after green release verification. This exception does not authorize local agent commits or auto-merging.
 
 - We are not using gstack. Use ordinary project files for context and instructions.
 - Work one step at a time with the user. The product and API are still being designed; do not treat the roadmap below as authorization to implement everything.
@@ -189,62 +189,65 @@ Adopted on 2026-10-22; see `docs/support-policy.md` and `support-policy.json`.
 
 ## Confirmed versioning and release policy
 
-Adopted on 2026-10-23; implementation does not authorize commits or publication.
+Adopted on 2026-10-23; automation format updated by the user on 2026-10-25.
+The user authorized committing the automation and opening a PR against main.
+Review, merge, and the first hosted automated release remain pending.
 
-- The six library manifests and published npm libraries share stable `0.1.0`,
-  with one root `CHANGELOG.md`.
-  Changesets 3.0.3 owns release planning, version selection, and dependency updates.
-  Its explicit fixed group in `.changeset/config.json` lists only the six libraries;
-  their manifests are the version source of truth. Examples/tooling are ignored.
-- Changesets manages the six libraries; automatic commits, private-package
-  tags, and package changelogs are disabled. npm publication setup and the
-  completed stable release are recorded below.
+- All six library manifests and published npm libraries share stable `0.1.0`.
+  Changesets 3.0.3 owns release planning, version selection, dependencies, and
+  package-local changelogs. Its fixed group lists only those six libraries;
+  examples/tooling are ignored. The root changelog preserves historical notes.
+  The user selected native package changelogs and package-scoped GitHub releases,
+  superseding the earlier shared changelog and single-release policy.
+- On pushes to main, Changesets Action v2.1.2 selects version/publish/no-op mode.
+  Pending records create/update the bot's `changeset-release/main` Release PR.
+  `release:version` runs Changesets and synchronizes only Bun workspace version
+  metadata. The bot may commit those generated changes and open/update its PR.
+  Local agent commits still require an explicit user request.
+- Review versions, dependencies, consumed records, changelogs, Bun metadata, and
+  CI before merging the Release PR. That merge approves automatic publication,
+  package tags and GitHub releases after full supported verification on the
+  exact merged commit. No auto-merge or separate manual publish confirmation.
+  GitHub may require approving bot-created PR workflow runs with GITHUB_TOKEN.
+  The Actions setting allowing bot PR creation was enabled and read back on
+  2026-10-25; default workflow permissions remain read-only.
+- The native select/pack/publish artifacts and reporter own the publishing flow.
+  The workflow-only npm adapter uses Bun packing for workspace dependency
+  rewriting and runs pinned npm registry/publish calls outside the checkout.
+  It does not plan versions or generate release notes. Only the publish job
+  receives OIDC permission; no npm token is introduced.
 - During `0.x`, compatible fixes use patch records; features and breaking changes
   use minor records. From `1.0`, follow semantic versioning. Existing runtime/peer
-  minimum and removal notice rules still apply.
-- On 2026-10-24 the user chose the first npm publication as `0.1.0-rc.0` under
-  npm's `next` tag, before stable `0.1.0`. The user subsequently requested
-  "Merge and prerelease", authorizing the RC publication after its release gates.
-  RC0 publication and its GitHub prerelease completed on 2026-10-25 after
-  explicit approval. Stable publication and its tag/GitHub release received
-  separate explicit approvals and also completed on 2026-10-25. These approvals
-  do not authorize future commits, publications, releases, or deployment.
-- Record release intent with `bun run changeset` and maintain editorial Unreleased
-  notes in the root changelog. `release:status` previews the plan. Repository-only
-  work uses empty records. Stable promotion consumed the initial release record
-  and prerelease state; `.changeset/pre.json` and
-  `.changeset/pre/initial-release.md` are absent. Add new records for subsequent
-  changes; do not restore consumed records or repeat the RC bootstrap.
-- `release:version` runs Changesets and synchronizes only Bun workspace version
-  metadata. The custom release helper only checks version alignment and maintains
-  that Bun workaround. It does not handle changelogs, archives, or checksums.
-- The shared root changelog is edited and reviewed manually, including dated
-  version entries and migration notes. Version/notes changes go through a release
-  PR. No script finalizes or validates the changelog or release readiness.
-- Normal CI checks manifest/lockfile alignment. The manual Release verification
-  workflow checks the expected version and reruns baseline plus the full supported
-  matrix including weekly stable/intermediate checks. Existing preview probes
-  remain informational. Existing package verification covers packed contents and
-  consumers; the release workflow creates no candidate archives or checksums.
-  Publication requires green supported CI and explicit approval. See
-  `docs/releases.md`.
+  minimum and removal notice rules still apply. Record intent with
+  `bun run changeset`; `release:status` previews it. Repository-only work uses
+  empty records. The migration uses an empty repository-only record with no
+  version bump; the next real changeset starts an automated Release PR.
+- Normal CI checks manifest/lock alignment. Release verification runs baseline
+  and the full supported matrix, including intermediate TypeScript and stable
+  dependency checks even when called from a push. Node 26 and canary probes
+  remain informational. Post-publication checks compare registry tags,
+  integrity/archives, and fresh Node/npm and Bun consumers for all six packages.
+- The automation handles stable versions under latest. Future prerelease series
+  require reviewing the channel/workflow policy first. Historical RC0 and stable
+  releases remain intact; never restore consumed initial prerelease records or
+  repeat the 0.0.0 bootstrap. New GitHub tags/releases use package names such as
+  `@toolgrain/mcp@0.1.1`. See `docs/releases.md` for review and recovery.
 
 ## Confirmed npm publication setup
 
 Prepared on 2026-10-24; explicitly approved RC0 and stable publications completed
-on 2026-10-25. Future publication still requires explicit approval.
+on 2026-10-25. Future stable publication is approved by merging a reviewed
+Changesets Release PR under the automation policy above.
 
 - All six libraries are published with public npm access and an explicit npmjs
   registry. Root, examples, and repo-tools remain private. The manifests and Bun
   workspace versions are `0.1.0`; `publishConfig.tag` is `latest`. All six npm
   `latest` tags resolve to stable `0.1.0`; `next` remains `0.1.0-rc.0`.
-- The manual `publish.yml` workflow defaults to a dry run and reuses Release
-  verification for the same commit/version before building and Bun-packing the
-  libraries in dependency order. Real workflow publication additionally requires
-  main, an explicit non-dry-run choice, matching confirmation text, environment
-  `npm`, and configured per-package OIDC trusted publishers. RC versions require
-  `next`; stable versions require `latest`, with matching manifest tags and an
-  explicit npm `--tag`. The workflow creates no commits, tags, or GitHub Releases.
+- `publish.yml` now prepares native Changesets automation for main pushes:
+  Release PR, full verification, separate pack and OIDC publication jobs, then
+  registry/fresh-consumer checks. Stable versions require manifest tag `latest`.
+  The existing main-only `npm` environment and six trust bindings are retained.
+  The workflow creates native package tags and package-scoped GitHub releases.
 - RC0 used npm 11.21.1 with an interactive `keshav.katwe` organization-owner login,
   outside the checkout, lifecycle scripts disabled, and the reviewed Bun
   archives. Login renewal and publish-time browser verification were exercised.

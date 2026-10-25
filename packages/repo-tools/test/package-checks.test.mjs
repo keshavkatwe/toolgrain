@@ -53,6 +53,11 @@ test("enforces both size budgets, expected artifacts and package file boundaries
     { path: "dist/index.d.ts", bytes: 20 },
   ];
   const budget = { packedBytes: 20, unpackedBytes: 30 };
+  assert.equal(
+    checkSize([...files, { path: "CHANGELOG.md", bytes: 0 }], 20, budget)
+      .status,
+    "passed",
+  );
   assert.equal(checkSize(files, 20, budget).status, "passed");
   assert.equal(checkSize(files, 21, budget).status, "failed");
   assert.equal(
@@ -268,7 +273,7 @@ test("real packing produces a report and rejects unexpected contents without pub
 
 test("packed protocol archives must retain internal modules and both revisions' vendor artifacts", () => {
   fixture(({ root, write }) => {
-    for (const name of ["README.md", "LICENSE", "NOTICE"])
+    for (const name of ["README.md", "LICENSE", "NOTICE", "CHANGELOG.md"])
       write(name, "fixture\n");
     const manifest = {
       name: "@toolgrain/protocol",
@@ -297,7 +302,10 @@ test("packed protocol archives must retain internal modules and both revisions' 
     }
     for (const path of files) write(path, "fixture\n");
     const execute = (included, expectedExit) => {
-      write("package.json", { ...manifest, files: [...included, "NOTICE"] });
+      write("package.json", {
+        ...manifest,
+        files: [...included, "NOTICE", "CHANGELOG.md"],
+      });
       const result = spawnSync(process.execPath, [cli, "size"], {
         cwd: root,
         encoding: "utf8",
@@ -338,7 +346,8 @@ test("packed protocol archives must retain internal modules and both revisions' 
 
 test("packed MCP archives retain maps and sources and reject dangling or invalid map targets", () => {
   fixture(({ root, write }) => {
-    for (const name of ["README.md", "LICENSE"]) write(name, "fixture\n");
+    for (const name of ["README.md", "LICENSE", "CHANGELOG.md"])
+      write(name, "fixture\n");
     const paths = [];
     for (const stem of ["index", "tools/example"]) {
       const source = `src/${stem}.ts`;
@@ -365,7 +374,7 @@ test("packed MCP archives retain maps and sources and reject dangling or invalid
         name: "@toolgrain/mcp",
         version: "0.0.0",
         private: true,
-        files,
+        files: [...files, "CHANGELOG.md"],
       });
       const result = spawnSync(process.execPath, [cli, "size"], {
         cwd: root,
@@ -537,7 +546,7 @@ test("library size reports still run after an unrelated application build fails"
       name: "@toolgrain/http",
       version: "0.0.0",
       private: true,
-      files: ["dist"],
+      files: ["dist", "CHANGELOG.md"],
       scripts: {
         build: "node build.mjs",
         "test:size": "bun ../../tools/cli.mjs size",
@@ -550,7 +559,7 @@ test("library size reports still run after an unrelated application build fails"
       scripts: { build: "node -e 'process.exit(1)'" },
     };
     write("packages/library/package.json", library);
-    for (const name of ["README.md", "LICENSE"])
+    for (const name of ["README.md", "LICENSE", "CHANGELOG.md"])
       write(`packages/library/${name}`, "fixture\n");
     write(
       "packages/library/build.mjs",

@@ -77,7 +77,9 @@ export function checkSize(
   for (const file of files) {
     if (
       file.path !== "package.json" &&
-      !/^(?:README|LICENSE|LICENCE|NOTICE)(?:\.[^/]*)?$/i.test(file.path) &&
+      !/^(?:README|CHANGELOG|LICENSE|LICENCE|NOTICE)(?:\.[^/]*)?$/i.test(
+        file.path,
+      ) &&
       !/^dist\/(?:[^./\\][^/\\]*\/)*[^./\\][^/\\]*\.(?:js|d\.ts)(?:\.map)?$/.test(
         file.path,
       ) &&

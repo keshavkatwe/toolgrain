@@ -6,16 +6,15 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 `@toolgrain/mcp` provides the complete authoring API: reusable tool definitions,
 Zod 4 validation, output schemas, rich results, and server composition. It supports
 MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
-same tool definitions. This branch prepares stable `0.1.0` for review. RC0 is
-[published on npm and GitHub](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0);
-stable publication is pending.
+same tool definitions. Stable `0.1.0` is
+[published on npm and GitHub](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0).
 
 Toolgrain-owned code is [MIT licensed](./LICENSE), copyright 2026 Keshav Katwe.
 Vendored MCP schemas retain their upstream licenses; see [NOTICE](./NOTICE) and
 the [protocol package's license](./packages/protocol/LICENSE).
 
 See the [versioning and release guide](./docs/releases.md),
-[shared changelog](./CHANGELOG.md), [project decisions](./AGENTS.md),
+[historical changelog](./CHANGELOG.md), [project decisions](./AGENTS.md),
 [client compatibility verification](./docs/compatibility.md),
 [JWT/Clerk authorization](./docs/authorization.md), and
 [lazy context providers](./docs/context.md).
@@ -365,8 +364,8 @@ Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, multi-round-trip input-required results, subscriptions, and
-extensions remain future work. Stable `0.1.0` is prepared for release review;
-[the release guide](./docs/releases.md) tracks the remaining publication gates.
+extensions remain future work. [The release guide](./docs/releases.md) describes
+Changesets records, generated package changelogs, and automated Release PRs.
 
 ## Node stdio and complete flow
 

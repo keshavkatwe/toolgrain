@@ -69,6 +69,7 @@ export async function main(args = []) {
       "package-manager": { type: "string", default: "npm" },
       typescript: { type: "string" },
       zod: { type: "string" },
+      published: { type: "boolean", default: false },
     },
   });
   assert(["node", "bun"].includes(values.runtime), "Unknown runtime");
@@ -160,10 +161,10 @@ export async function main(args = []) {
       !inside(realpathSync(root), realpathSync(temporary)),
       "The temporary consumer must be outside the repository; change TMPDIR",
     );
-    const archives = join(temporary, "archives");
-    mkdirSync(archives);
     const packed = [];
-    for (const manifest of packages) {
+    const archives = join(temporary, "archives");
+    if (!values.published) mkdirSync(archives);
+    for (const manifest of values.published ? [] : packages) {
       const archive = join(archives, `${manifest.name.split("/")[1]}.tgz`);
       await run(
         `pack ${manifest.name}`,
@@ -196,11 +197,12 @@ export async function main(args = []) {
     const node = packages.find(
       (manifest) => manifest.name === "@toolgrain/node",
     );
-    registry = await startArchiveRegistry(packed);
+    if (!values.published) registry = await startArchiveRegistry(packed);
+    const registryURL = registry?.url ?? "https://registry.npmjs.org";
     const install = async (consumer, dependencies, tools = {}) => {
       writeFileSync(
         join(consumer, ".npmrc"),
-        `@toolgrain:registry=${registry.url}/\n`,
+        `@toolgrain:registry=${registryURL}/\n`,
       );
       writeFileSync(
         join(consumer, "package.json"),
@@ -349,6 +351,7 @@ export async function main(args = []) {
           runtime: values.runtime,
           runtimeVersion,
           packageManager: manager,
+          source: values.published ? "npm" : "packed",
           packages: packages.map(({ name, version }) => ({ name, version })),
           results,
         },

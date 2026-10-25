@@ -52,7 +52,7 @@ jobs:
   support:
     name: Supported runtimes and dependencies
     needs: validate
-    # The caller's workflow_dispatch event also enables all weekly stable
-    # dependency and intermediate TypeScript checks in the reused workflow.
     uses: ./.github/workflows/support.yml
+    with:
+      full: true
 

@@ -36,6 +36,7 @@
     }
   },
   "files": [
+    "CHANGELOG.md",
     "dist",
     "NOTICE"
   ],
