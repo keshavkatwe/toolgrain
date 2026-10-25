@@ -154,7 +154,7 @@ readers and shared dependency diamonds are valid. Direct accessors reject with
 the original error. During server execution, missing providers, cycles, and
 resolver exceptions produce generic `Tool execution failed` tool results. The
 original errors and frozen tool/request details reach `onError(error, details)`;
-see [errors and diagnostics](../README.md#errors-and-diagnostics). No new HTTP
+see [errors and diagnostics](./tools.md#errors-and-diagnostics). No new HTTP
 authorization status is added.
 
 TypeScript infers accessor results and checks overrides. It cannot prove a

@@ -1,0 +1,44 @@
+name: Bug report
+description: Report unexpected behavior with a reproducible example.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Toolgrain. Search existing issues first.
+        Report suspected vulnerabilities privately: see [SECURITY](https://github.com/keshavkatwe/toolgrain/blob/main/.github/SECURITY.md).
+        Remove tokens, credentials, and private data from examples and logs.
+  - type: input
+    id: versions
+    attributes:
+      label: Package and runtime versions
+      description: Include affected Toolgrain packages, Node or Bun, TypeScript, and Zod.
+      placeholder: "@toolgrain/mcp 0.1.0, @toolgrain/node 0.1.0, Node 24.20.0, TypeScript 5.5.4, Zod 4.6.6"
+    validations:
+      required: true
+  - type: input
+    id: connection
+    attributes:
+      label: Client, protocol, and transport
+      description: For connection issues, include client/version, MCP revision, stdio or HTTP, and framework if relevant.
+      placeholder: "Inspector 2.11.0, MCP 2026-07-28, Node HTTP"
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide a small code example or repository, exact commands, and steps to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include relevant sanitized errors or logs.
+    validations:
+      required: true

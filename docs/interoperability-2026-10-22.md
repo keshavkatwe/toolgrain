@@ -159,9 +159,8 @@ Local JSON evidence is stored in the ignored `reports/compatibility/` directory:
 - `cancellation-controls.json`: explicit cancellation/disconnect controls.
 - `summary-2026-10-22.json`: counts and status for each run.
 
-The temporary harness and raw process output are retained under
-`/private/tmp/toolgrain-interop-20261022/`; copies of the harness are also saved
-under `reports/compatibility/harness/`. The capture proxy uses Node's HTTP
-request API to preserve the external Host authority, including during protected
-resource metadata discovery. Persistent user client configuration was not changed.
-Verification involved no library implementation changes, publication, or deployment.
+The harness is saved under the ignored `reports/compatibility/harness/` directory.
+The capture proxy uses Node's HTTP request API to preserve the external Host
+authority, including during protected-resource metadata discovery. These local
+artifacts are supplementary evidence; the table above records the tested scope
+and the remaining gaps.

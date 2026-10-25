@@ -1,27 +1,26 @@
-# RC0 acceptance — 2026-10-25
+# Published-package verification — 2026-10-25
 
-The user accepted the documented RC0 scope and known client limitations on
-2026-10-25 and authorized preparing stable `0.1.0`, leaving its changes
-uncommitted for review. Stable commit/PR authorization was granted separately
-later on 2026-10-25. Acceptance alone does not authorize publication,
-tag/GitHub release, or deployment.
+This review checked the six published `0.1.0-rc.0` packages from
+`3d563791052237d205c252a3a1fefef126a45940`. Downloaded archives matched the reviewed
+bytes and registry integrity metadata. Stable `0.1.0` promoted the same library
+implementation; package manifests and READMEs changed for stable installation.
 
-## Reviewed candidate
+The [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
+and its [release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40128994353)
+refer to the candidate commit. Stable `0.1.0` subsequently passed
+[full supported verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40168972464)
+on `526ea39af39413d1ea2693b3961c127343b982e4`, followed by
+[OIDC publication and registry/consumer checks](https://github.com/keshavkatwe/toolgrain/actions/runs/40169659323).
+Both historical GitHub release records remain available.
 
-All six published npm libraries were `0.1.0-rc.0`, from release commit
-`3d563791052237d205c252a3a1fefef126a45940`. Their downloaded archives matched
-the reviewed archives byte for byte. The [GitHub prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
-and [20-job Release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40128994353)
-refer to that same commit. The documentation status commit is `34bffc4`.
+## Method and results
 
-The acceptance review used installed npm libraries outside the repository,
-Node 24.20.0 on macOS arm64, isolated client configuration, and local deterministic
-API fixtures. Codex used its direct app-server tool-call API; Claude used a local
-Messages API fixture. No paid inference, live OAuth login, or persistent user
-configuration changes were involved. The user selected the documented flows;
-this was not acceptance testing in an additional production application.
-
-## Results
+The client review used installed npm packages outside the repository, Node
+24.20.0 on macOS arm64, isolated client configuration, and deterministic local
+API fixtures. Codex used its direct app-server tool-call API; Claude used a
+loopback Messages API fixture. No paid inference, live OAuth login, or persistent
+user configuration changes were involved. These checks do not establish
+production-application or interactive GUI compatibility.
 
 | Client/check | Passed | Total | Result |
 | --- | ---: | ---: | --- |
@@ -30,42 +29,31 @@ this was not acceptance testing in an additional production application.
 | Claude Code 2.1.191, stdio/HTTP/protected HTTP | 30 | 33 | Three cases reproduce the documented rich-result limitation |
 | Claude Code 2.1.191 timeout controls | 3 | 3 | Pass |
 | Direct stdio cancellation and HTTP disconnect controls, both protocol revisions | 4 | 4 | Pass |
-| **Total** | **160** | **172** | **No new Toolgrain blocker in the agreed flows** |
+| **Total** | **160** | **172** | **No new Toolgrain blocker in the checked flows** |
 
-The 12 non-passing assertions match the issue identities and client versions
-from the [2026-10-22 interoperability review](interoperability-2026-10-22.md).
-They remain recorded as limitations rather than being counted as passing checks.
-GitHub had no open issues at the acceptance review; that alone does not establish
-broader user feedback or compatibility.
+The 12 non-passing assertions reproduce the client limitations from the
+[2026-10-22 interoperability review](interoperability-2026-10-22.md). They are
+recorded as limitations and are not counted as passing checks.
 
-## Accepted limitations and workarounds
+## Limitations and workarounds
 
 1. **Codex direct-call timeout:** the tested client times out without promptly
    aborting server work. Applications doing expensive work should impose their
-   own execution deadlines. Direct stdio cancellation and HTTP disconnect
-   controls pass for both protocol revisions; Toolgrain cancellation remains
-   cooperative through `ctx.signal`.
+   own execution deadlines. Explicit stdio cancellation and HTTP disconnect
+   controls pass in both revisions; Toolgrain cancellation remains cooperative
+   through `ctx.signal`.
 2. **Claude rich-result rendering:** supplemental text is hidden when structured
-   content is supplied. Both documented workarounds pass on all three transports:
-   put essential narrative in structured content, or use text-only content where
-   the tool contract permits it.
+   content is supplied. Put essential narrative in structured content, or use
+   text-only content where the tool contract permits it. Both workarounds pass
+   on all three tested transports.
 
 Cursor execution/cancellation, modern Claude Code coverage, live OAuth login,
-and GUI flows remain unverified. HTTP scope remains independent POST requests
-with JSON responses. Resources, prompts, elicitation, persistent sessions,
-streaming, progress, resumability, and subscriptions remain outside this release.
-The user accepted this documented scope; it does not expand compatibility claims
-or waive a future supported regression.
+and GUI flows remain unverified. HTTP scope is independent POST requests with
+JSON responses. Resources, prompts, elicitation, persistent sessions, streaming,
+progress, resumability, and subscriptions remain outside this release.
 
-Local ignored evidence is under `reports/rc0-acceptance/`, including per-client
-JSON, logs, the setup record, and summary. Published-package evidence is in
-`reports/rc0-registry-verification.json`. These local reports are not committed
-release artifacts; this document records their results and the acceptance decision.
-
-## Next gate
-
-Review the prepared stable versions, consumed prerelease records, matching Bun
-workspace metadata, explicit `latest` publication tags, and stable notes. The
-final stable commit still requires green PR CI and full hosted Release
-verification. Trusted-publisher bindings, stable npm publication, and stable
-GitHub release remain pending and require the agreed authorization.
+The [compatibility guide](compatibility.md) covers the earlier baseline and
+reproduction commands. The [support policy](support-policy.md) defines the
+runtime/platform and declaration checks required for future releases. These
+historical results do not establish compatibility for untested clients or waive
+future supported regressions.

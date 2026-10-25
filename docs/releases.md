@@ -5,14 +5,10 @@ The historical [v0.1.0 release](https://github.com/keshavkatwe/toolgrain/release
 and [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
 remain available. `next` still points to RC0.
 
-On 2026-10-25 the user selected native Changesets automation, package-local
-changelogs, and package-scoped GitHub releases for subsequent releases. This
-replaces the manual publication workflow and single root release format.
-The automation is prepared on `codex/changesets-release-automation`; it becomes
-active after review and merge. The user authorized committing it and opening a
-PR against main. The first hosted automated release remains to be verified.
-Local checks cover simulated publication, real npm dry runs, and fresh consumers
-of the already-published stable packages.
+Changesets automation is active on `main`, with package-local changelogs and
+package-scoped GitHub releases. The first main runs correctly selected no release
+for repository-only work. The first full bot Release PR/publication cycle remains
+to be verified when a real user-facing changeset is ready.
 
 ## Record a change
 
@@ -24,10 +20,11 @@ changes that need no library release.
 
 The pinned Changesets CLI 3.0.3 selects versions and updates dependencies. The
 six libraries form one explicit fixed group in `.changeset/config.json` and
-share a version; their manifests are the source of truth. Examples and
-repository tooling stay private and are ignored. During `0.x`, compatible fixes
-use patch records, while features and breaking changes use minor records. From
-`1.0`, follow semantic versioning. The [support policy](support-policy.md),
+share a version; their manifests are the source of truth. Examples and repository
+tooling are unpublished npm workspaces and are ignored by Changesets. During
+`0.x`, compatible fixes use patch records, while features and breaking changes
+use minor records. From `1.0`, follow semantic versioning. The
+[support policy](support-policy.md),
 including minimum increases and removal notices, still applies.
 
 `bun run release:status` previews the pending plan. Package-local `CHANGELOG.md`
@@ -71,9 +68,9 @@ commit is pinned; CLI and Action upgrades must be reviewed together.
 
 No local version bump, manual npm publish, combined `vX.Y.Z` tag, or separate
 GitHub release command is needed for this flow. The existing `v0.1.0` and RC0
-release records are preserved. The migration includes an empty repository-only changeset with no version
-bump. The native npm plan is empty for the already-published 0.1.0 packages.
-The next user-facing changeset starts the first automated Release PR.
+release records are preserved. Repository-only changes use empty changesets and
+do not select a library release. The next user-facing changeset starts the first
+automated Release PR.
 
 ## npm publication setup
 
@@ -86,10 +83,9 @@ The reviewed Release PR is the publication gate.
 
 GitHub Actions must be allowed to create pull requests in repository settings
 (**Actions → General → Allow GitHub Actions to create and approve pull requests**).
-This setting was enabled and read back on 2026-10-25, with default workflow
-permissions still read-only. The version job requests pull-request write access;
-the reused baseline also retains its existing PR-report permission. The workflow
-never approves reviews itself.
+Keep default workflow permissions read-only. The version job requests
+pull-request write access; the reused baseline retains its PR-report permission.
+The workflow never approves reviews itself.
 
 The source repository is currently private, so npm provenance is disabled.
 It is enabled automatically if the repository becomes public. All six trusted
@@ -130,8 +126,8 @@ main manually alongside the bot's Release PR.
 This automation is intentionally for stable releases. It refuses prerelease
 state or versions. A future RC series needs a reviewed channel policy/workflow
 change before entering Changesets prerelease mode. Do not repeat the initial
-0.0.0 bootstrap used to select RC0. The documented client limitations accepted
-for stable remain in the [RC acceptance record](rc0-acceptance-2026-10-25.md).
+0.0.0 bootstrap used to select RC0. The stable baseline's documented client
+limitations remain in the [published-package verification](rc0-acceptance-2026-10-25.md).
 
 References: [Changesets automation](https://changesets.dev/guide/automating),
 [Action v2.1.2](https://github.com/changesets/action/tree/v2.1.2), and
