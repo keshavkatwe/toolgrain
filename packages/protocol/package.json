@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/protocol",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pinned MCP wire types, protocol versions, and upstream provenance for Toolgrain.",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
