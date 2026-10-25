@@ -1,15 +1,28 @@
+<a href="https://github.com/keshavkatwe/toolgrain#readme">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg">
+    <img src="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg" alt="Toolgrain" width="200" height="48">
+  </picture>
+</a>
+
 # @toolgrain/node
 
-Node.js stdio and HTTP transports for Toolgrain MCP servers. Tools and server
-composition live in
-[@toolgrain/mcp](https://github.com/keshavkatwe/toolgrain/tree/main/packages/mcp#readme).
+**Choose stdio or HTTP. Keep your tools.**
+
+Node.js transports for Toolgrain: process stdio, a managed HTTP listener, and
+handlers for an existing Node application.
+
+[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/transports.md) ·
+[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[npm](https://www.npmjs.com/package/@toolgrain/node)
 
 ## Installation
 
 Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/node@0.1.0 @toolgrain/mcp@0.1.0 zod
+npm install @toolgrain/node@0.1.0 @toolgrain/mcp@0.1.0 zod@^4.6.6
 npm install --save-dev typescript @types/node
 ```
 
@@ -46,7 +59,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 ```
 
 Save as `server.mts`, compile with TypeScript using
-`--strict --module NodeNext --target ES2022`, and run `node server.mjs`.
+`--strict --module NodeNext --target ES2022 --types node`, and run `node server.mjs`.
 The endpoint defaults to `http://127.0.0.1:3000/mcp`. `server.close()` closes the
 owned listener. Toolgrain installs no process signal handlers; the example adds
 its own shutdown handling.

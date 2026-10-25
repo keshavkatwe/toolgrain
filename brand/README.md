@@ -3,7 +3,8 @@
 Approved on 2026-10-23: the Monolith visual direction, continuous restrained
 motion, logo mark, wordmark, and lockup. This directory is the shared source for
 Toolgrain brand artwork and design tokens. Reuse these assets in future work
-instead of recreating the logo. Broad rollout and publication remain separate work.
+instead of recreating the logo. The root and package READMEs use the fixed-color
+lockups for light and dark themes. Website deployment remains separate work.
 
 ## Artwork
 

@@ -1,14 +1,28 @@
+<a href="https://github.com/keshavkatwe/toolgrain#readme">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg">
+    <img src="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg" alt="Toolgrain" width="200" height="48">
+  </picture>
+</a>
+
 # @toolgrain/http
 
-Streamable HTTP handlers for Toolgrain MCP servers using Web `Request` and
-`Response`. Applications own the HTTP listener and framework integration.
+**Mount MCP in your application.**
+
+Framework-independent Web `Request`/`Response` handlers for Toolgrain servers.
+Your application owns the listener; Toolgrain handles MCP routing and execution.
+
+[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/transports.md) ·
+[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[npm](https://www.npmjs.com/package/@toolgrain/http)
 
 ## Installation
 
 Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/http@0.1.0 @toolgrain/mcp@0.1.0 zod
+npm install @toolgrain/http@0.1.0 @toolgrain/mcp@0.1.0 zod@^4.6.6
 ```
 
 ## Mount a Web handler

@@ -1,0 +1,89 @@
+# Architecture and protocol
+
+How Toolgrain separates tool execution, protocol revisions, and transport lifecycle. Start with the [tool guide](./tools.md) if you are building a server.
+
+[Documentation index](./README.md) · [Examples](../apps/README.md)
+
+## Protocol package
+
+`@toolgrain/protocol` is a published library containing the pinned
+official schemas and constants, including `PROTOCOL_VERSION`, `LEGACY_PROTOCOL_VERSION`,
+and `SUPPORTED_PROTOCOL_VERSIONS`. Workspace code imports modern wire
+types such as `JSONRPCResponse` directly from it. Runtime validators stay in MCP;
+MCP exports server/transport interfaces without re-exporting wire definitions.
+Legacy wire types are available from `@toolgrain/protocol/2025-06-18`.
+The root `ProtocolResponse` type covers responses from both eras.
+
+It has no runtime dependencies. Generated server and transport declarations
+reference this package. Its compiled exports
+point only to `dist`, like the other packages.
+
+## MCP server implementation
+
+Implementation responsibilities are separated:
+
+- `server.ts` composes the server; `dispatcher.ts` selects the protocol era.
+- `modern/` and `legacy/` own their request validation, method handling, and response shapes.
+- `legacy/connection.ts` owns initialization/readiness and initialization cancellation rules.
+- `connection.ts` owns shared transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
+- `protocol/` owns shared envelopes, decoding, and protocol errors.
+- `tools/definition.ts` defines the public API; `tools/registry.ts` validates and executes inputs.
+- `tools/schema.ts` converts schemas and metadata; `tools/adapter.ts` adapts execution.
+- `tools/rich-result.ts` marks explicit results; `tools/content.ts` validates rich content.
+- `tools/json-value.ts` checks JSON values; `tools/results.ts` normalizes outputs before either era shapes its wire result.
+
+Modern modules do not depend on legacy modules. Removing legacy support would
+remove its modules, schema, tests, and routing/export entries; tool definitions
+and shared execution would remain the same.
+
+The package supports `server/discover`, `tools/list`, and `tools/call` for modern
+`2026-07-28` requests carrying version and client capability metadata. Legacy
+clients use `initialize`, `notifications/initialized`, `ping`, `tools/list`, and
+`tools/call` under `2025-06-18`. Initialization negotiates the supported legacy
+revision, including when the client proposes another revision. Only these two
+wire revisions are implemented. The connection handles each client era without
+changing tool definitions or requiring a server mode setting.
+
+Modern discovery lists both supported versions. Modern discovery and tool lists
+use `ttlMs: 0` and `cacheScope: "private"`; legacy listings omit modern result and
+cache fields. Tool lists are a single page in either era.
+
+Tool inputs must convert to JSON Schema with an object root. Conversion uses the
+schema's input shape, preserving transforms/defaults for execution. Invalid
+schemas fail at server construction with `ToolSchemaError`.
+
+Without an output schema, strings become text content; other JSON values become
+structured content and JSON text in modern mode. With an output schema, parsed
+strings also include structured content and serialized JSON text. Legacy structured
+content is limited to objects; arrays, null, numbers, and booleans return JSON text
+only. Non-JSON values fail as tool errors rather than being silently coerced.
+Input/output validation and handler failures return `isError: true`; malformed
+requests and unknown tools return protocol errors. Unexpected handler failures
+return generic errors and reach the server diagnostics callback; explicit public
+`mcpResult()` errors retain their intended content.
+
+`Transport` provides asynchronous `start(callbacks)`, `send(response)`, and `close()`.
+Its responses use `ProtocolResponse`, covering both protocol eras.
+Callbacks report decoded messages, JSON parse failures, transport errors, and EOF.
+Adapters own byte framing and JSON parsing. Messages run independently; writes
+are serialized. `listen()` resolves after startup. A server permits one transport
+attachment, and `close()` is terminal and idempotent. Transport failures terminate
+the attachment and reach the optional server `onError` callback. Diagnostics do
+not write to stdout.
+
+Each tool adapter creates one internal registry and reuses it for all executions.
+Cancellation suppresses pending responses and aborts the handler's `ctx.signal`;
+handlers stop early only if they observe it. A request cancelled during
+validation never starts its handler. Responses already handed to an adapter
+cannot be recalled.
+
+Both complete upstream schemas are vendored unchanged at commit
+`271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license
+under the `@toolgrain/protocol` workspace, in sibling revision folders
+`packages/protocol/src/vendor/2026-07-28/` and `packages/protocol/src/vendor/2025-06-18/`.
+Builds retain those files. Updates are explicit;
+there is no build-time download or MCP SDK dependency.
+
+Resources, prompts, multi-round-trip input-required results, subscriptions, and
+extensions remain future work. [The release guide](./releases.md) describes
+Changesets records, generated package changelogs, and automated Release PRs.

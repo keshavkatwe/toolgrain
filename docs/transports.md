@@ -1,0 +1,176 @@
+# Transports
+
+Choose stdio for a process started by an MCP client, or HTTP for a network endpoint. Both use the same tool definitions.
+
+[Documentation index](./README.md) · [Examples](../apps/README.md)
+
+## Node stdio and complete flow
+
+`@toolgrain/node` exports `stdio()`, using the process's stdin/stdout by default.
+It frames newline-delimited UTF-8 JSON, handles partial chunks, reports malformed
+messages, and serializes writes with backpressure. Diagnostics belong on stderr.
+
+`stdio({ input, output, maxMessageBytes })` accepts custom Node streams and an
+incoming-message byte limit (default 1 MiB, excluding the newline). Oversized
+messages terminate the transport. EOF or stream failure closes the attachment.
+Explicit close removes listeners and pauses input; it does not destroy or end
+caller-owned streams, or force the process to exit.
+
+Build and launch the example:
+
+```sh
+bun run build
+node apps/stdio-example/dist/index.js
+```
+
+To launch the MCP Inspector browser UI (run `bun run dev` or `bun run build` first):
+
+```sh
+bun run --cwd apps/stdio-example inspect
+```
+
+The script runs the official `@modelcontextprotocol/inspector` through `npm exec` outside the Bun-managed workspace and
+pins Inspector 2.11.0 and runs the compiled server with Bun and
+`--protocol-era modern` (Inspector defaults to legacy otherwise). In Inspector, connect to the server,
+list tools, and call `greet` with a name. See the
+[Inspector documentation](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector).
+
+Paste this single-line request into its stdin to call `greet`:
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}},"name":"greet","arguments":{"name":"Ada"}}}
+```
+
+The response includes `structuredContent: {"message":"Hello, Ada!"}` and a text
+representation. Send `server/discover` or `tools/list` with the same `_meta` to
+inspect the server. Closing stdin ends the example naturally.
+
+`bun run test` includes subprocess integration tests that launch the compiled
+example and check discovery, tool listing/execution, malformed-input recovery,
+error responses, and EOF shutdown in both eras. These use a small test client;
+Inspector 2.11.0 and the installed Codex client are also verified over stdio and
+HTTP. Codex's normal initialization-based connection requires no modern flags;
+see the [compatibility report](./compatibility.md) for exact tested versions.
+
+## Streamable HTTP
+
+`@toolgrain/http` provides `createHttpHandler(server, options?)`, a Web
+`Request` → `Promise<Response>` handler. `@toolgrain/node` provides
+`createNodeHttpHandler(server, options?)` for Node `IncomingMessage` and
+`ServerResponse`. Both share the same HTTP implementation; neither depends on a
+web framework. For a standalone Node listener, use:
+
+```ts
+import { http } from "@toolgrain/node";
+
+await server.listen(http({ port: 3000, path: "/mcp" }));
+// await server.close(); // Stops the owned listener and active requests.
+```
+
+For an existing application, mount a combined handler at its root. It routes the
+configured MCP endpoint (default `/mcp`) and automatically serves public protected
+resource metadata when auth is configured. `allowedHosts` defaults to loopback
+hosts; configure exact public authorities for deployment. The framework owns its
+listener and calls `server.close()` during shutdown.
+
+```ts
+import { createHttpHandler } from "@toolgrain/http";
+
+const handler = createHttpHandler(server, {
+  path: "/mcp",
+  allowedHosts: ["api.example.com"],
+  allowedOrigins: ["https://example.com"],
+  maxMessageBytes: 1024 * 1024,
+});
+
+// Next.js App Router: app/mcp/route.ts
+export const POST = handler;
+export const GET = handler;
+export const DELETE = handler;
+```
+
+```ts
+import { createNodeHttpHandler } from "@toolgrain/node";
+
+// Express: mount before express.json() or other body-consuming middleware.
+app.use(createNodeHttpHandler(server));
+app.use(express.json());
+app.get("/health", (_request, response) => response.json({ status: "ok" }));
+```
+
+The Node middleware calls `next()` for unrelated paths before consuming their
+bodies. Matched MCP errors remain Toolgrain responses. Web middleware can use
+`handler.matches(pathname)` to select the MCP and metadata routes and delegate
+other paths to its framework.
+
+The public factories compose focused internal modules. HTTP separates option
+normalization, endpoint checks, bounded body decoding, request/header validation,
+parameter-header schema extraction, execution, and response serialization. The
+Node adapter separates request conversion, connection abort tracking, and response
+writing with backpressure. HTTP protocol behavior stays in `@toolgrain/http`;
+Node modules only adapt the runtime interfaces. No generic utility package is
+needed for these responsibilities.
+
+Within HTTP, `modern/` and `legacy/` contain each era's version/header validation,
+notification rules, and response policies. `protocol-version.ts` selects one
+adapter per POST; body decoding, routing/parameter-header comparison, execution,
+and JSON serialization are shared.
+
+HTTP supports revisions `2026-07-28` and `2025-06-18`: independent POST requests
+and JSON responses. Legacy initialization is supported without issuing session
+IDs or keeping global client negotiation state. There is no GET event stream or
+resumption. SSE, progress, and subscriptions remain separate work. See
+[authorization](./authorization.md) for JWT/Clerk and request identities. Requests must advertise both `application/json` and
+`text/event-stream` in Accept even though this implementation returns JSON.
+
+Every modern POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
+`Mcp-Name`. Header values must match the JSON-RPC body. Encoded names and declared
+`x-mcp-header` parameter annotations are validated before tool execution; invalid
+annotations fail HTTP-handler construction. Missing or mismatched headers return
+HTTP 400 / `HeaderMismatch`; unsupported versions return HTTP 400 with supported
+versions; unsupported RPC methods return HTTP 404. GET and DELETE return 405.
+Legacy `initialize` can omit the version header and declares its requested version
+in `params.protocolVersion`. Subsequent legacy POSTs carry
+`MCP-Protocol-Version: 2025-06-18`; modern routing headers are optional but checked
+against the body when present. Contradictory header/body versions are rejected.
+Legacy JSON-RPC method/argument errors use HTTP 200, while malformed transport
+messages still fail with HTTP errors. Legacy `notifications/initialized` and
+valid `notifications/cancelled` return HTTP 202 with no body. Cancellation is
+advisory: without a session or client identity, an independent notification
+cannot safely target another HTTP request, so it does not cancel shared work.
+Modern HTTP notifications remain unsupported.
+
+`maxMessageBytes` defaults to 1 MiB and limits incoming bytes, not output size.
+Bodies use strict UTF-8 decoding. Invalid JSON returns 400; oversized bodies return
+413. Already consumed bodies are rejected. Each HTTP request has its own execution
+scope, so concurrent callers can use the same JSON-RPC ID safely. Disconnects
+suppress the corresponding result; running validation and handlers continue under
+the existing tool execution semantics.
+
+An absent Origin is allowed. A present Origin must exactly match an entry in
+`allowedOrigins`, which defaults to an empty list. This is independent of CORS and
+authentication: applications own browser preflight handling, TLS, deployment
+configuration, and framework HTTP-server shutdown. Toolgrain owns MCP routing,
+host validation, and optional JWT/Clerk verification. Set explicit origins
+when using a browser client. The plain Node example binds to `127.0.0.1`.
+
+The MCP server exposes `handle(message, { signal?, protocolVersion? })` for independent decoded
+messages and `getToolDefinitions()` for fresh copies of advertised metadata.
+The HTTP adapter passes the validated revision per request; direct legacy
+callers supply `protocolVersion: LEGACY_PROTOCOL_VERSION` after initialization.
+Request processing shares dispatch/error conversion with stdio. `close()` is
+terminal and suppresses pending results across both paths; attached-transport EOF
+also closes the server. A listener attached through `http()` closes with the MCP
+server; externally mounted handlers leave the listener application-owned.
+
+Run the plain Node example after building:
+
+```sh
+bun run build
+bun run --cwd apps/http-example start
+```
+
+The endpoint is `http://127.0.0.1:3000/mcp`. See
+[independent framework examples](../apps/README.md) for verified Express,
+Hono, Elysia, and Next.js integrations. Framework dependencies live only
+in their respective example workspaces. NestJS is not separately verified.

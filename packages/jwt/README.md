@@ -1,13 +1,28 @@
+<a href="https://github.com/keshavkatwe/toolgrain#readme">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg">
+    <img src="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg" alt="Toolgrain" width="200" height="48">
+  </picture>
+</a>
+
 # @toolgrain/jwt
 
-JWT bearer-token authorization for Toolgrain MCP servers.
+**Protect your MCP endpoint with JWT.**
+
+Verify OAuth access tokens before tool execution, then read typed, immutable
+claims inside your handlers.
+
+[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/authorization.md) ·
+[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[npm](https://www.npmjs.com/package/@toolgrain/jwt)
 
 ## Installation
 
 Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/jwt@0.1.0 @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod
+npm install @toolgrain/jwt@0.1.0 @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod@^4.6.6
 ```
 
 ## Protect an HTTP server

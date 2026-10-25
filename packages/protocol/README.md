@@ -1,8 +1,21 @@
+<a href="https://github.com/keshavkatwe/toolgrain#readme">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg">
+    <img src="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg" alt="Toolgrain" width="200" height="48">
+  </picture>
+</a>
+
 # @toolgrain/protocol
 
-Pinned MCP wire types, protocol versions, and upstream provenance for Toolgrain.
-This package has no runtime dependencies. Tool authoring lives in
-[@toolgrain/mcp](https://github.com/keshavkatwe/toolgrain/tree/main/packages/mcp#readme).
+**MCP wire types, with provenance.**
+
+Pinned protocol definitions and version constants for Toolgrain, with no runtime
+dependencies. Tool authoring lives in `@toolgrain/mcp`.
+
+[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/architecture.md) ·
+[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[npm](https://www.npmjs.com/package/@toolgrain/protocol)
 
 ## Installation
 

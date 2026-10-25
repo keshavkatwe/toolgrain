@@ -1,0 +1,28 @@
+name: Feature proposal
+description: Describe a problem Toolgrain could solve better.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/keshavkatwe/toolgrain/blob/main/ROADMAP.md) and existing issues first.
+        Start with the use case; an API sketch is welcome but not required.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Explain who needs this, what they are building, and where the current API falls short.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the outcome. Include a small API example if useful.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: What have you tried? Could application code or an existing integration solve this?

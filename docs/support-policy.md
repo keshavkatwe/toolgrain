@@ -1,8 +1,9 @@
 # Runtime and dependency support
 
-Adopted: 2026-10-22. All libraries remain unpublished. This policy
-sets the intended release contract; adding CI jobs does not establish that an
-unrun platform has passed. Publication requires a green supported matrix.
+All six libraries are published as stable **0.1.0**. This policy defines their
+runtime and dependency contract. CI configuration alone does not establish that
+an unrun platform has passed; releases require a green supported matrix. See the
+[published-package verification](./rc0-acceptance-2026-10-25.md) for recorded results.
 
 ## Supported versions
 
@@ -32,10 +33,9 @@ The application runtime floor is therefore 1.4.4, while repository tooling
 remains pinned at 1.3.14. Earlier Bun example checks established only their tested subset, not the
 complete adapter contract. See [Bun 1.4's Node compatibility changes](https://bun.com/blog/bun-v1.4#nodejs-compatibility).
 
-On 2026-10-24 the user approved an initial Zod floor of 4.6.6 because earlier
+The initial release uses a Zod floor of 4.6.6 because earlier
 versions are affected by [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
-This replaces the earlier unpublished 4.0.0 floor. The first release stays
-`0.1.0`; strict TypeScript 5.5.4 remains the compiler minimum.
+Strict TypeScript 5.5.4 remains the compiler minimum.
 
 Node 26 has a non-blocking preview job. Its upstream LTS transition is scheduled
 for 2026-10-28. Promotion requires a reviewed policy/manifest/CI change after LTS
@@ -96,7 +96,7 @@ is performed by these workflows. New matrix check names must be selected in
 repository branch protection when configuring required checks; workflow files
 alone do not change GitHub repository settings.
 
-The manual [Release verification workflow](releases.md#verify-the-release) reuses
+The manual [Release verification workflow](releases.md#failures-and-recovery) reuses
 both workflows at the selected source commit, including weekly stable dependency
 and intermediate TypeScript checks. It does not produce candidate archives.
 

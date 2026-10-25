@@ -1,14 +1,28 @@
+<a href="https://github.com/keshavkatwe/toolgrain#readme">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg">
+    <img src="https://raw.githubusercontent.com/keshavkatwe/toolgrain/main/brand/logo-light.svg" alt="Toolgrain" width="200" height="48">
+  </picture>
+</a>
+
 # @toolgrain/mcp
 
-Define reusable, typed MCP tools and servers with Zod validation. Toolgrain
-implements MCP directly, independently of `@modelcontextprotocol/sdk`.
+**Define tools once. Compose your MCP server.**
+
+Reusable tools, inferred Zod inputs and outputs, rich results, and request context
+from one TypeScript authoring API.
+
+[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/tools.md) ·
+[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[npm](https://www.npmjs.com/package/@toolgrain/mcp)
 
 ## Installation
 
 Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod
+npm install @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod@^4.6.6
 npm install --save-dev typescript @types/node
 ```
 
@@ -41,7 +55,7 @@ await server.listen(stdio());
 ```
 
 Save the example as `server.mts`, compile it using TypeScript with
-`--strict --module NodeNext --target ES2022`, then run `node server.mjs`.
+`--strict --module NodeNext --target ES2022 --types node`, then run `node server.mjs`.
 Stdio uses stdin and stdout for MCP; write application logs to stderr. EOF
 closes the connection. An MCP client starts the program and sends requests.
 
@@ -77,7 +91,7 @@ ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6`; TypeScript 5.5.4
 or later with `strict` enabled. Node stack traces can use the included source
 maps with `node --enable-source-maps server.mjs`. See the
 [support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md)
-and [full API guide](https://github.com/keshavkatwe/toolgrain#readme).
+and [full API guide](https://github.com/keshavkatwe/toolgrain/blob/main/docs/tools.md).
 
 ## License
 
