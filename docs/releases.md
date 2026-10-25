@@ -1,10 +1,14 @@
 # Versioning and releases
 
-Adopted: 2026-10-23. The first planned stable release is **0.1.0**, preceded by
-**0.1.0-rc.0** under npm's **next** tag. All six libraries are prepared at that
-candidate version and configured for public access. The preparation date does
-not establish npm publication. Commits, publication, and deployment require
-their own authorization.
+Adopted: 2026-10-23. All six libraries are published as **0.1.0-rc.0** on
+[npm/GitHub](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0).
+On 2026-10-25 the user accepted the documented RC limitations and authorized
+preparing stable **0.1.0**, initially leaving its changes uncommitted for review.
+The user subsequently authorized the stable commit and PR against main. Versions
+are prepared on `codex/release-0.1.0-stable`; review/merge, final hosted
+verification, publication, and tag/GitHub release remain pending.
+A preparation date does not establish publication. See the current gates in
+[ROADMAP.md](../ROADMAP.md#before-stable-010).
 
 ## Changesets and the shared version
 
@@ -20,26 +24,27 @@ fixes/compatible features/breaking changes. Explain breaking changes and migrati
 steps. The [support policy](support-policy.md#upgrade-and-deprecation-rules),
 including minimum increases and removal notices, still applies.
 
-On 2026-10-24 the user selected **0.1.0-rc.0** under npm's **next** tag as the
-first publication, before stable `0.1.0`, and subsequently authorized merging the
-canary fix and making that prerelease. Publication still waits for review and
-green supported verification of the prepared candidate on main.
+The first publication was selected as `0.1.0-rc.0` under `next`, before stable
+`0.1.0`, and completed after explicit approval and green release verification.
+The [RC0 acceptance review](rc0-acceptance-2026-10-25.md) records the published
+package checks, client limitations, and the user's scope acceptance.
 
-Changesets prerelease mode uses `rc` for the version suffix; npm publication uses
-the separate `next` dist-tag. `.changeset/pre.json` tracks the mode, and Changesets
-retains the initial release record under `.changeset/pre/` for stable promotion.
-The initial conversion used an unpublished `0.0.0` planning baseline and a minor
-record so Changesets selected exactly `0.1.0-rc.0`. No `0.0.0` package is released;
-do not repeat that bootstrap. The release tests cover RC0, RC1, stable promotion,
-and packed internal dependency versions.
+Changesets prerelease mode used `rc` for the version suffix and retained the
+initial record under `.changeset/pre/`. The initial conversion used an
+unpublished `0.0.0` planning baseline and a minor record to select RC0. No package
+was published at `0.0.0`; do not repeat that bootstrap. Stable preparation ran
+`bun run changeset pre exit` and `bun run release:version`, consuming the
+prerelease state/records and aligning all six libraries and Bun workspace
+metadata at `0.1.0`. The release tests cover RC0, RC1, stable promotion, and
+packed internal dependency versions.
 
 ## Record changes and prepare a release PR
 
 For user-facing library changes, run `bun run changeset`, select affected
 libraries and a bump type, and write a summary. Include that record with the
 change when committing is authorized. Use `bun run changeset --empty` for
-repository-only work needing no library release. The initial candidate is already
-versioned; add records only for subsequent changes.
+repository-only work needing no library release. Stable `0.1.0` is already
+versioned on the release branch; add records only for subsequent changes.
 
 Maintain the root [CHANGELOG.md](../CHANGELOG.md) manually. Add user-facing notes
 under Unreleased, grouped as useful under Added, Changed, Fixed, Removed, and
@@ -60,7 +65,8 @@ bun run release:check
 `release:status` shows Changesets' plan and can report missing change records.
 `release:version` runs Changesets, consumes records, and synchronizes the six
 Bun lockfile workspace versions. It does not commit, tag, push, open a PR, or
-publish. In the current `rc` mode, new records advance the candidate series.
+publish. Prerelease mode has been exited for this stable preparation; do not
+rerun versioning just to refresh a status report.
 
 Run `release:status` before versioning. Once records are consumed, the unmerged
 release branch can report changed packages with no active Changesets records when
@@ -82,10 +88,11 @@ Review the six versions, consumed records, lockfile, shared changelog, and
 migration steps. Once committing and opening a PR are authorized, create a
 normal `Release vX.Y.Z` PR and merge through review and required CI.
 
-To prepare stable `0.1.0` after candidate testing, run `bun run changeset pre exit`
-and `bun run release:version`, change all six `publishConfig.tag` values to
-`latest`, and prepare the stable changelog entry. Review that release PR and run
-the same full verification before a separately approved stable publication.
+The stable branch has exited prerelease mode, selected `0.1.0`, changed all six
+`publishConfig.tag` values to `latest`, and prepared the stable changelog and
+installation notes. Review and merge its release PR when authorized, then run
+the same full verification on that exact main commit before a separately
+approved stable publication.
 
 ## Verify the release
 
@@ -106,8 +113,8 @@ those decisions or untested client/platform compatibility.
 Only the six libraries in the Changesets fixed group are publishable. Their
 `publishConfig` selects public access and `https://registry.npmjs.org/`;
 Changesets also uses public access. The root, examples, and repository tooling
-remain private. The current candidate manifests also set `publishConfig.tag`
-to `next` as a defensive default. Do not run Changesets publication or tagging
+remain private. Prepared stable manifests set `publishConfig.tag` to `latest`;
+RC manifests use `next`. Do not run Changesets publication or tagging
 commands; the explicit archive publishing process below owns npm dist-tags.
 
 `.github/workflows/publish.yml` is manually triggered and defaults to a dry run.
@@ -130,18 +137,30 @@ The branch restriction does not create a reviewer approval gate. Dispatching the
 real publish must be an explicitly authorized maintainer action. Dry-run workflow
 jobs use this same environment and therefore also require main.
 
-### First publication
+### First publication completed
 
-[npm requires the package to exist before trusted publishing can be configured](https://docs.npmjs.com/cli/v11/commands/npm-trust/#prerequisites).
-The first release therefore uses an interactive maintainer login with access to
-the `@toolgrain` scope. Publish the real, reviewed `0.1.0-rc.0` archives after release
-verification and explicit approval; OIDC is for subsequent releases.
+[npm requires packages to exist before trusted-publisher setup](https://docs.npmjs.com/cli/v11/commands/npm-trust/#prerequisites).
+RC0 therefore used an explicitly approved interactive maintainer login,
+reviewed Bun archives, and npm 11.21.1 outside the checkout. Login renewal and
+publish-time browser verification were exercised. All six downloaded archives
+matched the reviewed bytes and registry integrity metadata; fresh `@next`
+consumers passed strict declarations and Node/Bun runtime checks.
 
-To prepare and dry-run the archives from the reviewed checkout:
+npm assigned `latest` to the initial RC0 publication despite explicit
+`--tag next` and rejected removing it with HTTP 400. Its
+[registry specification](https://github.com/npm/registry/blob/main/docs/responses/package-metadata.md)
+requires a `latest` tag. Both tags currently resolve to RC0; this does not mean
+stable `0.1.0` is published. Stable publication explicitly uses `latest`, and
+any intentional change to `next` needs separate review. Do not republish RC0 or
+publish a placeholder version to work around the registry behavior.
+
+### Prepare and dry-run reviewed stable archives
+
+From the reviewed stable checkout:
 
 ```sh
 set -e
-bun run release:check --version 0.1.0-rc.0
+bun run release:check --version 0.1.0
 bun run build --filter='./packages/*'
 bun run test:size
 release_packages="$(mktemp -d)"
@@ -155,25 +174,23 @@ done
   cd "$release_packages"
   for package in protocol mcp http node jwt clerk; do
     npm publish "./$package.tgz" --dry-run --ignore-scripts --access public \
-      --registry=https://registry.npmjs.org/ --tag next
+      --registry=https://registry.npmjs.org/ --tag latest
   done
 )
 ```
 
-A dry run validates publication inputs; it does not prove npm account permissions
-or OIDC authentication. Keep these archives for review. After publication is
-approved, authenticate from that directory with
-`npm login --registry=https://registry.npmjs.org/` and run the same archive loop
-without `--dry-run`, retaining `--tag next`. Stop on any failure and inspect which packages were
-published before deciding how to resume; publication of six packages is not
-atomic. Never rerun a published package/version or change an archive silently.
-Verify each published version's integrity and dist-tags against the reviewed
-archive, then exercise a fresh registry consumer using the `next` tag. Never
-promote a candidate to `latest` as part of this prerelease.
+A dry run validates publication inputs; it does not prove npm permissions or
+OIDC authentication and does not authorize a real publish. Keep the archives
+for review. The planned stable publication uses the workflow after its six
+trusted-publisher bindings are configured and publication is explicitly
+approved. Stop on any failure and inspect which packages were published before
+resuming: six-package publication is not atomic. Never republish an existing
+version or silently replace a reviewed archive. Verify all six registry
+versions, integrity, actual tags, and fresh consumers after publication.
 
 ### Subsequent releases with OIDC
 
-Once packages exist, configure each package's
+All six packages now exist. Configure each package's
 [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/) with GitHub
 owner `keshavkatwe`, repository `toolgrain`, workflow filename `publish.yml`,
 environment `npm`, and permission to run `npm publish`. A new trust configuration
@@ -191,7 +208,9 @@ from the workflow files. On 2026-10-24, read-only `npm whoami` and
 `npm org ls toolgrain keshav.katwe --json` checks confirmed an authenticated
 `keshav.katwe` account with the `owner` role in `toolgrain`. This role
 [permits creating and publishing packages in the organization scope](https://docs.npmjs.com/organization-roles-and-permissions/).
-No actual publish or publish-time authentication challenge was exercised.
-Per-package OIDC trust bindings remain deferred until packages exist.
-Release tags, GitHub Releases, and deployment require their own authorization.
+RC0 publication and browser authentication completed on 2026-10-25.
+Per-package OIDC trust bindings remain unconfigured and workflow publication is
+unverified; configure them close to the approved stable publish.
+RC0's tag/GitHub prerelease are published. The stable tag/GitHub release and
+deployment require their own authorization.
 Verify all six packages are available before announcing a release.

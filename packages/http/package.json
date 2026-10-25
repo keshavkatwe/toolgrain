@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/http",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0",
   "description": "Streamable HTTP handlers for Toolgrain MCP servers using Web Request and Response.",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,7 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/",
-    "tag": "next"
+    "tag": "latest"
   },
   "type": "module",
   "exports": {

@@ -2,43 +2,76 @@
 
 Status updated: 2026-10-25.
 
-All six libraries are configured for public npm access. The first candidate is
-`0.1.0-rc.0` under `next`, before stable `0.1.0`; publication is pending.
-**✅ Done** covers the agreed scope; **🟡 Partial** means implementation or
+All six libraries are published on npm as **`0.1.0-rc.0`**, and the
+[GitHub prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
+is published at verified commit `3d56379`. Stable **`0.1.0` is prepared for
+review and remains unpublished**.
+**✅ Done** covers the agreed scope; **🟡 Pending/Partial** means work or
 verification remains. Proposed items are unapproved, with no timelines or
-implementation commitments. Publication and deployment require separate approval.
+implementation commitments. Future commits, publication, and deployment still
+require their own authorization.
 
-## First release blockers — `0.1.0-rc.0` → `0.1.0`
+**✅ RC0 complete:** baseline, canary, and release preparation merged in
+[PR #29](https://github.com/keshavkatwe/toolgrain/pull/29),
+[PR #30](https://github.com/keshavkatwe/toolgrain/pull/30), and
+[PR #31](https://github.com/keshavkatwe/toolgrain/pull/31).
+[Release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40128994353)
+passed all 20 executed jobs. All six downloaded npm archives match the reviewed
+archives; fresh `@next` consumers passed strict TypeScript 5.5.4/7.0.2 checks and
+all 10 runtime cases on both Node 24.20.0 and Bun 1.4.4.
 
-These are the required gates from the [release policy](./docs/releases.md).
-The stable baseline and canary fix were merged in PRs #29 and #30. The first RC
-is now prepared on a separate branch with explicit `next` tag controls.
+**npm tags:** all six packages have `next` and `latest` pointing to RC0. npm
+assigned `latest` on the initial publication despite explicit `--tag next` and
+rejected its removal with HTTP 400. Its
+[registry specification](https://github.com/npm/registry/blob/main/docs/responses/package-metadata.md)
+requires a `latest` tag. Use an explicit version or `@next`; the `latest` label
+does not establish a stable Toolgrain release. GitHub marks RC0 as a prerelease
+with its Latest designation disabled.
 
-1. **✅ Done — First-release npm publication setup.** Public package settings and a manual
-   dry-run workflow are verified locally; the GitHub `npm` environment permits
-   only main. The authenticated npm account `keshav.katwe` is a `toolgrain`
-   organization owner with publishing rights. The initial release uses approved
-   interactive publication; OIDC bindings follow once packages exist.
-2. **🟡 Partial — RC preparation and review.** All six libraries are prepared at
-   `0.1.0-rc.0`. Changesets owns the RC counter and stable promotion; manifests
-   default to `next`, and workflow guards enforce version/tag matching.
-   Committing the RC, opening its release PR, and merging after green CI are
-   authorized on 2026-10-25 and remain pending.
-3. **🟡 Pending verification — Green release checks.** Run Release verification
-   on the prepared main commit with expected version `0.1.0-rc.0`. Baseline and the
-   full supported runtime/platform/dependency checks must pass, including the
-   stable weekly probes. The workflow exists; passing results for the final
-   release commit still need review. Node 26 and prerelease probes remain
-   informational.
-4. **🟡 Authorized, pending gates — Publish the RC.** The user authorized the
-   prerelease on 2026-10-24. Publish the reviewed `0.1.0-rc.0` archives under
-   `next` only after the gates above pass. Stable `0.1.0`, Git tags, GitHub
-   Releases, and deployment require separate authorization.
+## Before stable `0.1.0`
+
+These are the remaining gates from the [release policy](./docs/releases.md).
+**Next step: review the stable release PR and its CI before authorizing merge.**
+
+1. **✅ Done — RC acceptance for the documented scope.** The published-candidate
+   review found no new Toolgrain blocker: 160/172 checks passed; 12 reproduced
+   existing Codex/Claude limitations with passing controls/workarounds. The user
+   accepted those documented limits on 2026-10-25. See the
+   [acceptance record](./docs/rc0-acceptance-2026-10-25.md). New feedback exposing
+   failures of promised behavior still needs resolution and another RC if needed.
+2. **🟡 Prepared, review pending — Stable release changes.** On
+   `codex/release-0.1.0-stable`, Changesets exited prerelease mode, selected
+   `0.1.0` for all six libraries, synchronized Bun metadata, and consumed the
+   prerelease records. Manifests select `latest`; stable changelog and
+   installation notes are prepared. Local baseline, exports, Node/Bun consumers,
+   sizes, audit, and six npm dry runs passed. The user authorized the stable
+   commit and PR on 2026-10-25. Review and green PR CI remain pending; merge
+   requires separate authorization.
+3. **🟡 Pending — Stable commit verification.** After the stable PR merges, run
+   Release verification on its exact main commit with expected version `0.1.0`.
+   Baseline and the full supported runtime/platform/dependency checks, including
+   stable/intermediate probes, must pass. Node 26 and the prerelease canary stay
+   informational. RC0's green run verifies RC0, not the future stable commit.
+4. **🟡 Pending — Publishing authentication for the planned workflow.** Configure
+   the six npm trusted-publisher bindings for `keshavkatwe/toolgrain`,
+   `publish.yml`, and environment `npm`; packages now exist. Configure close to
+   the approved publication because new trust requires its first successful
+   publish within two days. OIDC publication has not been exercised. Any change
+   to the planned publication path needs explicit agreement.
+5. **🟡 Pending approval — Stable npm publication and registry checks.** Obtain
+   explicit stable-publication approval, publish the reviewed `0.1.0` archives
+   under `latest`, then verify all six versions, archive integrity, dist-tags,
+   and fresh registry consumers. RC0 approval does not authorize stable.
+6. **🟡 Pending approval — Stable GitHub release.** Obtain approval for tag
+   `v0.1.0` and its GitHub release at the verified stable commit, with stable
+   release notes and installation instructions, after npm availability is
+   verified. The existing RC0 tag and prerelease remain the candidate record.
 
 The documentation website and proposed features below are outside these release
 gates. Client verification gaps remain tracked below: disclose known limitations
 and claim compatibility only for verified flows. Any failure of promised
-behavior must be resolved or explicitly scoped out before release.
+behavior must be resolved or explicitly scoped out before release. There is no
+agreed stable release date.
 
 ## Full roadmap
 
@@ -74,8 +107,9 @@ behavior must be resolved or explicitly scoped out before release.
     metadata, READMEs, and licenses. Toolgrain-owned code is MIT licensed;
     upstream protocol and Clerk dependency notices are preserved.
 11. **✅ Done — Versioning and release verification.** Changesets manages the six
-    libraries as a fixed group, with `0.1.0-rc.0` before stable `0.1.0`. One manually maintained root
-    changelog and a manual release-verification workflow are in place. See
+    libraries as a fixed group, with `0.1.0-rc.0` before stable `0.1.0`. One
+    manually maintained root changelog and a manual release-verification
+    workflow are in place. See
     [release guide](./docs/releases.md).
 12. **✅ Done — Brand kit.** The approved Monolith logo, wordmark, colors,
     typography, motion direction, and reusable assets are in `brand/`.
@@ -83,9 +117,10 @@ behavior must be resolved or explicitly scoped out before release.
     Code tool flows pass with recorded limitations. Cursor execution and
     cancellation, modern Claude Code coverage, live OAuth login, and GUI flows
     remain unverified. See [tested versions and results](./docs/interoperability-2026-10-22.md).
-14. **🟡 Partial — Supported runtime and platform verification.** The CI matrix is
-    implemented; each hosted combination needs passing results before it can be
-    called verified.
+14. **✅ Done for RC0 — Supported runtime and platform verification.** RC0's
+    full release run passed the supported Node/Bun checks across Linux, macOS,
+    and Windows, plus minimum/intermediate TypeScript and stable dependency
+    probes. Repeat verification for the final stable commit.
 15. **🔄 Ongoing — Public API stabilization.** The current API review is complete;
     further API changes still need design review. Versioning and compatibility
     policies are adopted.
@@ -94,10 +129,11 @@ behavior must be resolved or explicitly scoped out before release.
     checked locally. The GitHub `npm` environment is restricted to main; npm
     login and organization-owner publishing rights are verified. See
     [publishing process](./docs/releases.md#npm-publication-setup).
-17. **🟡 Partial — Initial npm prerelease.** `0.1.0-rc.0` is prepared under
-    `next`, with the approved Zod 4.6.6 minimum. Finish the RC release PR and
-    supported hosted verification, then perform the authorized publication.
-    Stable `0.1.0` follows candidate testing and separate approval.
+17. **✅ Done — Initial npm and GitHub prerelease.** All six `0.1.0-rc.0`
+    packages are published and verified on npm; GitHub prerelease
+    `v0.1.0-rc.0` points to `3d56379`. Both npm tags currently resolve to RC0 as
+    explained above. RC acceptance is complete; stable `0.1.0` changes are
+    prepared for review and await the remaining gates above.
 18. **⏸️ Deferred — Documentation and quickstarts website.** Docusaurus and GitHub
     Pages are selected. README, guides, and framework examples exist; website
     implementation and deployment remain separate work.
@@ -125,7 +161,6 @@ behavior must be resolved or explicitly scoped out before release.
 28. **🚫 Proposed exclusion — Deprecated MCP features.** Keep sampling, logging,
     roots, Dynamic Client Registration, and the deprecated HTTP+SSE transport
     outside scope. See the [deprecated features registry](https://modelcontextprotocol.io/specification/2026-07-28/deprecated).
-29. **⏸️ Deferred — npm trusted-publisher bindings.** Configure each package's
-    OIDC binding for subsequent workflow releases after the first approved
-    publication creates the packages. This does not block the initial
-    interactive release.
+29. **🟡 Pending — npm trusted-publisher bindings.** RC0 created all six
+    packages, so bindings can now be configured for the planned workflow
+    publication. No OIDC publish has been verified; see stable gate 4.

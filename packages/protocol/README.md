@@ -6,11 +6,10 @@ This package has no runtime dependencies. Tool authoring lives in
 
 ## Installation
 
-Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
-A stable Toolgrain release is not yet available.
+Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/protocol@next
+npm install @toolgrain/protocol@0.1.0
 ```
 
 ## Protocol versions and wire types
