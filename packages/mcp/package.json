@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/mcp",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0",
   "description": "Define reusable, typed MCP tools and servers with Zod validation.",
   "license": "MIT",
   "repository": {
@@ -23,7 +23,7 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/",
-    "tag": "next"
+    "tag": "latest"
   },
   "type": "module",
   "exports": {

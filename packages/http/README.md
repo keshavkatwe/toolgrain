@@ -5,11 +5,10 @@ Streamable HTTP handlers for Toolgrain MCP servers using Web `Request` and
 
 ## Installation
 
-Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
-A stable Toolgrain release is not yet available.
+Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/http@next @toolgrain/mcp@next zod
+npm install @toolgrain/http@0.1.0 @toolgrain/mcp@0.1.0 zod
 ```
 
 ## Mount a Web handler

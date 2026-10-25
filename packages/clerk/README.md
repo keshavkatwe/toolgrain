@@ -4,11 +4,10 @@ Clerk OAuth access-token authorization for Toolgrain MCP servers.
 
 ## Installation
 
-Release candidate for Toolgrain `0.1.0`; use the explicit `next` tag.
-A stable Toolgrain release is not yet available.
+Install the same `0.1.0` version across Toolgrain libraries.
 
 ```sh
-npm install @toolgrain/clerk@next @toolgrain/mcp@next @toolgrain/node@next zod
+npm install @toolgrain/clerk@0.1.0 @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod
 ```
 
 ## Protect an HTTP server

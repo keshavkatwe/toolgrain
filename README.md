@@ -6,7 +6,9 @@ A TypeScript toolkit for building MCP servers, implemented independently of
 `@toolgrain/mcp` provides the complete authoring API: reusable tool definitions,
 Zod 4 validation, output schemas, rich results, and server composition. It supports
 MCP `2026-07-28` and `2025-06-18` over stdio and independent HTTP POSTs with the
-same tool definitions. This checkout prepares `0.1.0-rc.0`, the first release candidate for stable `0.1.0`.
+same tool definitions. This branch prepares stable `0.1.0` for review. RC0 is
+[published on npm and GitHub](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0);
+stable publication is pending.
 
 Toolgrain-owned code is [MIT licensed](./LICENSE), copyright 2026 Keshav Katwe.
 Vendored MCP schemas retain their upstream licenses; see [NOTICE](./NOTICE) and
@@ -282,9 +284,9 @@ not reach `onError`. Failures after cancellation remain discarded without
 diagnostics. Direct definition `execute()` and provider accessor calls keep their
 raw return and rejection behavior; this boundary applies to server execution.
 
-## Internal protocol package
+## Protocol package
 
-`@toolgrain/protocol` is an unpublished workspace package containing the pinned
+`@toolgrain/protocol` is a published library containing the pinned
 official schemas and constants, including `PROTOCOL_VERSION`, `LEGACY_PROTOCOL_VERSION`,
 and `SUPPORTED_PROTOCOL_VERSIONS`. Workspace code imports modern wire
 types such as `JSONRPCResponse` directly from it. Runtime validators stay in MCP;
@@ -292,8 +294,8 @@ MCP exports server/transport interfaces without re-exporting wire definitions.
 Legacy wire types are available from `@toolgrain/protocol/2025-06-18`.
 The root `ProtocolResponse` type covers responses from both eras.
 
-It has no runtime dependencies and is not published to npm. Generated server and
-transport declarations reference this workspace package. Its compiled exports
+It has no runtime dependencies. Generated server and transport declarations
+reference this package. Its compiled exports
 point only to `dist`, like the other packages.
 
 ## MCP server implementation
@@ -336,8 +338,9 @@ strings also include structured content and serialized JSON text. Legacy structu
 content is limited to objects; arrays, null, numbers, and booleans return JSON text
 only. Non-JSON values fail as tool errors rather than being silently coerced.
 Input/output validation and handler failures return `isError: true`; malformed
-requests and unknown tools return protocol errors. Handler error messages are exposed to
-clients, but stack traces are not.
+requests and unknown tools return protocol errors. Unexpected handler failures
+return generic errors and reach the server diagnostics callback; explicit public
+`mcpResult()` errors retain their intended content.
 
 `Transport` provides asynchronous `start(callbacks)`, `send(response)`, and `close()`.
 Its responses use `ProtocolResponse`, covering both protocol eras.
@@ -362,7 +365,8 @@ Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
 Resources, prompts, multi-round-trip input-required results, subscriptions, and
-extensions remain future work. This checkout prepares `0.1.0-rc.0`, the first release candidate for stable `0.1.0`.
+extensions remain future work. Stable `0.1.0` is prepared for release review;
+[the release guide](./docs/releases.md) tracks the remaining publication gates.
 
 ## Node stdio and complete flow
 

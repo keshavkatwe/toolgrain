@@ -4,7 +4,8 @@ Status updated: 2026-10-25.
 
 All six libraries are published on npm as **`0.1.0-rc.0`**, and the
 [GitHub prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
-is published at verified commit `3d56379`. Stable **`0.1.0` is not yet published**.
+is published at verified commit `3d56379`. Stable **`0.1.0` is prepared for
+review and remains unpublished**.
 **✅ Done** covers the agreed scope; **🟡 Pending/Partial** means work or
 verification remains. Proposed items are unapproved, with no timelines or
 implementation commitments. Future commits, publication, and deployment still
@@ -30,19 +31,22 @@ with its Latest designation disabled.
 ## Before stable `0.1.0`
 
 These are the remaining gates from the [release policy](./docs/releases.md).
-**Next step: review RC0 feedback and agree that the candidate is ready for stable.**
+**Next step: review the stable release PR and its CI before authorizing merge.**
 
-1. **🟡 Pending — RC acceptance.** Review the published candidate in intended
-   applications and client/transport flows. Resolve failures of promised
-   behavior, publishing another RC if needed, and confirm the documented scope
-   and known client limitations are acceptable. No fixed testing period or
-   expanded client-coverage requirement has been agreed.
-2. **🟡 Pending — Stable release preparation and review.** On a release branch,
-   run `bun run changeset pre exit` and `bun run release:version`; review all six
-   versions and Bun workspace metadata at `0.1.0`. Change all six
-   `publishConfig.tag` values to `latest`, consume the prerelease records, and
-   prepare stable changelog and installation notes. Commit/open/merge the
-   release PR only with the required authorization and green PR CI.
+1. **✅ Done — RC acceptance for the documented scope.** The published-candidate
+   review found no new Toolgrain blocker: 160/172 checks passed; 12 reproduced
+   existing Codex/Claude limitations with passing controls/workarounds. The user
+   accepted those documented limits on 2026-10-25. See the
+   [acceptance record](./docs/rc0-acceptance-2026-10-25.md). New feedback exposing
+   failures of promised behavior still needs resolution and another RC if needed.
+2. **🟡 Prepared, review pending — Stable release changes.** On
+   `codex/release-0.1.0-stable`, Changesets exited prerelease mode, selected
+   `0.1.0` for all six libraries, synchronized Bun metadata, and consumed the
+   prerelease records. Manifests select `latest`; stable changelog and
+   installation notes are prepared. Local baseline, exports, Node/Bun consumers,
+   sizes, audit, and six npm dry runs passed. The user authorized the stable
+   commit and PR on 2026-10-25. Review and green PR CI remain pending; merge
+   requires separate authorization.
 3. **🟡 Pending — Stable commit verification.** After the stable PR merges, run
    Release verification on its exact main commit with expected version `0.1.0`.
    Baseline and the full supported runtime/platform/dependency checks, including
@@ -128,7 +132,8 @@ agreed stable release date.
 17. **✅ Done — Initial npm and GitHub prerelease.** All six `0.1.0-rc.0`
     packages are published and verified on npm; GitHub prerelease
     `v0.1.0-rc.0` points to `3d56379`. Both npm tags currently resolve to RC0 as
-    explained above. Stable `0.1.0` follows the remaining gates above.
+    explained above. RC acceptance is complete; stable `0.1.0` changes are
+    prepared for review and await the remaining gates above.
 18. **⏸️ Deferred — Documentation and quickstarts website.** Docusaurus and GitHub
     Pages are selected. README, guides, and framework examples exist; website
     implementation and deployment remain separate work.

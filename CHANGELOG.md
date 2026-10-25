@@ -6,6 +6,42 @@ Unreleased tracks changes after the latest prepared version.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-25
+
+First stable release prepared for review after RC0 acceptance. Publication and
+final hosted verification of the stable commit remain pending.
+
+### Changed
+
+- Promote all six libraries from `0.1.0-rc.0` to `0.1.0`, with `latest` as the
+  explicit publication tag. Changesets exits prerelease mode and consumes the
+  initial prerelease record; Bun workspace metadata follows the stable versions.
+- Library behavior and dependency requirements match RC0. The documented-flow
+  acceptance review found no new Toolgrain blocker: 160/172 checks passed and
+  12 reproduced the two existing client limitations. The user accepted those
+  documented limitations for stable preparation on 2026-10-25. See the
+  [RC0 acceptance review](docs/rc0-acceptance-2026-10-25.md).
+
+### Requirements and migration
+
+- Install the matching `0.1.0` versions of `@toolgrain/protocol`, `@toolgrain/mcp`,
+  `@toolgrain/http`, `@toolgrain/node`, `@toolgrain/jwt`, and `@toolgrain/clerk`
+  where used. RC0 applications can update their Toolgrain dependency versions;
+  the tool authoring API and supported protocol revisions are unchanged.
+- Requirements remain Node.js `^24.20.0` or Bun `>=1.4.4 <2`, ESM, strict
+  TypeScript 5.5.4 or later, and Zod `^4.6.6` for MCP authoring/integrations.
+- Cancellation remains cooperative; the tested Codex direct-call deadline does
+  not promptly abort server work. The tested Claude Code client hides
+  supplemental text when structured content is supplied; both documented
+  workarounds pass. Unverified client flows remain unverified.
+- HTTP scope remains independent POST requests and JSON responses. Resources,
+  prompts, elicitation, persistent sessions, SSE streaming, progress,
+  resumability, and subscriptions remain outside this release's scope.
+- npm currently points both `next` and `latest` at RC0 because of its initial
+  publication behavior. Stable publication will explicitly select `latest`;
+  changing `next` is a separate decision. The RC0 GitHub prerelease remains the
+  record of the published candidate.
+
 ## [0.1.0-rc.0] - 2026-10-24
 
 First release candidate for stable `0.1.0`, prepared for verification and
