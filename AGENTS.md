@@ -33,8 +33,10 @@ Toolgrain is MCP-first. `@toolgrain/mcp` owns the complete tool authoring API; v
 - The user has created the `toolgrain` npm organization, providing the `@toolgrain` scope.
 - Scoped packages are sufficient. A separate unscoped `toolgrain` package is optional and is not reserved by organization creation.
 - Use GitHub and GitHub Pages. No custom domain purchase is planned.
-- Current workspace names and the MCP authoring boundary are confirmed; packages remain unpublished.
-- Package release preparation includes descriptions, repository/homepage/issue links, keywords, and package-local READMEs for all six libraries. README installation commands describe future consumer dependencies and explicitly identify the current unpublished state. On 2026-10-23 the user chose MIT for Toolgrain-owned code with copyright attribution to Keshav Katwe. Root/package license files preserve that grant; vendored protocol material retains its unchanged upstream terms. Five library manifests declare `MIT`; protocol uses `SEE LICENSE IN LICENSE` with a package-root explanation and NOTICE covering its mixed contents. Publication configuration remains separate.
+- Current workspace names and the MCP authoring boundary are confirmed. All six
+  libraries are published on npm as `0.1.0-rc.0`; GitHub prerelease
+  `v0.1.0-rc.0` is published. Stable `0.1.0` remains unpublished.
+- Package release preparation includes descriptions, repository/homepage/issue links, keywords, and package-local READMEs for all six libraries. README installation commands use explicit candidate versions or `@next`; stable installation notes follow the stable release review. On 2026-10-23 the user chose MIT for Toolgrain-owned code with copyright attribution to Keshav Katwe. Root/package license files preserve that grant; vendored protocol material retains its unchanged upstream terms. Five library manifests declare `MIT`; protocol uses `SEE LICENSE IN LICENSE` with a package-root explanation and NOTICE covering its mixed contents. Public npm configuration and RC0 publication are complete; stable publication remains a separately approved step.
 - The `standardwebhooks@1.1.1` licensing question is resolved: its exact npm source commit `b4d2c14fc5b4ccff3ff271e3b087dff812254c59` retains an MIT `libraries/LICENSE`, copyright (c) 2023 Svix, introduced alongside the JavaScript library. Its `timing_safe_equal.ts` also carries the Deno authors' 2018-2022 MIT attribution. The upstream npm archive omits that parent license and source attribution; `packages/clerk/NOTICE` preserves both notices and full MIT texts with provenance, and must be included in the Clerk archive. No dependency/implementation changes or external contact were required. Renew the notice review when changing the dependency release.
 
 ## Confirmed brand kit
@@ -127,7 +129,7 @@ Agreed with the user on 2026-10-19 and implemented in PR #14.
 
 ## Confirmed authorization decisions
 
-Implemented after user approval on 2026-10-21; packages remain unpublished.
+Implemented after user approval on 2026-10-21; included in published RC0.
 
 - Configure HTTP endpoint authorization with `createServer({ auth })`. Shared `AuthProvider<T>` and `AuthError` live in MCP; `@toolgrain/jwt` and `@toolgrain/clerk` implement the interface. Tools remain standalone and `ToolContext` remains non-generic.
 - Unexpected authorization failures, including provider `temporarily_unavailable` errors, reach `onError` once with the original thrown value and no request details. Expected auth rejections and cancelled/late failures remain unreported; diagnostics cannot disrupt responses or cleanup.
@@ -143,7 +145,7 @@ Implemented after user approval on 2026-10-21; packages remain unpublished.
 
 ## Confirmed lazy context provider decisions
 
-Approved and implemented on 2026-10-21; packages remain unpublished.
+Approved and implemented on 2026-10-21; included in published RC0.
 
 - `createContext({ name, resolve(ctx) })` lives in `@toolgrain/mcp` and infers a `ContextProvider<Awaited<Value>>`. Export `provider.use` as an application-specific accessor such as `useDatabase`; accessors always return promises, even for synchronous resolvers. `ToolContext` remains non-generic, and existing synchronous `useAuth(ctx)` is unchanged.
 - Register explicit `context: [services, database]` arrays on `createServer()` or `toolContext()`. Order does not matter. Dependencies resolve through accessor calls, without `dependsOn` or automatic registration. Factories start only on access after authorization/input validation; discovery, listings, invalid input, unknown tools, and unused providers do no work.
@@ -191,19 +193,22 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
   Its explicit fixed group in `.changeset/config.json` lists only the six libraries;
   their manifests are the version source of truth. Examples/tooling are ignored.
 - Changesets manages the six libraries; automatic commits, private-package
-  tags, and package changelogs are disabled. All libraries remain unpublished.
-  npm publication setup is described below.
+  tags, and package changelogs are disabled. All six libraries are published at
+  `0.1.0-rc.0`. npm publication setup and stable gates are described below.
 - During `0.x`, compatible fixes use patch records; features and breaking changes
   use minor records. From `1.0`, follow semantic versioning. Existing runtime/peer
   minimum and removal notice rules still apply.
 - On 2026-10-24 the user chose the first npm publication as `0.1.0-rc.0` under
   npm's `next` tag, before stable `0.1.0`. The user subsequently requested
   "Merge and prerelease", authorizing the RC publication after its release gates.
-  Candidate versions and explicit dist-tag controls are prepared as described
-  below; stable publication remains separate.
+  RC0 publication and its GitHub prerelease completed on 2026-10-25 after
+  explicit approval. This approval applies to RC0; stable publication and its
+  tag/GitHub release require separate approval.
 - Record release intent with `bun run changeset` and maintain editorial Unreleased
   notes in the root changelog. `release:status` previews the plan. Repository-only
-  work uses empty records; the initial empty record preserves the selected 0.1.0.
+  work uses empty records. The original empty baseline records were consumed;
+  `.changeset/pre/initial-release.md` now retains the initial release intent for
+  stable promotion from RC0.
 - `release:version` runs Changesets and synchronizes only Bun workspace version
   metadata. The custom release helper only checks version alignment and maintains
   that Bun workaround. It does not handle changelogs, archives, or checksums.
@@ -220,62 +225,111 @@ Adopted on 2026-10-23; implementation does not authorize commits or publication.
 
 ## Confirmed npm publication setup
 
-Prepared at the user's request on 2026-10-24. The user authorized the release
-commit and PR that day; publication requires separate approval.
+Prepared on 2026-10-24; the explicitly approved first publication completed on
+2026-10-25. Future publication still requires explicit approval.
 
-- The six library manifests are publishable with public npm access and an explicit
-  npmjs registry; Changesets uses public access. Root, examples, and repo-tools
-  remain private. Setup retained the initial `0.1.0` baseline; the RC preparation
-  below replaces it with `0.1.0-rc.0`.
+- All six libraries are published with public npm access and an explicit npmjs
+  registry. Root, examples, and repo-tools remain private. The manifests and Bun
+  workspace versions are `0.1.0-rc.0`; `publishConfig.tag` remains `next`.
 - The manual `publish.yml` workflow defaults to a dry run and reuses Release
-  verification for the same selected commit/version before building and packing
-  the libraries in dependency order. Actual publication additionally requires
-  main, an explicit non-dry-run choice, matching version confirmation text,
-  the `npm` environment, and configured per-package OIDC trusted publishers.
-  It creates no commits, Git tags, or GitHub Releases.
-- npm requires packages to exist before trusted-publisher setup. The first real
-  release uses an explicitly approved interactive npm login and reviewed Bun
-  archives, with npm run outside the checkout. Subsequent releases use the
-  workflow's pinned npm 11.21.1 and OIDC without an npm token secret. Newly
-  configured trust must be used successfully within two days.
-- The source repository is currently private. Provenance is enabled by the
-  workflow only for real publishes from a public source repository. The GitHub
-  `npm` environment has one exact deployment branch rule for `main`; it has no
-  secrets or required reviewers configured. Reviewer availability depends on the
-  GitHub plan. Manual dispatch and matching version confirmation remain required.
-- All six archives pass local npm 11.21.1 dry runs and isolated consumer checks.
-  On 2026-10-24, read-only `npm whoami` and `npm org ls toolgrain keshav.katwe`
-  checks verified an authenticated `keshav.katwe` account with the organization
-  `owner` role, which permits creating and publishing packages in `@toolgrain`.
-  First-release publication setup is complete; no actual publish or publish-time
-  authentication challenge was exercised. OIDC trust bindings remain deferred
-  until packages exist. See `docs/releases.md`.
+  verification for the same commit/version before building and Bun-packing the
+  libraries in dependency order. Real workflow publication additionally requires
+  main, an explicit non-dry-run choice, matching confirmation text, environment
+  `npm`, and configured per-package OIDC trusted publishers. RC versions require
+  `next`; stable versions require `latest`, with matching manifest tags and an
+  explicit npm `--tag`. The workflow creates no commits, tags, or GitHub Releases.
+- RC0 used npm 11.21.1 with an interactive `keshav.katwe` organization-owner login,
+  outside the checkout, lifecycle scripts disabled, and the reviewed Bun
+  archives. Login renewal and publish-time browser verification were exercised.
+  Do not assume a past login is still valid or republish an existing version.
+- All six packages now exist, enabling trusted-publisher configuration for the
+  planned subsequent workflow releases. Bindings remain unconfigured and OIDC
+  publication unverified. Configure `keshavkatwe/toolgrain`, `publish.yml`,
+  environment `npm`, and publish permission for every package near the approved
+  publication: new trust requires its first successful publish within two days.
+  No npm token secret is configured. A change to this planned publication path
+  requires explicit agreement.
+- The source repository is currently private. Provenance was disabled for the
+  interactive RC0 publication; the workflow enables it only for real publishes
+  from a public source repository. The GitHub `npm` environment permits only
+  main and has no secrets or required reviewers configured. The branch rule is
+  not a reviewer approval gate.
+- npm assigned `latest` to the first RC0 publication despite explicit
+  `--tag next`, and rejected removing it with HTTP 400 after browser verification.
+  All six packages currently have `next` and `latest` pointing to `0.1.0-rc.0`.
+  The [registry specification](https://github.com/npm/registry/blob/main/docs/responses/package-metadata.md)
+  requires a `latest` tag; the same first-publication behavior is recorded in
+  [npm/cli#8490](https://github.com/npm/cli/issues/8490). This is a registry
+  limitation, not a stable Toolgrain publication. Do not publish a placeholder
+  stable version or unpublish RC0 to work around it. Verify actual tags after
+  every publication; an explicit `--tag` alone does not prove tag isolation.
 
-## 0.1.0-rc.0 preparation status
+## Published 0.1.0-rc.0 — 2026-10-25
 
-- PR #29 prepared the stable baseline and was merged as `e819f87`. Its full
-  Release verification passed; the informational canary exposed a compiler
-  inference error. PR #30 fixed it and was merged as `60c5ce6` after green PR CI.
-- The user selected RC0 under `next` before stable `0.1.0`, then authorized the
-  prerelease. On 2026-10-25 the user explicitly authorized committing the RC,
-  opening its release PR, and merging after green CI. The RC is prepared on
-  `codex/release-0.1.0-rc.0`; the release
-  preparation commit/PR, review/merge, and full hosted RC verification must
-  precede actual publication. No candidate has been published yet.
-- Changesets 3.0.3 selected all six `0.1.0-rc.0` versions from an unpublished
-  `0.0.0` planning baseline and an initial minor record. No package is published
-  at `0.0.0`; do not repeat the bootstrap. `.changeset/pre.json` uses `rc`, and
-  the initial record is retained under `.changeset/pre/` for stable promotion.
-  A release test covers RC0, RC1, stable `0.1.0`, and packed internal versions.
-- All six RC manifests use `publishConfig.tag: "next"`. The manual publication
-  workflow requires RC versions with `next`, stable versions with `latest`, and
-  matching manifest tags. npm always receives an explicit tag. First publication
-  remains interactive; package OIDC bindings follow package creation.
-- The user is authenticated as `keshav.katwe`; the organization has no published
-  packages at preparation time. Publish only reviewed archives after the RC's
-  supported verification passes, then check registry integrity/tags and a fresh
-  `next` consumer. Stable promotion changes manifest tags to `latest` and needs
-  separate approval. Git tags, GitHub Releases, and deployment remain separate.
+- PR #29 prepared the stable baseline (`e819f87`). Its informational canary
+  exposed an inference failure fixed by PR #30 (`60c5ce6`). RC release
+  [PR #31](https://github.com/keshavkatwe/toolgrain/pull/31) merged after green CI
+  as `3d563791052237d205c252a3a1fefef126a45940`.
+- [Release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40128994353)
+  passed all 20 executed jobs on that exact commit, including the full supported
+  runtime/platform/dependency matrix and the informational Node 26/canary probes.
+- All six libraries (`protocol`, `mcp`, `http`, `node`, `jwt`, `clerk`) were
+  published publicly as `0.1.0-rc.0`. Downloaded registry archives matched the
+  reviewed archives byte for byte and matched their integrity/shasum metadata.
+  Fresh npm `@next` consumers passed six package imports, strict TypeScript
+  5.5.4/7.0.2 checks, and all 10 runtime cases on both Node 24.20.0 and Bun 1.4.4.
+  Local ignored evidence is in `reports/rc0-registry-verification.json` and
+  `reports/rc0-release-verification.json`; it is not a committed artifact.
+- After separate explicit approval, GitHub prerelease
+  [v0.1.0-rc.0](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
+  and its tag were created at that same commit. The published notes include npm
+  and Bun installation instructions, verification, known limitations, and the
+  npm tag limitation. `prerelease` is true; GitHub's Latest designation is false.
+- Changesets 3.0.3 selected RC0 from an unpublished `0.0.0` planning baseline and
+  an initial minor record. No `0.0.0` package was published; do not repeat the
+  bootstrap. `.changeset/pre.json` still uses mode `pre`, tag `rc`; the initial
+  record remains under `.changeset/pre/` for stable promotion. A release test
+  covers RC0, RC1, stable `0.1.0`, and packed internal versions.
+- Stable `0.1.0` has not been published. The RC0 publication, tag, release, and
+  earlier commit approvals do not authorize another commit, stable publication,
+  a stable tag/GitHub release, or deployment.
+
+## Remaining gates for stable 0.1.0
+
+The immediate next step is RC acceptance review with the user. No stable date,
+minimum testing period, or expanded client-verification requirement is agreed.
+`ROADMAP.md` is the concise status list; these gates do not authorize execution.
+
+1. Review published-candidate feedback in intended applications/client flows.
+   Resolve failures of promised behavior, cut another RC if needed, and agree
+   that the documented API scope and client limitations are acceptable. Unverified
+   client flows remain unverified; they are not automatically new release gates.
+2. Prepare a separately reviewed stable release PR. Run
+   `bun run changeset pre exit` then `bun run release:version`; review all six
+   manifests and Bun
+   workspace versions at `0.1.0`, consumed prerelease records, six
+   `publishConfig.tag: "latest"` values, stable changelog, and installation/status
+   documentation. Commit/open/merge only with the required authorization and
+   green PR CI. Do not run versioning during a status-documentation update.
+3. Run full Release verification on the final merged stable commit with expected
+   version `0.1.0`. Supported baseline, runtime/platform, intermediate TypeScript,
+   and stable-dependency jobs must pass; Node 26/canary probes remain
+   informational. RC0's success does not verify a different stable commit.
+4. Configure and verify the six npm trusted-publisher bindings near publication
+   for the planned workflow path. Packages now exist; bindings and a successful
+   OIDC publish remain outstanding. Changing the publication path needs explicit
+   agreement; a previous interactive RC approval does not authorize stable.
+5. Obtain explicit stable npm publication approval, publish all six reviewed
+   `0.1.0` archives under `latest`, then verify registry versions, integrity,
+   actual dist-tags, and fresh installed consumers. Preserve the RC record and
+   review any intentional `next` change separately.
+6. Obtain approval for `v0.1.0` and a stable GitHub release at the verified stable
+   commit, with stable notes/installation instructions after npm availability is
+   confirmed. The existing RC0 GitHub release remains a prerelease.
+
+Website implementation/deployment and proposed protocol/API features are outside
+these gates. Any failure of promised behavior must be fixed or explicitly scoped
+out before stable; disclosure alone does not waive a supported regression.
 
 ## 0.1.0 stable baseline preparation history
 
@@ -284,9 +338,10 @@ main `31aa4e9c06da9eab2f83a97d20218b61cb6c8c7c`. This branch includes the
 roadmap and npm publication setup from this chat.
 
 - Changesets consumed the initial baseline, brand-kit, and npm-setup empty
-  records. All six library versions and Bun workspace metadata remain `0.1.0`.
-  `CHANGELOG.md` has a prepared `0.1.0` entry dated 2026-10-24 and an empty
-  Unreleased section; publication has not occurred.
+  records. At that preparation point, all six versions and Bun workspace
+  metadata were `0.1.0`, with a prepared changelog dated 2026-10-24. RC0
+  preparation subsequently changed them to `0.1.0-rc.0`; that candidate is now
+  published as recorded above. This section preserves the baseline history.
 - Review found parallel Vitest 5 processes clearing the same workspace-root
   module cache. Every Vitest workspace now sets its own
   `fsModuleCachePath: "node_modules/.vitest-cache"`. Parallel coverage, examples,
@@ -304,16 +359,17 @@ roadmap and npm publication setup from this chat.
 - On 2026-10-24 the user explicitly approved raising the initial Zod peer and
   test floor from 4.0.0 to 4.6.6 for `GHSA-mrhx-c7xc-m3w5`. MCP's peer range,
   `zod-minimum`, the support policy, CI probes, and consumer fixtures now use
-  4.6.6; the development pin stays 4.6.7. The initial release remains 0.1.0 and
-  strict TypeScript 5.5.4 remains the minimum. The dependency audit passes with
-  zero advisories; no audit gate is waived.
+  4.6.6; the development pin stays 4.6.7. The stable target remains `0.1.0`,
+  preceded by published RC0; strict TypeScript 5.5.4 remains the minimum. The
+  dependency audit passes with zero advisories; no audit gate is waived.
 - On 2026-10-24 the user explicitly authorized committing these prepared changes
-  and opening the `0.1.0` release PR. PR review and merge, final hosted release
-  verification, tags, publication, and deployment remain separate steps.
+  and opening the baseline `0.1.0` release PR. That approval covered the
+  requested commit/PR; later RC0 merge, publication, and tag/GitHub release
+  received separate approvals and completed as recorded above.
 
 ## Confirmed protocol package decisions
 
-- `@toolgrain/protocol` is a release-candidate workspace package, version `0.1.0-rc.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
+- `@toolgrain/protocol` is a published npm library and workspace package, version `0.1.0-rc.0`, owning the unchanged upstream schema, protocol constants, provenance, and license.
 - Import wire definitions and `PROTOCOL_VERSION` directly from protocol. MCP does not re-export them. Keep runtime validators and method handling in MCP.
 - Protocol has no runtime dependencies and uses the same compiled dist exports, build, watch, test, and declaration checks as other packages.
 - Vendored source is excluded from rewriting and verified by checksum. Protocol builds retain upstream license/provenance/schema files in dist.
@@ -322,8 +378,8 @@ roadmap and npm publication setup from this chat.
 
 ## Confirmed MCP package decisions
 
-- `@toolgrain/mcp` is implemented in `packages/mcp`, version `0.1.0-rc.0`, prepared for publication.
-- The unpublished `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
+- `@toolgrain/mcp` is implemented in `packages/mcp` and published on npm as `0.1.0-rc.0`.
+- The `@toolgrain/protocol` package owns the full official `2026-07-28` schema unchanged from commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum, provenance, and upstream license. Do not format or modify the vendored source. Updates require explicit review.
 - `createServer({ name, version, tools, instructions?, onError? })` supports discovery, tool listing/calling, and `listen(transport)` / terminal, idempotent `close()`.
 - Response server identity (`name`, `version`) is copied per response in modern result metadata and legacy initialization, so callers cannot mutate other responses or the server's internal identity.
 - Modern requests carry version and client capabilities individually. Legacy stdio uses connection-scoped `initialize` / `notifications/initialized` negotiation and supports `ping`; modern requests remain independent and can interleave. Legacy initialization negotiates `2025-06-18` and never claims modern semantics through `initialize`.
@@ -337,7 +393,7 @@ roadmap and npm publication setup from this chat.
 - Keep MCP responsibilities separate: server composition, method dispatch/handlers, protocol validation/envelopes, connection lifecycle, cancellation tracking, schema conversion, execution adaptation, and result conversion.
 - Keep revision-specific validation, dispatch, response shaping, and legacy negotiation in separate `modern/` and `legacy/` modules. Share tool execution, JSON normalization, schema conversion, envelope decoding, and transport lifecycle; era selection stays in thin composition modules. Modern modules must not depend on legacy modules. This separation preserves the public API and wire behavior while keeping legacy support removable.
 - A runtime-independent transport contract separates message handling from framing. Tests use an in-memory adapter. Stdio is implemented separately in `@toolgrain/node`.
-- Resources, prompts, multi-round-trip input-required results, subscriptions, extensions, publication, and deployment remain separate steps.
+- Resources, prompts, multi-round-trip input-required results, subscriptions, extensions, future publications, and deployment remain separate steps. RC0 publication is complete.
 
 ## Confirmed Node stdio decisions
 
@@ -366,7 +422,10 @@ Protocol, MCP, Node stdio, and Streamable HTTP support are implemented. The unif
 HTTP support and independent framework examples were merged in PR #6
 (`e8e2895`) on 2026-10-16 after review and passing CI. Keep Bun 1.3.14,
 pinned Turbo, root-level Biome, and shared strict TypeScript defaults.
-All packages remain unpublished.
+All six libraries are published on npm as `0.1.0-rc.0`, with GitHub prerelease
+`v0.1.0-rc.0` at `3d56379`. Stable `0.1.0` remains pending. Start with RC
+acceptance review and follow the stable gates above; no feature expansion or
+stable publication is authorized by this status update.
 
 Dual-era compatibility verification on 2026-10-16 passes the existing tools flow
 over stdio and plain Node HTTP with Inspector 2.11.0 CLI and Codex CLI/app-server
@@ -374,9 +433,10 @@ over stdio and plain Node HTTP with Inspector 2.11.0 CLI and Codex CLI/app-serve
 stdio marker by negotiating `2025-06-18`; explicit modern and mixed-client cases
 also pass. Inspector checks both eras and automatic discovery. See
 `docs/compatibility.md` and the manual `bun run verify:inspector` check (Node).
-User configuration was not changed. No commits, publication, or other roadmap
-features are authorized by this implementation. Remaining roadmap items are
-proposals in `ROADMAP.md` without timelines or implementation commitments.
+That interoperability review did not change user configuration. It alone
+conferred no commit/publication authorization; the subsequent RC0 approvals and
+completed publication are recorded above. Proposed roadmap features remain
+unapproved, without timelines or implementation commitments.
 
 Before changing Turborepo configuration or commands, resolve the installed `turbo` package from the relevant workspace and read its bundled `docs/README.md` and relevant documentation.
 
