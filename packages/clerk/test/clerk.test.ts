@@ -49,7 +49,7 @@ function mockFetch(data = opaque()) {
   const fetcher = vi.fn(
     async (address: string | URL | Request, _init?: RequestInit) => {
       const url = String(address);
-      if (url.includes("api.clerk.com")) return Response.json(data);
+      if (new URL(url).hostname === "api.clerk.com") return Response.json(data);
       if (url.endsWith("/keys")) return Response.json({ keys: [jwk] });
       return Response.json({ issuer, jwks_uri: `${issuer}/keys` });
     },
@@ -96,7 +96,9 @@ it("derives the issuer, verifies an OAuth JWT, and exposes a plain typed identit
   ).toHaveProperty("result.structuredContent.userId", "user_alice");
   scope.dispose();
   expect(
-    fetcher.mock.calls.every(([url]) => !String(url).includes("api.clerk.com")),
+    fetcher.mock.calls.every(
+      ([url]) => new URL(String(url)).hostname !== "api.clerk.com",
+    ),
   ).toBe(true);
   await server.close();
 });
