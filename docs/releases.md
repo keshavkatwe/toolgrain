@@ -87,11 +87,20 @@ Keep default workflow permissions read-only. The version job requests
 pull-request write access; the reused baseline retains its PR-report permission.
 The workflow never approves reviews itself.
 
-The source repository is currently private, so npm provenance is disabled.
-It is enabled automatically if the repository becomes public. All six trusted
-publishers completed their first successful OIDC publication for 0.1.0; a new
-or replacement binding must complete its first successful publish within npm's
-two-day validation window.
+External workflow Actions are pinned to full upstream commit SHAs. When updating
+an Action, verify the new commit in its canonical repository and update every
+reference, including composite actions. The repository's Actions allowlist must
+permit the new pin before workflows use it. Enable the full-SHA policy only after
+all active workflow branches use pinned references.
+
+The active tag ruleset blocks updates and deletions for every tag, without bypass
+actors. New release tags can still be created by the publication workflow.
+
+The source repository is public, so the next publication automatically requests
+npm provenance. RC0 and 0.1.0 were published without provenance while the source
+was private. All six trusted publishers completed their first successful OIDC
+publication for 0.1.0; a new or replacement binding must complete its first
+successful publish within npm's two-day validation window.
 
 Changesets does not currently support Bun natively. The workflow-only npm
 adapter preserves the native planner, packed-artifact format, publishing order,
