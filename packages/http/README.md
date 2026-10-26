@@ -19,10 +19,11 @@ Your application owns the listener; Toolgrain handles MCP routing and execution.
 
 ## Installation
 
-Install the same `0.1.0` version across Toolgrain libraries.
+Install matching stable versions across Toolgrain libraries. These commands
+resolve npm's `latest` tag.
 
 ```sh
-npm install @toolgrain/http@0.1.0 @toolgrain/mcp@0.1.0 zod@^4.6.6
+npm install @toolgrain/http @toolgrain/mcp zod@^4.6.6
 ```
 
 ## Mount a Web handler

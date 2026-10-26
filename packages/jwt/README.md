@@ -19,10 +19,11 @@ claims inside your handlers.
 
 ## Installation
 
-Install the same `0.1.0` version across Toolgrain libraries.
+Install matching stable versions across Toolgrain libraries. These commands
+resolve npm's `latest` tag.
 
 ```sh
-npm install @toolgrain/jwt@0.1.0 @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod@^4.6.6
+npm install @toolgrain/jwt @toolgrain/mcp @toolgrain/node zod@^4.6.6
 ```
 
 ## Protect an HTTP server

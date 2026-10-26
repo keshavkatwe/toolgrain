@@ -19,10 +19,11 @@ dependencies. Tool authoring lives in `@toolgrain/mcp`.
 
 ## Installation
 
-Install the same `0.1.0` version across Toolgrain libraries.
+Install matching stable versions across Toolgrain libraries. These commands
+resolve npm's `latest` tag.
 
 ```sh
-npm install @toolgrain/protocol@0.1.0
+npm install @toolgrain/protocol
 ```
 
 ## Protocol versions and wire types

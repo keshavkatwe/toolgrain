@@ -1,7 +1,7 @@
 # Roadmap
 
-Toolgrain's six libraries are published as stable **0.1.0** under npm `latest`.
-The [stable release](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0)
+Toolgrain's six libraries share a stable version under npm `latest`.
+The initial [0.1.0 release](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0)
 and [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
 remain available; `next` retains `0.1.0-rc.0`.
 
@@ -17,6 +17,10 @@ remain available; `next` retains `0.1.0-rc.0`.
 - Packed-package and strict declaration consumers, runtime/platform verification,
   coverage/content/size checks, dependency audits, and Changesets release automation.
 
+The first complete automated release cycle passed for **0.1.1** on 2026-10-26,
+including publication and fresh npm/Node and Bun consumers. See the
+[release verification record](docs/releases.md#verified-automated-release).
+
 See the [API guide](README.md), [support policy](docs/support-policy.md), and
 [release guide](docs/releases.md) for the supported contracts.
 
@@ -27,11 +31,9 @@ These items describe remaining review or verification, without a release date:
 - Review the documentation website in
   [PR #28](https://github.com/keshavkatwe/toolgrain/pull/28). Review/merge,
   documentation-platform changes, and deployment remain separate decisions.
-- Collect feedback from published `0.1.0` in real applications and prioritize
-  reproduced defects. A target application and next release scope are not selected.
-- Verify the first full automated Changesets Release PR/publication cycle when a
-  real user-facing change is ready. Main's no-op automation runs passed; those
-  runs do not verify the complete release path.
+- Collect feedback from published stable releases in real applications and
+  prioritize reproduced defects. A target application and next release scope are
+  not selected.
 - Expand client coverage for Cursor execution/cancellation, modern Claude Code,
   live OAuth login, and GUI flows. These remain unverified.
 

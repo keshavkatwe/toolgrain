@@ -124,7 +124,7 @@ outputs stay ignored under `reports/`.
 
 ## Releases and legal material
 
-All six libraries share stable `0.1.0` under npm `latest`; `next` retains
+All six libraries share a stable version under npm `latest`; `next` retains
 `0.1.0-rc.0`. See the [release guide](docs/releases.md) and
 [roadmap](ROADMAP.md) for current process and remaining verification.
 

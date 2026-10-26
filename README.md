@@ -38,11 +38,12 @@ choose stdio or HTTP for each application.
 ### 1. Install
 
 Use Node.js **`^24.20.0`** and a TypeScript project with **strict mode** enabled.
-In a new project directory, initialize npm and install the stable `0.1.1` packages:
+In a new project directory, initialize npm and install matching stable Toolgrain
+packages from npm's `latest` tag:
 
 ```sh
 npm init -y
-npm install @toolgrain/mcp@0.1.1 @toolgrain/node@0.1.1 zod@^4.6.6
+npm install @toolgrain/mcp @toolgrain/node zod@^4.6.6
 npm install --save-dev typescript @types/node@^24.10.0
 ```
 
@@ -178,7 +179,8 @@ transport package your application needs; add authorization when you need it.
 
 ## Support and scope
 
-Stable **0.1.1** is [available on npm](https://www.npmjs.com/package/@toolgrain/mcp).
+Stable packages are [available on npm](https://www.npmjs.com/package/@toolgrain/mcp)
+under `latest`. Install the same version across Toolgrain libraries.
 
 | Requirement | Supported |
 | --- | --- |
