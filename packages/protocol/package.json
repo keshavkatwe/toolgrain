@@ -8,7 +8,7 @@
     "url": "git+https://github.com/keshavkatwe/toolgrain.git",
     "directory": "packages/protocol"
   },
-  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/protocol#readme",
+  "homepage": "https://toolgrain.mintlify.site/reference/protocol",
   "bugs": {
     "url": "https://github.com/keshavkatwe/toolgrain/issues"
   },

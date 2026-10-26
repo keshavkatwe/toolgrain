@@ -1,34 +1,34 @@
 # HTTP authorization
 
-This guide now lives in the [Toolgrain documentation](./guides/authorization.mdx).
+This guide now lives in the [Toolgrain documentation](https://toolgrain.mintlify.site/guides/authorization).
 
-The links below preserve existing GitHub section URLs. Edit the linked MDX page
-when updating this guide.
+The links below preserve existing GitHub section URLs.
+[Edit the guide source](./guides/authorization.mdx).
 
 ## JWT
 
-[Read this section](./guides/authorization.mdx#jwt).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#jwt).
 
 ## Clerk
 
-[Read this section](./guides/authorization.mdx#clerk).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#clerk).
 
 ## Standalone Node HTTP
 
-[Read this section](./guides/authorization.mdx#standalone-node-http).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#standalone-node-http).
 
 ## Combined handlers for existing applications
 
-[Read this section](./guides/authorization.mdx#combined-handlers-for-existing-applications).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#combined-handlers-for-existing-applications).
 
 ## Host validation and resource inference
 
-[Read this section](./guides/authorization.mdx#host-validation-and-resource-inference).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#host-validation-and-resource-inference).
 
 ## Request behavior
 
-[Read this section](./guides/authorization.mdx#request-behavior).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#request-behavior).
 
 ## Custom providers and direct invocation
 
-[Read this section](./guides/authorization.mdx#custom-providers-and-direct-invocation).
+[Read this section](https://toolgrain.mintlify.site/guides/authorization#custom-providers-and-direct-invocation).

@@ -8,7 +8,7 @@
     "url": "git+https://github.com/keshavkatwe/toolgrain.git",
     "directory": "packages/mcp"
   },
-  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/mcp#readme",
+  "homepage": "https://toolgrain.mintlify.site/reference/mcp",
   "bugs": {
     "url": "https://github.com/keshavkatwe/toolgrain/issues"
   },

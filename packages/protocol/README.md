@@ -13,8 +13,8 @@
 Pinned protocol definitions and version constants for Toolgrain, with no runtime
 dependencies. Tool authoring lives in `@toolgrain/mcp`.
 
-[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/architecture.md) ·
-[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[Documentation](https://toolgrain.mintlify.site/reference/protocol) ·
+[Examples](https://toolgrain.mintlify.site/examples) ·
 [npm](https://www.npmjs.com/package/@toolgrain/protocol)
 
 ## Installation
@@ -61,7 +61,7 @@ These are wire definitions; runtime validation remains in `@toolgrain/mcp`.
 
 ESM only. Supported application runtimes are Node.js `^24.20.0` or Bun
 `>=1.4.4 <2`. TypeScript requires 5.5.4 or later with `strict` enabled. See the
-[support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md).
+[support policy](https://toolgrain.mintlify.site/project/support-policy).
 
 ## Upstream provenance and licensing
 

@@ -50,7 +50,7 @@ The MCP revision is `2026-07-28`, with JSON responses. Clients must send the
 protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
 SSE remains separate work. Optional JWT/Clerk authorization and automatic public
-metadata are described in [authorization](../../docs/authorization.md). Toolgrain
+metadata are described in [authorization](https://toolgrain.mintlify.site/guides/authorization). Toolgrain
 packages are private workspace packages, so this example currently runs from this
 repository.
 
@@ -164,7 +164,7 @@ The public protected-resource metadata is at
 `http://127.0.0.1:3007/.well-known/oauth-protected-resource/mcp`.
 Requests without valid authorization receive 401; public metadata remains
 available before login. This example binds to loopback. For deployment/proxy
-configuration, see the [authorization guide](../../docs/authorization.md).
+configuration, see the [authorization guide](https://toolgrain.mintlify.site/guides/authorization).
 
 The automated Clerk example tests use signed JWTs and mocked Clerk backend
 responses, with no live keys. A live Inspector login requires your Clerk app and

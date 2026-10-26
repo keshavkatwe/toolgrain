@@ -13,8 +13,8 @@
 Verify Clerk OAuth access tokens before tool execution, then access the verified
 user, client, and scopes inside your handlers.
 
-[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/authorization.md) ·
-[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[Documentation](https://toolgrain.mintlify.site/authentication/clerk) ·
+[Examples](https://toolgrain.mintlify.site/examples) ·
 [npm](https://www.npmjs.com/package/@toolgrain/clerk)
 
 ## Installation
@@ -78,7 +78,7 @@ same validation; raw tokens, received audiences, and provider causes stay privat
 
 Configure exact production `allowedHosts` on the HTTP adapter and normalize
 proxy URLs through trusted application middleware. See the
-[authorization guide](https://github.com/keshavkatwe/toolgrain/blob/main/docs/authorization.md)
+[authorization guide](https://toolgrain.mintlify.site/guides/authorization)
 for Clerk setup, HTTP mounting, resource inference, and host/proxy requirements.
 
 ## Requirements
@@ -86,7 +86,7 @@ for Clerk setup, HTTP mounting, resource inference, and host/proxy requirements.
 ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. The Node example also needs
 TypeScript and `@types/node` as development dependencies. See the
-[support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md).
+[support policy](https://toolgrain.mintlify.site/project/support-policy).
 
 ## License
 
