@@ -13,6 +13,12 @@ remain available. `next` still points to RC0.
 Changesets automation is active on `main`, with package-local changelogs and
 package-scoped GitHub releases.
 
+The publication workflow owns main-branch verification. It calls ordinary scoped
+CI/support checks when no publication is planned, and complete release verification
+when publishing. This avoids duplicate baseline/platform runs on release commits.
+The `publish.yml` filename, `npm` environment, and trusted-publisher bindings stay
+the same.
+
 ## Verified automated release
 
 The first complete automated cycle published **0.1.1** for all six libraries on
@@ -32,6 +38,11 @@ libraries, a bump type, and write release notes that explain the behavior and an
 migration steps. Include the Markdown record with the implementation when
 committing is authorized. Use `bun run changeset --empty` for repository-only
 changes that need no library release.
+
+Release PR versioning consumes all Changeset records. Keep that state when fixing
+a versioned Release PR: the pinned action selects no publication when only empty
+records remain. Consume an empty record during versioning rather than carrying a
+fresh one into the release merge.
 
 The pinned Changesets CLI 3.0.3 selects versions and updates dependencies. The
 six libraries form one explicit fixed group in `.changeset/config.json` and

@@ -61,12 +61,14 @@ watch task.
 | `bun run test:size` | Archive size, file inventory, and required legal/debugging files |
 | `bun run test:audit` | Lockfile-wide dependency advisories |
 | `bun run test:ci` | Repository verification and report-generation tests |
+| `bun run test:docs` | MDX syntax, frontmatter, navigation, local links/anchors, and documentation assets |
 | `bun run release:check` | Manifest and Bun workspace version alignment |
 
 Run checks that cover the change. API, transport, and packaging changes need the
 corresponding runtime and compiled-consumer checks. Documentation-only changes
 need working links, accurate examples, and formatting; packaged README changes
-also need archive-size checks. CI runs the complete required baseline.
+also need archive-size checks. CI selects the applicable checks from the actual
+Git diff; unknown changes and unavailable history retain the full baseline.
 
 Document package-entrypoint exports and the fields, overloads, and callbacks
 consumers encounter through them with JSDoc. Explain defaults, validation,
@@ -108,12 +110,39 @@ Release PRs.
 
 ## Continuous integration
 
-GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
-requests and pushes to `main`. The workflow reads the Bun version from
-`package.json`. It also runs type checks, library coverage, uninstrumented example smoke tests, builds, and a compiled-package import and
-declaration smoke check using Node 24.20.0. A separate support workflow checks
-latest Node 24 and Bun consumers on Linux, macOS and Windows, with a Node 26
-preview and weekly compiler/dependency probes; see the [support matrix](/project/support-policy#required-ci).
+Pull requests always report `Package checks` and `Support checks`. Both use
+the same conservative change classifier:
+
+| Changed files | Required work |
+| --- | --- |
+| Documentation, artwork, contributor templates, or Changeset records only | Formatting, version alignment, and the lockfile audit; site sources and artwork also trigger `test:docs` |
+| Packaged README, changelog, license/notice, or editorial package metadata | The checks above, library builds, archive contents/sizes, and fresh npm/Node runtime consumers |
+| Runtime source, examples, dependencies/lockfile, package exports/engines, verification tooling, workflows, or unknown paths | Complete baseline and supported runtime/platform checks |
+
+Only `description`, `homepage`, and `keywords` qualify as editorial manifest
+changes. Mixed changes take the strongest profile. Renames consider both paths.
+Manual and release verification always request the complete baseline.
+
+`test:docs` compiles MDX without evaluating page JavaScript and checks required
+frontmatter, navigation coverage, literal local links/anchors, and assets. It
+does not build Mintlify's rendered site, execute examples, evaluate dynamic URLs,
+or fetch external links. Keep the Mintlify validation and visual review described
+in the [documentation instructions](https://github.com/keshavkatwe/toolgrain/blob/main/docs/README.md).
+
+The complete baseline retains type checks, 95% library coverage, example smoke
+tests, builds, package imports/declarations, fresh consumers, sizes, audits, and
+repository-tooling tests on Node 24.20.0 and Bun 1.3.14. The support workflow runs
+Node and Bun functional consumers on Linux, macOS, and Windows. Compiler checks
+run on Linux: npm declarations stay in the baseline; Bun installations check
+minimum/development compilers with minimum/development Zod in separate jobs.
+
+On `main`, the publication workflow chooses the release mode and owns the checks.
+Ordinary changes call the scoped baseline/support workflows. Publication calls
+complete release verification instead, including intermediate TypeScript and
+stable dependency drift checks, so a release commit does not start a second
+standalone baseline and platform matrix. Node 26 and prerelease probes run only
+on the weekly schedule and manual verification runs. See the
+[support matrix](/project/support-policy#required-ci).
 
 MCP package verification reuses its compiled consumer and runtime fixtures in
 isolated temporary directories. It checks TypeScript 5.5.4 and the development
@@ -141,9 +170,15 @@ test configuration; signed-token and opaque-token verification uses offline
 responses. Both eras also exercise stdio cancellation and HTTP disconnects.
 No live credentials or external authorization calls are used.
 
-The default check uses npm and Node; the support workflow selects Bun installation
-and execution with `--package-manager=bun --runtime=bun`. Node source-map
-verification remains separate from Bun functional checks.
+The default check uses npm and Node and retains all verification. Internal
+`clean-install --checks=runtime` jobs omit compiler installations and declaration
+checks, transpile the same shared fixture with the pinned minimum compiler, and
+run isolated imports and all functional tests. `--checks=types` checks installed
+declarations without repeating functional flows. Both modes retain fresh,
+isolated installs and dependency-tree inspection. Reports record the selected
+checks, installer, runtime, and platform. Node source-map verification remains
+required in the full package baseline. Post-publication consumers retain the
+default complete checks under both npm/Node and Bun.
 
 This check needs npm, Bun, tar, registry access for external dependencies, and loopback
 access. Zod and Node types default to development versions; declarations check

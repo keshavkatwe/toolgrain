@@ -80,6 +80,24 @@ jobs:
     with:
       version: ${{ needs.select-mode.outputs.version }}
 
+  main-checks:
+    name: Main baseline
+    if: needs.select-mode.outputs.mode != 'publish'
+    needs: select-mode
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    uses: ./.github/workflows/ci.yml
+
+  main-support:
+    name: Main support
+    if: needs.select-mode.outputs.mode != 'publish'
+    needs: select-mode
+    permissions:
+      contents: read
+    uses: ./.github/workflows/support.yml
+
   pack:
     needs: [select-mode, verify]
     runs-on: ubuntu-latest

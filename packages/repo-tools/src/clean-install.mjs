@@ -70,9 +70,13 @@ export async function main(args = []) {
       typescript: { type: "string" },
       zod: { type: "string" },
       published: { type: "boolean", default: false },
+      checks: { type: "string", default: "all" },
     },
   });
   assert(["node", "bun"].includes(values.runtime), "Unknown runtime");
+  assert(["all", "types", "runtime"].includes(values.checks), "Unknown checks");
+  const types = values.checks !== "runtime";
+  const functional = values.checks !== "types";
   const manager = values["package-manager"];
   assert(["npm", "bun"].includes(manager), "Unknown package manager");
   const runtime = values.runtime === "bun" ? "bun" : process.execPath;
@@ -214,9 +218,14 @@ export async function main(args = []) {
             type: "module",
             dependencies,
             devDependencies: {
-              typescript: values.typescript ?? mcp.devDependencies.typescript,
-              "typescript-minimum": `npm:typescript@${policy.typescript.minimum}`,
-              "@types/node": node.devDependencies["@types/node"],
+              ...(types
+                ? {
+                    typescript:
+                      values.typescript ?? mcp.devDependencies.typescript,
+                    "typescript-minimum": `npm:typescript@${policy.typescript.minimum}`,
+                    "@types/node": node.devDependencies["@types/node"],
+                  }
+                : {}),
               ...tools,
             },
           },
@@ -264,16 +273,22 @@ export async function main(args = []) {
           : { zod: values.zod ?? mcp.devDependencies.zod }),
       });
       // Import before adding any other Toolgrain entry package to the project.
-      cpSync(
-        new URL("../fixtures/clean-install/entry-runtime.mjs", import.meta.url),
-        join(consumer, "entry-runtime.mjs"),
-      );
-      await run(
-        `isolated runtime ${manifest.name}`,
-        runtime,
-        [...runtimeArgs, "entry-runtime.mjs", manifest.name],
-        consumer,
-      );
+      if (functional) {
+        cpSync(
+          new URL(
+            "../fixtures/clean-install/entry-runtime.mjs",
+            import.meta.url,
+          ),
+          join(consumer, "entry-runtime.mjs"),
+        );
+        await run(
+          `isolated runtime ${manifest.name}`,
+          runtime,
+          [...runtimeArgs, "entry-runtime.mjs", manifest.name],
+          consumer,
+        );
+      }
+      if (!types) continue;
       cpSync(
         join(manifest.directory, "smoke/consumer.mts"),
         join(consumer, "consumer.mts"),
@@ -312,24 +327,44 @@ export async function main(args = []) {
           .dependencies.jose,
       },
     );
-    await run(
-      "strict TypeScript consumer",
-      process.execPath,
-      [
-        join(consumer, "node_modules/typescript/bin/tsc"),
-        "-p",
-        "tsconfig.json",
-      ],
-      consumer,
-    );
-    await run(
-      `${values.runtime} consumer over stdio and HTTP`,
-      runtime,
-      values.runtime === "bun"
-        ? ["test", "--no-install", "./runtime.mjs"]
-        : ["--test", "runtime.mjs"],
-      consumer,
-    );
+    if (types)
+      await run(
+        "strict TypeScript consumer",
+        process.execPath,
+        [
+          join(consumer, "node_modules/typescript/bin/tsc"),
+          "-p",
+          "tsconfig.json",
+        ],
+        consumer,
+      );
+    else {
+      // Runtime jobs execute the same fixture without repeating declaration checks.
+      // The minimum compiler is a pinned repository-tool dependency, never imported by consumers.
+      const { default: ts } = await import("typescript-minimum");
+      const output = ts.transpileModule(
+        readFileSync(join(consumer, "consumer.mts"), "utf8"),
+        {
+          fileName: "consumer.mts",
+          compilerOptions: {
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ESNext,
+            verbatimModuleSyntax: true,
+          },
+        },
+      );
+      mkdirSync(join(consumer, "dist"));
+      writeFileSync(join(consumer, "dist/consumer.mjs"), output.outputText);
+    }
+    if (functional)
+      await run(
+        `${values.runtime} consumer over stdio and HTTP`,
+        runtime,
+        values.runtime === "bun"
+          ? ["test", "--no-install", "./runtime.mjs"]
+          : ["--test", "runtime.mjs"],
+        consumer,
+      );
   } catch (error) {
     failure = error;
     process.exitCode = 1;
@@ -352,6 +387,7 @@ export async function main(args = []) {
           runtimeVersion,
           packageManager: manager,
           source: values.published ? "npm" : "packed",
+          checks: values.checks,
           packages: packages.map(({ name, version }) => ({ name, version })),
           results,
         },

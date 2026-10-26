@@ -519,11 +519,14 @@ test("library size reports still run after an unrelated application build fails"
   const step = workflow
     .split(/\n {6}- name: /)
     .find((part) => /\n {8}id: size\n/.test(part));
-  // This gate must allow install=success/build=failure, while still honoring cancellation.
+  // Full/package scopes must allow install=success/build=failure, while honoring cancellation.
   assert.match(
     step,
-    /if: \$\{\{ !cancelled\(\) && steps\.install\.outcome == 'success' \}\}/,
+    /if: \$\{\{ !cancelled\(\) && steps\.install\.outcome == 'success'/,
   );
+  assert.doesNotMatch(step, /steps\.(?:build|package-build)\.outcome/);
+  assert.match(step, /steps\.plan\.outputs\.profile != 'docs'/);
+  assert.match(step, /steps\.plan\.outcome == 'success'/);
   fixture(({ root, write }) => {
     const scripts = JSON.parse(
       readFileSync(new URL("package.json", repo), "utf8"),

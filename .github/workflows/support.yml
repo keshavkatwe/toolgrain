@@ -3,13 +3,12 @@ name: Support matrix
 on:
   pull_request:
   push:
-    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
   workflow_call:
     inputs:
       full:
-        description: Include intermediate TypeScript and stable dependency release gates
+        description: Force supported consumers, intermediate TypeScript and stable dependency gates
         type: boolean
         default: false
   schedule:
@@ -23,7 +22,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Plan support checks
+    runs-on: ubuntu-latest
+    outputs:
+      profile: ${{ steps.plan.outputs.profile }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.20.0"
+      - id: plan
+        env:
+          CI_FULL: ${{ inputs.full }}
+        run: node packages/repo-tools/src/cli.mjs ci-plan
+
   compatibility:
+    needs: plan
+    if: needs.plan.outputs.profile == 'full'
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -39,7 +58,6 @@ jobs:
           - { name: Node 24 / Windows, os: windows-latest, node: "24", bun: "1.3.14", runtime: node, manager: npm, preview: false }
           - { name: Bun 1 / macOS, os: macos-latest, node: "24.20.0", bun: "1.x", runtime: bun, manager: bun, preview: false }
           - { name: Bun 1 / Windows, os: windows-latest, node: "24.20.0", bun: "1.x", runtime: bun, manager: bun, preview: false }
-          - { name: Node 26 preview / Linux, os: ubuntu-latest, node: "26", bun: "1.3.14", runtime: node, manager: npm, preview: true }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -57,12 +75,46 @@ jobs:
       - name: Build libraries
         run: bun run build --filter="./packages/*"
       # Run directly: compatibility results must never come from Turbo's cache.
-      - name: Verify packed consumers and minimum/current declarations
-        run: node packages/repo-tools/src/cli.mjs clean-install --runtime=${{ matrix.runtime }} --package-manager=${{ matrix.manager }} ${{ matrix.zod && format('--zod={0}', matrix.zod) || '' }}
+      - name: Verify isolated imports and runtime flows from packed installations
+        run: node packages/repo-tools/src/cli.mjs clean-install --checks=runtime --runtime=${{ matrix.runtime }} --package-manager=${{ matrix.manager }} ${{ matrix.zod && format('--zod={0}', matrix.zod) || '' }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:
           name: support-${{ strategy.job-index }}
+          path: reports/clean-install.json
+          retention-days: 14
+          if-no-files-found: error
+
+  declarations:
+    name: Bun declarations / ${{ matrix.name }}
+    needs: plan
+    if: needs.plan.outputs.profile == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: minimum Zod, zod: '4.6.6' }
+          - { name: development Zod, zod: '' }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.x'
+      - run: bun install --frozen-lockfile
+      - run: bun run build --filter='./packages/*'
+      - name: Check minimum and development compilers using Bun installations
+        run: node packages/repo-tools/src/cli.mjs clean-install --checks=types --package-manager=bun ${{ matrix.zod && format('--zod={0}', matrix.zod) || '' }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: bun-declarations-${{ strategy.job-index }}
           path: reports/clean-install.json
           retention-days: 14
           if-no-files-found: error
@@ -105,7 +157,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run build --filter="./packages/*"
       - name: Check installed declarations with the selected compiler and Zod 4
-        run: node packages/repo-tools/src/cli.mjs clean-install --typescript=${{ matrix.version }} --zod=^4.6.6
+        run: node packages/repo-tools/src/cli.mjs clean-install --checks=types --typescript=${{ matrix.version }} --zod=^4.6.6
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:
@@ -124,7 +176,6 @@ jobs:
       matrix:
         include:
           - { name: Stable dependency drift, bun: "1.x", typescript: latest, preview: false }
-          - { name: Prerelease canary, bun: canary, typescript: next, preview: true }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -144,10 +195,88 @@ jobs:
       - run: bun run test:coverage --filter="./packages/*"
       - run: bun run test:package
       - name: Exercise the selected Bun runtime
-        run: node packages/repo-tools/src/cli.mjs clean-install --runtime=bun --package-manager=bun
+        run: node packages/repo-tools/src/cli.mjs clean-install --checks=runtime --runtime=bun --package-manager=bun
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:
           name: upstream-${{ strategy.job-index }}
           path: reports/clean-install.json
           retention-days: 14
+
+  preview:
+    name: Node 26 preview / Linux
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '26'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run build --filter='./packages/*'
+      - run: node packages/repo-tools/src/cli.mjs clean-install --checks=runtime
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: node-26-preview
+          path: reports/clean-install.json
+          retention-days: 14
+          if-no-files-found: error
+
+  canary:
+    name: Prerelease canary
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: canary
+      - name: Probe prerelease dependencies in this disposable checkout
+        env:
+          TOOLGRAIN_COMPILER: next
+        run: node packages/repo-tools/src/cli.mjs support-matrix --prepare-drift
+      - run: bun install
+      - run: bun run build --filter='./packages/*'
+      - run: bun run test:coverage --filter='./packages/*'
+      - run: bun run test:package
+      - run: node packages/repo-tools/src/cli.mjs clean-install --checks=runtime --runtime=bun --package-manager=bun
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ !cancelled() }}
+        with:
+          name: prerelease-canary
+          path: reports/clean-install.json
+          retention-days: 14
+          if-no-files-found: error
+
+  required:
+    name: Support checks
+    if: ${{ always() }}
+    needs: [plan, compatibility, declarations, typescript-versions, intermediate-types, upstream, preview, canary]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+      - name: Require every applicable supported check
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+          CI_EXTENDED: ${{ inputs.full || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        run: node packages/repo-tools/src/cli.mjs ci-gate

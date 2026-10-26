@@ -2,6 +2,15 @@
 // Commands load on demand, so ci-report (which must work without installed
 // dependencies) and verify-inspector (which checks Node) can run under Node.
 const commands = {
+  docs: [
+    "./docs-check.mjs",
+    "Check MDX syntax, frontmatter, navigation, local links and assets",
+  ],
+  "ci-plan": ["./ci-plan.mjs", "Choose checks from the actual Git change set"],
+  "ci-gate": [
+    "./ci-gate.mjs",
+    "Require every applicable supported CI job to pass",
+  ],
   release: [
     "./release.mjs",
     "Check aligned library versions or synchronize Bun workspace metadata",

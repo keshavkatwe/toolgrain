@@ -48,6 +48,8 @@ jobs:
       actions: read
       pull-requests: write
     uses: ./.github/workflows/ci.yml
+    with:
+      full: true
 
   support:
     name: Supported runtimes and dependencies

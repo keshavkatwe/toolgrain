@@ -53,21 +53,33 @@ requirements; an example is not a promise to support every framework version.
 
 ## Required CI
 
-`.github/workflows/ci.yml` retains the complete Linux/Node 24.20.0 baseline:
+`.github/workflows/ci.yml` retains the complete Linux/Node 24.20.0 baseline for
+runtime, dependency, packaging-contract, verification, workflow, and unknown changes:
 formatting/lint, type checks, 95% coverage floors, framework examples, builds,
 compiled consumers, minimum Zod checks, package exports, clean installs, sizes,
-dependency audit, and repository-tooling tests. It also runs for release tags.
+dependency audit, and repository-tooling tests. Manual runs and legacy `v*` tags
+also request the complete baseline.
 
-`.github/workflows/support.yml` runs on PRs, main, release tags and manual runs:
+Documentation and artwork take a lighter formatting/audit/source-validation path.
+Packaged documents and editorial metadata additionally require library builds,
+archive contents/size checks, and fresh npm/Node functional consumers. Only
+`description`, `homepage`, and `keywords` can change in a light package manifest.
+Unknown paths, missing Git history, and mixed changes retain full verification.
+See the [development guide](/project/development#continuous-integration) for the profiles.
+
+`.github/workflows/support.yml` runs the supported matrix for full-profile PRs,
+main changes, legacy `v*` tags, weekly checks and manual runs:
 
 - Latest Node 24 on Linux, macOS and Windows with npm consumers.
 - Bun 1.4.4 on Linux and latest stable Bun 1.x on all three OSes with Bun consumers.
-- Node 26 on Linux as an explicitly non-blocking preview.
+- Node 26 on Linux as an explicitly non-blocking preview, on weekly/manual runs only.
 
 Each compatibility job builds libraries through Turbo's package filter and runs
-uncached packed-install verification directly. Every library gets its own
-consumer with minimum and development compiler checks, strict mode and
-`skipLibCheck: false`. The full consumer verifies both protocol eras, Web/Node
+uncached packed-install functional verification directly. Declaration compatibility
+is checked once on Linux for npm and Bun installations, with minimum/development
+compilers, strict mode, `skipLibCheck: false`, and minimum/development Zod.
+Each library retains its own isolated installation and import checks on every
+supported runtime/platform. The functional consumer verifies both protocol eras, Web/Node
 HTTP, the managed listener, actual stdin/stdout, contexts, rich results, input
 validation, stdio cancellation, HTTP disconnects and cleanup. Auth checks cover
 signed RS256/ES256 JWTs, audience rejection, frozen identities, Clerk OAuth JWTs
@@ -92,12 +104,24 @@ Every Monday, and on manual workflow dispatch, additional jobs run:
 - A non-blocking Bun canary/TypeScript-next probe. Prereleases are not supported
   merely because this probe passes.
 
-The stable matrix and baseline must be green before merge/release. A confirmed
+The applicable stable matrix and baseline must be green before merge. Every
+release requires the complete supported baseline and matrix on its exact merged
+commit, including stable dependency drift and intermediate TypeScript checks.
+On main, the publication workflow calls either ordinary scoped checks or the
+complete release gate; standalone main CI/support runs do not duplicate it. A confirmed
 regression from weekly checks in a supported version also blocks release until
 resolved; prerelease/Node-26 preview failures are informational. No publication
 is performed by these workflows. New matrix check names must be selected in
 repository branch protection when configuring required checks; workflow files
-alone do not change GitHub repository settings.
+alone do not change GitHub repository settings. Require `Package checks` and
+`Support checks`, rather than individual matrix jobs. The support gate checks
+planning and every applicable supported job, rejecting failures, cancellations,
+and unexpected skips. An editorial skip makes no new runtime/platform claim.
+
+When adopting these scoped workflows, first let a full-profile PR produce both
+stable check names successfully, then replace the previous per-platform required
+contexts with those two gates before merging. Preserve strict up-to-date checking
+and the GitHub Actions app binding. No protection setting changes automatically.
 
 The manual [Release verification workflow](/project/releases#failures-and-recovery) reuses
 both workflows at the selected source commit, including weekly stable dependency

@@ -48,6 +48,13 @@ from the same directory. When configuring Mintlify's Git connection, set the
 documentation subdirectory to `/docs`. The published site is
 [toolgrain.mintlify.site](https://toolgrain.mintlify.site/).
 
+For a fast source check with the repository's pinned dependencies, run
+`bun run test:docs` from the repository root. It checks MDX syntax, required
+frontmatter, navigation coverage, literal local links/anchors, and assets without
+evaluating page JavaScript. CI uses this check for site and artwork changes.
+It does not replace Mintlify's rendered build, external-link checks, example
+execution, or visual review.
+
 The starter's MIT license and Mintlify attribution are preserved in
 [third-party notices](./notices/mintlify-starter.txt). Toolgrain's license is in
 the repository's [root LICENSE](../LICENSE).
