@@ -3,8 +3,9 @@
 Approved on 2026-10-23: the Monolith visual direction, continuous restrained
 motion, logo mark, wordmark, and lockup. This directory is the shared source for
 Toolgrain brand artwork and design tokens. Reuse these assets in future work
-instead of recreating the logo. The root and package READMEs use the fixed-color
-lockups for light and dark themes. Website deployment remains separate work.
+instead of recreating the logo. The root README uses the self-contained dark
+banner; package READMEs use the fixed-color lockups for light and dark themes.
+Website deployment remains separate work.
 
 ## Artwork
 
@@ -17,12 +18,15 @@ lockups for light and dark themes. Website deployment remains separate work.
 | `mark-dark.svg`, `mark-light.svg` | Standalone mark |
 | `mark.svg` | Editable mark source; inherits CSS color when inlined |
 | `brand-sheet.svg` | Self-contained visual brand reference |
+| `readme-banner.svg` | Root README banner with the approved lockup and static routing artwork |
 | `brand.json` | Shared colors, typography, artwork locations, and motion tokens |
 
-The lockup and wordmark use outlined paths, with no font installation or network
-dependency. SVGs have transparent backgrounds. Use the fixed-color variants in
-image tags and design applications; use the `currentColor` variants when inlining
-the SVG in an application. Choose one high-contrast color for the core logo.
+The lockup, wordmark, and banner typography use outlined paths, with no font
+installation or network dependency. Logo and wordmark SVGs have transparent
+backgrounds; the banner includes its own obsidian background for both themes.
+Use the fixed-color variants in image tags and design applications; use the
+`currentColor` variants when inlining the SVG in an application. Choose one
+high-contrast color for the core logo.
 
 The mark echoes the hero's monolithic routing junction. Its separate circular
 grain can become the moving request in larger brand presentations. The metallic

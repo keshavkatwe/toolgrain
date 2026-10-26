@@ -102,6 +102,79 @@ sheet = (
 )
 (ROOT / "brand-sheet.svg").write_text(sheet)
 
+
+def banner_text(text, left, baseline, size, color, spacing=0):
+    """Outline banner type with the same pinned Manrope source as the wordmark."""
+    pen = SVGPathPen(glyphs)
+    text_scale = size / units
+    cursor = left
+    for char in text:
+        glyph = glyphs[cmap[ord(char)]]
+        glyph.draw(TransformPen(pen, (text_scale, 0, 0, -text_scale, cursor, baseline)))
+        cursor += glyph.width * text_scale + spacing
+    return f'<path d="{pen.getCommands()}" fill="{color}"/>'
+
+
+# Keep the approved lockup's paths and proportions intact inside the presentation.
+logo = (ROOT / "logo-dark.svg").read_text().split(">", 1)[1].rsplit("</svg>", 1)[0].strip()
+colors = brand["colors"]
+banner = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-labelledby="banner-title banner-description">
+  <title id="banner-title">Toolgrain</title>
+  <desc id="banner-description">A TypeScript toolkit for MCP. Reusable tools converge into a server and connect over stdio or HTTP.</desc>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="{colors['graphite']}"/>
+      <stop offset="1" stop-color="{colors['obsidian']}"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="{colors['graphite']}" stroke-width="1"/>
+    </pattern>
+    <clipPath id="frame"><rect width="1200" height="360" rx="16"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="360" fill="{colors['obsidian']}"/>
+    <rect x="656" width="544" height="360" fill="url(#grid)" opacity=".5"/>
+    <path d="M64 65H112" stroke="{colors['citron']}" stroke-width="3"/>
+    <g transform="translate(60 104) scale(1.585)" fill="{colors['ivory']}">{logo}</g>
+    {banner_text('A TypeScript toolkit for MCP', 68, 280, 20, colors['slate'])}
+    <g transform="translate(694 52) scale(.94)">
+      <g fill="none" stroke="{colors['slate']}" stroke-width="2" stroke-linecap="round" opacity=".45">
+        <path d="M80 36H120Q136 36 136 52V112Q136 128 152 128H210"/>
+        <path d="M80 128H210"/>
+        <path d="M80 220H120Q136 220 136 204V144Q136 128 152 128"/>
+        <path d="M330 128Q352 128 352 106V90Q352 68 374 68H392"/>
+        <path d="M330 128Q352 128 352 150V190Q352 212 374 212H392"/>
+      </g>
+      <g fill="{colors['obsidian']}" stroke="{colors['graphite']}" stroke-width="2">
+        <rect x="0" y="12" width="80" height="48" rx="6"/>
+        <rect x="0" y="104" width="80" height="48" rx="6"/>
+        <rect x="0" y="196" width="80" height="48" rx="6"/>
+        <rect x="392" y="44" width="80" height="48" rx="6"/>
+        <rect x="392" y="188" width="80" height="48" rx="6"/>
+      </g>
+      <g fill="none" stroke="{colors['slate']}" stroke-width="2" stroke-linecap="round" opacity=".6">
+        <path d="M18 30H44M18 42H60M18 122H56M18 134H38M18 214H42M18 226H60"/>
+        <path d="M410 62H454M410 74H438M410 206H438M410 218H454"/>
+      </g>
+      <path d="M210 76L230 64H330L310 76Z" fill="{colors['silver']}" opacity=".3"/>
+      <path d="M310 76L330 64V168L310 180Z" fill="{colors['graphite']}"/>
+      <rect x="210" y="76" width="100" height="104" fill="url(#surface)" stroke="{colors['slate']}" stroke-opacity=".5"/>
+      <path d="M228 103H292M228 128H292M228 153H292" stroke="{colors['slate']}" stroke-opacity=".4"/>
+      <g fill="{colors['citron']}">
+        <circle cx="228" cy="103" r="3"/>
+        <circle cx="228" cy="128" r="3"/>
+        <circle cx="228" cy="153" r="3"/>
+        <circle cx="108" cy="128" r="4"/>
+        <circle cx="352" cy="182" r="4"/>
+      </g>
+      <path d="M108 128H165M330 128Q352 128 352 106V96" fill="none" stroke="{colors['citron']}" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </g>
+  <rect x=".5" y=".5" width="1199" height="359" rx="15.5" fill="none" stroke="{colors['graphite']}"/>
+</svg>
+'''
+(ROOT / "readme-banner.svg").write_text(banner)
+
 manifest = {
     "fontSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
     "generator": "fonttools 4.60.1",
