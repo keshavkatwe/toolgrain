@@ -16,7 +16,7 @@
     ]
   },
   "@toolgrain/mcp": {
-    "packedBytes": 87040,
+    "packedBytes": 105472,
     "unpackedBytes": 363520,
     "sourceMaps": true,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]

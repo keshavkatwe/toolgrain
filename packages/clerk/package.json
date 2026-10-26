@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/clerk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Clerk OAuth access-token authorization for Toolgrain MCP servers.",
   "license": "MIT",
   "repository": {
