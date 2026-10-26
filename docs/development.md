@@ -65,6 +65,14 @@ corresponding runtime and compiled-consumer checks. Documentation-only changes
 need working links, accurate examples, and formatting; packaged README changes
 also need archive-size checks. CI runs the complete required baseline.
 
+Document package-entrypoint exports and the fields, overloads, and callbacks
+consumers encounter through them with JSDoc. Explain defaults, validation,
+cancellation, and resource ownership where relevant. Internal module exports and
+type machinery do not need API JSDoc; keep implementation comments focused on
+non-obvious behavior. Check emitted declarations and IDE hovers, including inferred
+accessor results. Keep vendored protocol schemas unchanged. Inline documentation
+ships with packages, so check archive sizes after adding it.
+
 Biome is configured once at the root. `bun run check:fix` and `bun run format`
 write formatting changes; keep unrelated files out of your pull request.
 

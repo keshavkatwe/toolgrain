@@ -27,18 +27,18 @@
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/node": {
-    "packedBytes": 11264,
-    "unpackedBytes": 36864,
+    "packedBytes": 13312,
+    "unpackedBytes": 46080,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/jwt": {
-    "packedBytes": 6144,
-    "unpackedBytes": 15360,
+    "packedBytes": 8192,
+    "unpackedBytes": 22528,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/clerk": {
-    "packedBytes": 7168,
-    "unpackedBytes": 19456,
+    "packedBytes": 8192,
+    "unpackedBytes": 24576,
     "requiredFiles": ["README.md", "LICENSE", "NOTICE", "CHANGELOG.md"]
   }
 }

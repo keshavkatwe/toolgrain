@@ -5,14 +5,25 @@ import type { ProtocolResponse } from "@toolgrain/protocol";
 import { createMessageDecoder } from "./framing.js";
 import { writeLine } from "./write.js";
 
+/** Streams and framing limit for a single-use, newline-delimited JSON transport. */
 export interface StdioOptions {
+  /** Incoming UTF-8 JSON stream; defaults to process stdin and remains application-owned. */
   input?: Readable;
+  /** Outgoing MCP response stream; defaults to process stdout and must not contain application logs. */
   output?: Writable;
   /** Maximum UTF-8 bytes per incoming message, excluding its newline. Default: 1 MiB. */
   maxMessageBytes?: number;
 }
 
-/** A single-use transport; supplied streams remain owned by the caller. */
+/**
+ * Create a single-use stdio transport with newline framing and write backpressure.
+ * Attach it through `server.listen()`. Closing detaches listeners and pauses input;
+ * supplied streams remain application-owned and are not ended or destroyed.
+ *
+ * @param options - Input/output streams and a positive incoming-message byte limit.
+ * @returns A transport that can be attached once and cannot restart after closing.
+ * @throws `RangeError` if `maxMessageBytes` is not a positive safe integer.
+ */
 export function stdio(options: StdioOptions = {}): Transport {
   return new StdioTransport(options);
 }

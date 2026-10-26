@@ -21,14 +21,19 @@ import type { DeepReadonly } from "./json-value.js";
 
 /** What the client reported about itself; unverified, so not a basis for security decisions. */
 export interface ToolClient {
+  /** Copied, deeply frozen implementation details supplied by the client, when available. */
   readonly info?: DeepReadonly<Implementation | LegacyImplementation>;
+  /** Copied, deeply frozen capability claims supplied by the client, when available. */
   readonly capabilities?: DeepReadonly<
     ClientCapabilities | LegacyClientCapabilities
   >;
 }
 
+/** Copied, immutable protocol metadata for one invocation; client claims remain unverified. */
 export interface ToolRequest {
+  /** JSON-RPC request identifier; identical IDs can occur in independent contexts. */
   readonly id: RequestId;
+  /** Supported protocol revision selected for this invocation. */
   readonly protocolVersion: SupportedProtocolVersion;
   /** Absent when the era and transport carry no client information, such as legacy HTTP. */
   readonly client?: ToolClient;
@@ -36,19 +41,32 @@ export interface ToolRequest {
   readonly meta: Readonly<Record<string, unknown>>;
 }
 
+/** Per-invocation data passed to tool handlers and lazy context resolvers. */
 export interface ToolContext {
   /** Aborts when the client cancels or disconnects, or the transport or server closes. */
   readonly signal: AbortSignal;
+  /** Frozen request metadata; contains no verified authorization identity. */
   readonly request: ToolRequest;
 }
 
+/** Optional metadata, cancellation, and provider bindings for a direct-call context. */
 export interface ToolContextOptions {
+  /** Caller-owned cancellation signal; defaults to a fresh, non-aborted signal. */
   signal?: AbortSignal;
+  /** Request fields to override; defaults are ID `0`, the modern revision, and empty metadata. */
   request?: Partial<ToolRequest>;
+  /** Providers or overrides available through their accessors; defaults to no registrations. */
   context?: readonly RegisteredContextProvider[];
 }
 
-/** Build a context for calling a definition's `execute` directly, for example in tests. */
+/**
+ * Build an unauthenticated context for direct `execute()` calls, for example in tests.
+ * Request metadata is copied and deeply frozen; each call creates a fresh provider cache.
+ * Direct execution still bypasses server authorization, validation, and MCP conversion.
+ *
+ * @param options - Optional signal, request metadata, and provider registrations.
+ * @returns A context accepted by Toolgrain's provider accessors.
+ */
 export function toolContext(options: ToolContextOptions = {}): ToolContext {
   // Default each field separately so an explicit undefined cannot replace a default.
   const {

@@ -24,10 +24,18 @@ const metadata = z.strictObject({
   _meta: object.optional(),
 });
 
+/** Registration error wrapping a schema-conversion or metadata-validation failure. */
 export class ToolSchemaError extends Error {
+  /**
+   * @param toolName - Exposed registration name whose description could not be built.
+   * @param cause - Original schema or metadata failure, retained as the error's cause.
+   * @param schemaKind - Failing part of the description; defaults to `input`.
+   */
   constructor(
+    /** Exposed registration name whose schema or metadata failed. */
     public readonly toolName: string,
     cause: unknown,
+    /** Whether input conversion, output conversion, or metadata validation failed. */
     public readonly schemaKind: "input" | "output" | "metadata" = "input",
   ) {
     super(`Cannot expose ${schemaKind} schema for tool: ${toolName}`, {

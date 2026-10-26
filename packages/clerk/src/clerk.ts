@@ -5,29 +5,59 @@ import { jwt } from "@toolgrain/jwt";
 import {
   AuthError,
   type AuthProvider,
+  type AuthReadonly,
   createAuthAccessor,
   isAuthError,
+  type ToolContext,
   validateAuthUrl,
   validateTokenAudience,
 } from "@toolgrain/mcp";
 import { decodeProtectedHeader } from "jose";
 
+/** Plain identity from a verified Clerk OAuth access token, exposed by `useAuth(ctx)`. */
 export interface ClerkAuth {
+  /** Verified Clerk user subject; accepted access tokens must identify a `user_` subject. */
   readonly userId: string;
+  /** OAuth application client ID associated with the verified access token. */
   readonly clientId: string;
+  /** Granted token scopes; applications enforce their own per-tool scope policies. */
   readonly scopes: readonly string[];
 }
 
+/** Credentials and optional public resource URL for one Clerk application/environment. */
 export interface ClerkOptions {
+  /** Clerk publishable key identifying the Frontend API and trusted issuer. */
   publishableKey: string;
+  /** Server-only Clerk secret key from the same application/environment; never exposed to handlers. */
   secretKey: string;
+  /** Canonical public MCP resource and required token audience; otherwise inferred by the HTTP adapter. */
   resource?: string;
 }
 
 const type = Symbol.for("@toolgrain/clerk/auth/v1");
-export const useAuth = createAuthAccessor<ClerkAuth>(type);
+/**
+ * Read this invocation's already verified, deeply frozen Clerk identity synchronously.
+ * Performs no verification or network work; configure `clerk()` on the server first.
+ *
+ * @param ctx - Toolgrain context from a handler or lazy provider on a Clerk-protected server.
+ * @returns Readonly user ID, OAuth client ID, and granted scopes, without SDK token getters.
+ * @throws If the context is unauthenticated or belongs to a different auth provider.
+ */
+export const useAuth: (ctx: ToolContext) => AuthReadonly<ClerkAuth> =
+  createAuthAccessor<ClerkAuth>(type);
 
-/** Accept Clerk OAuth access tokens; session tokens, API keys and M2M tokens are excluded. */
+/**
+ * Create an authorization provider for Clerk OAuth JWT and opaque `oat_` access tokens.
+ * Requires the token's audience to contain the resolved MCP resource. Enable Clerk's
+ * OAuth audience claim setting and obtain a new token before using this integration.
+ * Session tokens, API keys, and M2M tokens are rejected.
+ *
+ * @param options - Clerk keys from the same application/environment and an optional resource URL.
+ * @returns A frozen provider for `createServer({ auth })`; read its identity with `useAuth(ctx)`.
+ * @throws For invalid keys or configuration. Verification rejects invalid tokens with
+ * `AuthError("invalid_token")`, access denial with `access_denied`, and private provider
+ * failures with `temporarily_unavailable`.
+ */
 export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
   const key = parsePublishableKey(options.publishableKey, { fatal: true });
   const issuer = validateAuthUrl(`https://${key.frontendApi}`);
