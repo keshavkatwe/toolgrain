@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/http",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Streamable HTTP handlers for Toolgrain MCP servers using Web Request and Response.",
   "license": "MIT",
   "repository": {
