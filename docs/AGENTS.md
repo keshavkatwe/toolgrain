@@ -7,11 +7,12 @@ verification, and release rules. These instructions apply to documentation work.
 
 - The Mintlify site lives in `docs/`, with navigation in `docs.json`. Keep the
   user-selected Mint theme. Preview and validate from this directory.
-- MDX site pages use YAML frontmatter. Existing Markdown guides remain the current
-  GitHub documentation and are excluded by `.mintignore` until adapted for the
-  site. Migrate an agreed section at a time; avoid parallel copies of a guide.
-- The introduction and quickstart are starter content. Branding work does not
-  establish their examples or requirements as Toolgrain's supported behavior.
+- MDX site pages use YAML frontmatter and are the guide sources. Root Markdown
+  forwarding pages preserve previous GitHub URLs and section anchors; they are
+  excluded by `.mintignore`. Update the linked MDX guide, avoiding parallel copies.
+- Navigation separates Guides, API reference, and Project. Keep the
+  quickstart's install, compile, and Inspector flow runnable against the published
+  packages. Recheck its commands and expected output when changing the example.
 - Document implemented APIs and verified compatibility. Clearly identify proposals
   and limitations. Check examples against the packages and support policy.
 - The documentation directory is the site root. Keep site links and assets within

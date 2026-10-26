@@ -22,10 +22,17 @@ for individual installation guides.
 ## Mintlify site
 
 The Mintlify site lives in this directory. `docs.json` defines its navigation and
-Mint theme, and `assets/` contains the site's static files. The introduction and
-quickstart are starter pages awaiting Toolgrain content. Existing Markdown guides
-remain the current documentation on GitHub; `.mintignore` excludes them from the
-site until their content and repository-relative links are adapted for Mintlify.
+Mint theme, and `assets/` contains the site's static files. Start with the
+[introduction](./index.mdx) and [quickstart](./quickstart.mdx). The site includes
+getting started, tools, context, transports, authorization, testing, compatibility,
+API reference, and project guides. Edit the MDX pages as the source of truth.
+Root Markdown forwarding pages retain older GitHub guide URLs and section
+anchors; `.mintignore` excludes them from the site.
+
+The Guides tab covers application development. API reference documents all six
+published libraries and shared contracts. Project contains contribution,
+development, support, licensing, and current release guidance. Compatibility
+reports keep their original dates and verification limits.
 
 With the Mintlify CLI installed, run these commands from the repository root:
 

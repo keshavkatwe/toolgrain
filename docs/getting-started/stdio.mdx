@@ -1,0 +1,84 @@
+---
+title: "Your first tool"
+description: "Split a reusable tool and its stdio server into application modules."
+---
+
+Create one typed tool, register it on a server, and expose it over stdio. Complete
+[installation](/getting-started/installation) first, including `type: module` and
+`tsconfig.json`. This tutorial separates the tool from the server so you can reuse it.
+
+## 1. Define the tool
+
+```ts src/tools/greet.ts
+import { tool } from "@toolgrain/mcp";
+import { z } from "zod";
+
+export const greet = tool({
+  title: "Greeting",
+  description: "Greet someone by name",
+  annotations: { readOnlyHint: true },
+  input: z.object({ name: z.string().min(1) }),
+  output: z.object({ message: z.string() }),
+  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+});
+```
+
+The handler's input type comes from the schema. A nonempty string is required; invalid input is rejected before execution. The output schema checks the returned object too.
+
+## 2. Compose the server
+
+```ts src/server.ts
+import { createServer } from "@toolgrain/mcp";
+import { stdio } from "@toolgrain/node";
+import { greet } from "./tools/greet.js";
+
+const server = createServer({
+  name: "hello-server",
+  version: "1.0.0",
+  tools: { greet },
+});
+
+await server.listen(stdio());
+```
+
+The registration key `greet` becomes the exposed name. A definition can be reused in another server without rewriting it. `listen()` starts the transport; it does not wait for the server to shut down.
+
+## 3. Run it through a client
+
+After compiling, configure your MCP client to launch `node` with the absolute path to `dist/server.js`. A stdio server speaks through stdin/stdout; running it in a terminal may appear to wait silently because it is waiting for protocol messages.
+
+Compile your application:
+
+```bash
+npx tsc -p tsconfig.json
+```
+
+Then call it with Inspector:
+
+```bash
+npx --yes @modelcontextprotocol/inspector@2.11.0 --cli node dist/server.js --protocol-era modern --format json --method tools/call --tool-name greet --tool-arg name=Ada
+```
+
+Inspector starts the compiled server and sends this argument:
+
+```json
+{ "name": "Ada" }
+```
+
+The successful result includes structured data and a text serialization:
+
+```json
+{ "message": "Hello, Ada!" }
+```
+
+Try invalid input to see validation feedback. The handler does not run for an empty name:
+
+```bash
+npx --yes @modelcontextprotocol/inspector@2.11.0 --cli node dist/server.js --protocol-era modern --format json --method tools/call --tool-name greet --tool-args-json '{"name":""}'
+```
+
+> **Keep stdout clean.** MCP owns stdout. Send application diagnostics to stderr with `console.error()` rather than `console.log()`.
+
+## Next steps
+
+[Configure a client](/getting-started/clients), [run the same tool over HTTP](/getting-started/http), or learn about [tool definitions](/tools/definitions). The complete runnable teaching example is in [apps/stdio-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/stdio-example).

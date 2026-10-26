@@ -1,0 +1,37 @@
+---
+title: "Inputs, outputs, and inferred types"
+description: "Understand asynchronous input and output parsing with Zod 4."
+---
+
+Toolgrain accepts Zod 4 Classic and Mini user schemas. Handlers receive the **parsed output** of an input schema, including defaults and transforms. Validation uses asynchronous parsing, so asynchronous refinements are supported.
+
+```ts
+import { tool } from "@toolgrain/mcp";
+import { z } from "zod";
+
+const greet = tool({
+  input: z.object({ name: z.string().trim().min(1).default("friend") }),
+  output: z.object({ message: z.string() }),
+  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+});
+```
+
+Omitting `name` produces `friend`; whitespace is trimmed before the handler runs. A declared output constrains the handler's return type and asynchronously parses the result too.
+
+## Published schemas
+
+At server construction, Toolgrain converts input schemas using Zod's input mode and JSON Schema 2020-12. The root must be an object. Output schemas use output mode. A schema that can parse values is not necessarily representable in JSON Schema: unrepresentable schemas or invalid metadata throw `ToolSchemaError` during construction.
+
+Keep transformations inside a representable schema and check the converted result when using advanced Zod features. Input shape describes what clients should send; output shape describes the parsed value clients receive. Legacy clients see output schemas only when the root is an object.
+
+## Output rules
+
+For ordinary results, the declared output parses the returned value directly. Defaults and transforms can change the structured data sent to a client. For explicit `mcpResult()` returns, any supplied `structuredContent` is parsed, including error data. Successful rich results with an output schema must include structured content in their public types and at runtime.
+
+An explicit `isError: true` result may omit structured content and return text alone. Output defaults do not invent data for such an error. Invalid output becomes a generic tool error without structured data, and the original failure reaches private diagnostics.
+
+Without an output schema, handlers' values are unchanged before MCP conversion. JSON data must be finite and serializable: reject undefined within unparsed data, bigint, functions, cyclic references, and class instances that are not supported JSON values. Strings become text; other valid JSON values become structured content where the protocol permits it.
+
+## Cancellation during validation
+
+Once registry execution starts, validation may continue even if the request is cancelled. If the signal is aborted when input parsing finishes, the handler is not started. Late output and responses are suppressed. Cooperative cancellation cannot forcibly terminate asynchronous application work.

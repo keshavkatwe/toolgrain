@@ -1,0 +1,43 @@
+---
+title: "Streamable HTTP"
+description: "Choose a listener or handler and configure HTTP request validation."
+---
+
+Toolgrain supports independent HTTP POST requests with JSON responses. Choose a managed Node listener, Node middleware, or a Web handler depending on who owns your application listener.
+
+| Application | Adapter |
+| --- | --- |
+| Standalone Node service | `http()` from `@toolgrain/node` |
+| Node HTTP or Express listener | `createNodeHttpHandler()` from `@toolgrain/node` |
+| Web Request/Response framework | `createHttpHandler()` from `@toolgrain/http` |
+
+## Web handler
+
+```ts
+import { createHttpHandler } from "@toolgrain/http";
+
+const handler = createHttpHandler(server, {
+  path: "/mcp",
+  allowedHosts: ["api.example.com"],
+  maxMessageBytes: 1024 * 1024,
+});
+const response = await handler(request);
+```
+
+`request` is the framework's Web `Request`. Use `handler.matches(pathname)` to determine whether the combined handler owns an MCP or metadata path before routing other traffic.
+
+## Options and ordering
+
+`path` defaults to `/mcp`. `allowedHosts` contains exact authorities, optionally with ports; defaults allow loopback hosts. An empty list rejects all hosts. Schemes, paths, and wildcards are not valid entries. Both the public request URL and supplied Host authority must pass validation.
+
+An absent Origin is allowed. A present Origin must match `allowedOrigins`, which defaults to an empty list. This validation is distinct from CORS: applications implement any preflight handling and response headers they require.
+
+Host validation runs before routing, authorization, and body parsing for owned routes. Authorization runs before body parsing and tool work. Mount combined handlers at the application root before JSON middleware. Node middleware delegates unrelated paths to a supplied `next` callback without consuming the body. Without that callback, unmatched paths return 404.
+
+## Protocol behavior
+
+Both supported revisions use the same tool definitions. Modern request metadata and required parameter headers must agree. Unsupported revisions, malformed requests, and invalid headers are rejected. Valid notifications produce no protocol response and are acknowledged as appropriate; they do not create session state.
+
+There are no sessions, event streams, resumability, or subscriptions in the current HTTP implementation. GET on the MCP endpoint does not open an event stream. When auth is configured, combined handlers separately route public GET/HEAD protected-resource metadata. For filesystem routers, explicit metadata handler factories are available.
+
+HTTP disconnects abort request signals. TLS, reverse-proxy trust, listener limits, CORS, and deployment remain application-owned. See [production guidance](/guides/production).

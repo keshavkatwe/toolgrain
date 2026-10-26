@@ -1,0 +1,50 @@
+---
+title: "Define and compose tools"
+description: "Define tools once, name them at registration, and create typed variants."
+---
+
+`tool()` creates a frozen, reusable definition. It does not bind the tool to a transport or server. `createServer({ tools })` registers definitions and validates the exposed schema and metadata.
+
+```ts
+import { createServer, tool } from "@toolgrain/mcp";
+import { z } from "zod";
+
+const greet = tool({
+  title: "Greeting",
+  description: "Return a greeting for a person",
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  input: z.object({ name: z.string() }),
+  execute: ({ name }) => `Hello, ${name}!`,
+});
+
+const server = createServer({
+  name: "hello", version: "1.0.0",
+  tools: { "people.greet": greet },
+});
+```
+
+## Names and metadata
+
+The registration key defines the exposed tool name; the variable name and title do not. Names must contain 1–128 ASCII letters, digits, underscores, hyphens, or dots. Invalid names throw `ToolNameError` at server construction.
+
+Optional fields are `title`, `description`, `annotations`, `icons`, and `_meta`. Annotations describe behavior to clients; they are hints, not an authorization boundary. Be accurate about whether a tool writes data, repeats safely, or interacts with an open world. Icons and nested protocol arrays may be readonly authoring inputs. Legacy listings omit icons.
+
+## Reuse and variants
+
+Register the same definition on independent servers. To make a variant, pass a modified spread through `tool()` again:
+
+```ts
+const enthusiastic = tool({
+  ...greet,
+  description: "Return an enthusiastic greeting",
+  execute: ({ name }) => `Hello, ${name}! Great to see you.`,
+});
+```
+
+Variants preserve schema inference and output presence. Changing a schema rechecks the handler against the changed type. Do not register `{ ...greet }` directly: raw objects and spreads lack the definition's brand and are rejected by types and at runtime.
+
+## Direct calls are raw
+
+`definition.execute(input, ctx)` calls the application handler directly. It bypasses server authorization, input/output parsing, and MCP result conversion. Use `toolContext()` when constructing contexts for direct tests. To test the public tool contract, call through a server instead; see [testing](/guides/testing).
+
+Definitions are frozen, but application-owned services closed over by a handler remain your responsibility. Read the [validation guide](/tools/validation) for schema conversion and [result handling](/tools/results) for return values.

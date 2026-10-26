@@ -1,0 +1,75 @@
+---
+title: "Contributing"
+description: "Report an issue, prepare a focused change, and verify your pull request."
+---
+
+Toolgrain welcomes bug reports, documentation improvements, and focused changes.
+Start with the repository's [contribution policy](https://github.com/keshavkatwe/toolgrain/blob/main/.github/CONTRIBUTING.md)
+and [Code of Conduct](https://github.com/keshavkatwe/toolgrain/blob/main/.github/CODE_OF_CONDUCT.md).
+Report security vulnerabilities privately using the
+[security policy](https://github.com/keshavkatwe/toolgrain/blob/main/.github/SECURITY.md).
+
+## Propose a change
+
+Search [existing issues](https://github.com/keshavkatwe/toolgrain/issues) first.
+For a bug, include a minimal reproduction, package/runtime versions, and expected
+versus actual behavior. Discuss feature and API changes in an issue before
+investing in a large implementation. The
+[roadmap](https://github.com/keshavkatwe/toolgrain/blob/main/ROADMAP.md) separates
+implemented capabilities from proposals.
+
+## Prepare a pull request
+
+Fork the repository for an external contribution and create a branch before
+editing. Use Node.js 24.20.0 or a newer supported 24.x release and the repository's
+pinned Bun 1.3.14 package manager.
+
+```bash
+bun install --frozen-lockfile
+bun run build
+bun run check
+bun run check-types
+```
+
+Keep changes focused. Include documentation and tests when behavior changes,
+preserve upstream notices, and keep generated reports out of the diff. Follow
+[development and verification](/project/development) for the checks appropriate
+to your change and [architecture](/project/architecture) for package boundaries.
+
+## Improve the documentation
+
+The Mintlify site lives in `docs/`. Edit its MDX pages and navigation in
+`docs/docs.json`. With the Mintlify CLI installed, run from the repository root:
+
+```bash
+cd docs
+mint dev
+```
+
+Validate with `mint validate` and `mint broken-links` from that directory, then
+`bun run check` from the repository root. Test changed commands against supported
+runtimes and review desktop/mobile rendering. Preserve dated compatibility
+evidence and distinguish it from current support commitments.
+
+The site uses Mint's native appearance with Toolgrain artwork and approved
+accent colors. Markdown forwarding pages preserve existing GitHub guide URLs;
+edit the linked MDX guide instead of creating a second copy.
+
+## Record release intent
+
+Published-library changes, including packaged READMEs, need a Changeset.
+Repository-only changes use an empty record. Do not manually bump versions or
+edit generated package changelogs.
+
+```bash
+bun run changeset
+bun run release:status
+```
+
+During `0.x`, compatible fixes use patch records; features and breaking changes
+use minor records. Publication uses a separately reviewed Changesets Release PR.
+See [releases](/project/releases) for the current automated workflow and recovery.
+
+Explain the problem, resulting behavior, and validation in your PR. CI must pass
+before merge. Toolgrain-owned contributions use the repository's MIT license;
+third-party material retains its upstream terms.

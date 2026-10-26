@@ -1,0 +1,62 @@
+---
+title: "Published-package verification — 2026-10-25"
+description: "Recorded stable and RC archive checks and fresh package consumers."
+---
+
+This review checked the six published `0.1.0-rc.0` packages from
+`3d563791052237d205c252a3a1fefef126a45940`. Downloaded archives matched the reviewed
+bytes and registry integrity metadata. Stable `0.1.0` promoted the same library
+implementation; package manifests and READMEs changed for stable installation.
+
+The [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
+and its [release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40128994353)
+refer to the candidate commit. Stable `0.1.0` subsequently passed
+[full supported verification](https://github.com/keshavkatwe/toolgrain/actions/runs/40168972464)
+on `526ea39af39413d1ea2693b3961c127343b982e4`, followed by
+[OIDC publication and registry/consumer checks](https://github.com/keshavkatwe/toolgrain/actions/runs/40169659323).
+Both historical GitHub release records remain available.
+
+## Method and results
+
+The client review used installed npm packages outside the repository, Node
+24.20.0 on macOS arm64, isolated client configuration, and deterministic local
+API fixtures. Codex used its direct app-server tool-call API; Claude used a
+loopback Messages API fixture. No paid inference, live OAuth login, or persistent
+user configuration changes were involved. These checks do not establish
+production-application or interactive GUI compatibility.
+
+| Client/check | Passed | Total | Result |
+| --- | ---: | ---: | --- |
+| Inspector 2.11.0, modern/legacy/automatic discovery, stdio and HTTP | 30 | 30 | Pass |
+| Codex CLI/app-server 0.163.0-alpha.10.2, default/modern/mixed, stdio/HTTP/protected HTTP | 93 | 102 | Nine cases reproduce the documented timeout limitation |
+| Claude Code 2.1.191, stdio/HTTP/protected HTTP | 30 | 33 | Three cases reproduce the documented rich-result limitation |
+| Claude Code 2.1.191 timeout controls | 3 | 3 | Pass |
+| Direct stdio cancellation and HTTP disconnect controls, both protocol revisions | 4 | 4 | Pass |
+| **Total** | **160** | **172** | **No new Toolgrain blocker in the checked flows** |
+
+The 12 non-passing assertions reproduce the client limitations from the
+[2026-10-22 interoperability review](/compatibility/clients). They are
+recorded as limitations and are not counted as passing checks.
+
+## Limitations and workarounds
+
+1. **Codex direct-call timeout:** the tested client times out without promptly
+   aborting server work. Applications doing expensive work should impose their
+   own execution deadlines. Explicit stdio cancellation and HTTP disconnect
+   controls pass in both revisions; Toolgrain cancellation remains cooperative
+   through `ctx.signal`.
+2. **Claude rich-result rendering:** supplemental text is hidden when structured
+   content is supplied. Put essential narrative in structured content, or use
+   text-only content where the tool contract permits it. Both workarounds pass
+   on all three tested transports.
+
+Cursor execution/cancellation, modern Claude Code coverage, live OAuth login,
+and GUI flows remain unverified. HTTP scope is independent POST requests with
+JSON responses. Resources, prompts, elicitation, persistent sessions, streaming,
+progress, resumability, and subscriptions remain outside this release.
+
+The [compatibility guide](/compatibility/protocol) covers the earlier baseline and
+reproduction commands. The [support policy](/project/support-policy) defines the
+runtime/platform and declaration checks required for future releases. These
+historical results do not establish compatibility for untested clients or waive
+future supported regressions.

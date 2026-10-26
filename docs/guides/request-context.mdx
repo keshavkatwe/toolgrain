@@ -1,0 +1,49 @@
+---
+title: "Request context"
+description: "Read request metadata and cancellation from the handler context."
+---
+
+Handlers receive a second argument, `ctx: ToolContext`. Use it for cancellation and request information without making the tool definition specific to a server or auth provider.
+
+```ts
+import { tool } from "@toolgrain/mcp";
+import { z } from "zod";
+
+const lookup = tool({
+  input: z.object({ id: z.string() }),
+  async execute({ id }, ctx) {
+    ctx.signal.throwIfAborted();
+    console.error("lookup", ctx.request.id);
+    return { id };
+  },
+});
+```
+
+## Fields
+
+| Field | Meaning |
+| --- | --- |
+| `signal` | AbortSignal for the active request |
+| `request.id` | JSON-RPC request ID |
+| `request.protocolVersion` | Selected supported revision |
+| `request.client` | Optional self-reported client info and capabilities |
+| `request.meta` | Deeply frozen copy of request `_meta`, empty when absent |
+
+`request`, its metadata, and any client details are frozen per-request copies. Changing data in one request cannot mutate another request's snapshot. Client details are unverified and are absent where the transport and era provide none, such as legacy HTTP. Never use a client name or capability declaration as an authenticated identity.
+
+Client info/capabilities use a readonly union of modern and legacy wire types. `ToolRequest` is not a discriminated union: checking `protocolVersion` does not narrow the client type. Guard fields that differ between eras.
+
+## Application data
+
+Use [context providers](/guides/context) for services such as database access, and integration-specific [auth accessors](/authentication/overview) for verified identity. `ToolContext` itself remains non-generic. Provider accessors return promises; JWT and Clerk `useAuth(ctx)` accessors remain synchronous.
+
+## Constructing a context for tests
+
+```ts
+import { toolContext } from "@toolgrain/mcp";
+
+const ctx = toolContext({ request: { id: "test-1", meta: { source: "test" } } });
+const value = await lookup.execute({ id: "u_1" }, ctx);
+```
+
+The helper defaults omitted fields independently: ID `0`, the modern revision, no client, empty metadata, a fresh signal, and no registered providers. Reusing one context reuses its provider cache. Use the helper rather than hand-building context objects; future fields may be supplied by the helper. Direct calls bypass server validation and authorization.

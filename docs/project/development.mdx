@@ -1,0 +1,219 @@
+---
+title: "Development and verification"
+description: "Set up the repository and choose the right development and CI checks."
+---
+
+Use this guide when changing Toolgrain itself. To build an application, start
+with the [quickstart](https://github.com/keshavkatwe/toolgrain/blob/main/README.md#quickstart) and [examples](/examples).
+Read [CONTRIBUTING](https://github.com/keshavkatwe/toolgrain/blob/main/.github/CONTRIBUTING.md) before opening a pull request.
+
+## Set up the repository
+
+Use Node.js 24.20.0 or a newer supported 24.x release, and Bun **1.3.14** for
+repository tooling. The Bun tooling pin is separate from the supported
+application runtime, which starts at **1.4.4**. See the
+[support policy](/project/support-policy) for all supported versions.
+
+```sh
+git clone https://github.com/keshavkatwe/toolgrain.git
+cd toolgrain
+bun install --frozen-lockfile
+bun run build
+```
+
+Create a branch before editing. Root commands orchestrate workspaces through
+Turborepo; packages compile ESM and declarations with TypeScript. Public exports
+point to `dist`, so build before running examples or importing workspace packages.
+
+## Develop with an MCP client
+
+Use two terminals from the repository root:
+
+```sh
+# Terminal 1: library watch builds and example development servers.
+bun run dev
+
+# Terminal 2: Inspector starts the compiled stdio example.
+bun run --cwd apps/stdio-example inspect
+```
+
+Root `dev` runs every library watcher and example development server, with
+concurrency 16. Initial library builds run in dependency order. Framework examples
+use their native development commands. Individual workspace commands start only
+that workspace; see the [example index](/examples) for ports and scripts.
+
+After a successful rebuild, disconnect and reconnect in Inspector to start a
+fresh server using the updated compiled files. Keep application diagnostics on
+stderr: stdout belongs to MCP. Inspector is a separate launcher, outside the
+watch task.
+
+## Choose the relevant checks
+
+| Command | What it checks |
+| --- | --- |
+| `bun run check` | Root Biome formatting, lint, and imports |
+| `bun run check-types` | Workspace TypeScript checks |
+| `bun run test` | Library tests without coverage |
+| `bun run test:coverage` | Library tests with coverage thresholds and protocol integrity |
+| `bun run test:examples` | Real-process example integration tests |
+| `bun run build` | Compiled library exports and example builds |
+| `bun run test:package` | Compiled imports, declarations, and fresh packed consumers |
+| `bun run test:size` | Archive size, file inventory, and required legal/debugging files |
+| `bun run test:audit` | Lockfile-wide dependency advisories |
+| `bun run test:ci` | Repository verification and report-generation tests |
+| `bun run release:check` | Manifest and Bun workspace version alignment |
+
+Run checks that cover the change. API, transport, and packaging changes need the
+corresponding runtime and compiled-consumer checks. Documentation-only changes
+need working links, accurate examples, and formatting; packaged README changes
+also need archive-size checks. CI runs the complete required baseline.
+
+Document package-entrypoint exports and the fields, overloads, and callbacks
+consumers encounter through them with JSDoc. Explain defaults, validation,
+cancellation, and resource ownership where relevant. Internal module exports and
+type machinery do not need API JSDoc; keep implementation comments focused on
+non-obvious behavior. Check emitted declarations and IDE hovers, including inferred
+accessor results. Keep vendored protocol schemas unchanged. Inline documentation
+ships with packages, so check archive sizes after adding it.
+
+Biome is configured once at the root. `bun run check:fix` and `bun run format`
+write formatting changes; keep unrelated files out of your pull request.
+
+## Find the right workspace
+
+| Location | Responsibility |
+| --- | --- |
+| `packages/mcp` | Tool API, validation, context, auth contracts, and protocol dispatch |
+| `packages/protocol` | Pinned upstream wire definitions and provenance |
+| `packages/http` | Shared HTTP behavior and Web handlers |
+| `packages/node` | Stdio, Node HTTP adapters, and managed listener |
+| `packages/jwt`, `packages/clerk` | Endpoint authorization integrations |
+| `packages/repo-tools` | Unpublished build, test, package, and release verification |
+| `apps` | Independent runnable examples and their integration tests |
+| `docs` | Public usage, compatibility, support, and maintainer guides |
+| `brand` | Approved artwork, tokens, sources, and licensing |
+
+Keep tests and fixtures alongside the behavior they verify. Repository tooling,
+examples, and legal/provenance files are part of the reproducible public source;
+builds do not require a private repository. See [architecture](/project/architecture)
+for internal boundaries and [AGENTS](https://github.com/keshavkatwe/toolgrain/blob/main/AGENTS.md) for contributor invariants.
+
+## Record release intent
+
+Use `bun run changeset` for changes to published libraries, including their
+packaged READMEs. Use `bun run changeset --empty` for repository-only work.
+`bun run release:status` previews the plan without changing versions. Follow the
+[release guide](/project/releases); versioning and publication belong to reviewed
+Release PRs.
+
+## Continuous integration
+
+GitHub Actions runs `bun install --frozen-lockfile` and `bun run check` on pull
+requests and pushes to `main`. The workflow reads the Bun version from
+`package.json`. It also runs type checks, library coverage, uninstrumented example smoke tests, builds, and a compiled-package import and
+declaration smoke check using Node 24.20.0. A separate support workflow checks
+latest Node 24 and Bun consumers on Linux, macOS and Windows, with a Node 26
+preview and weekly compiler/dependency probes; see the [support matrix](/project/support-policy#required-ci).
+
+MCP package verification reuses its compiled consumer and runtime fixtures in
+isolated temporary directories. It checks TypeScript 5.5.4 and the development
+compiler against both Zod 4.6.6 and the development Zod version, including Classic
+and Mini inference and rejected definitions. Runtime checks run once per Zod
+version under Node with source maps enabled and check a TypeScript stack location.
+The isolated MCP copy includes its sources. Pinned compatibility dependencies are development tooling;
+verification requires no additional downloads or workspace dependency changes.
+
+Root `bun run test:package` also schedules an uncached clean installation task
+after the six library package checks. Turbo flags such as `--filter`, `--force`,
+and `--dry=json` retain their normal behavior. A package filter that excludes the
+root excludes this installation task, too; dry runs perform no installations.
+
+The check packs all six libraries with Bun and serves their unchanged archives
+through a temporary loopback registry scoped to `@toolgrain`. Six fresh npm
+consumers each install one library as their only direct Toolgrain dependency,
+letting npm resolve its declared dependencies and versions. Each imports the
+installed library and checks its declaration fixture with both minimum and
+development TypeScript, with strict mode and `skipLibCheck: false`. This catches dependencies hidden by installing every
+library together. A separate full consumer exercises both protocol revisions
+over stdio, Web HTTP, Node HTTP, and the managed HTTP transport, including input
+validation, rich results, and a context provider. JWT and Clerk initialize with
+test configuration; signed-token and opaque-token verification uses offline
+responses. Both eras also exercise stdio cancellation and HTTP disconnects.
+No live credentials or external authorization calls are used.
+
+The default check uses npm and Node; the support workflow selects Bun installation
+and execution with `--package-manager=bun --runtime=bun`. Node source-map
+verification remains separate from Bun functional checks.
+
+This check needs npm, Bun, tar, registry access for external dependencies, and loopback
+access. Zod and Node types default to development versions; declarations check
+TypeScript 5.5.4 and the development compiler. Weekly probes can select another
+compiler and current Zod 4. All consumers share disposable package-manager caches. Workspace links and unresolved local
+runtime dependencies are rejected. Temporary files and listeners are cleaned up;
+a pass/fail report is saved to `reports/clean-install.json` in the existing CI
+artifact. After building, run just this check with `bun run test:clean-install`
+or `node packages/repo-tools/src/cli.mjs clean-install`. Nothing is published.
+
+### Coverage checks
+
+`bun run test:coverage` runs through Turborepo, building each workspace before
+its tests. MCP, Node, and HTTP use Vitest V8 coverage over every `src/**/*.ts`
+file, including files not imported by tests. Thresholds apply separately to
+statements, branches, functions, and lines in each package: 95% for MCP, Node, HTTP, JWT, and Clerk. A test failure or missed threshold fails CI.
+
+Protocol runs its vendored-schema integrity test without instrumenting upstream
+code. Examples run their real-process integration tests through `bun run test:examples`,
+separately from library coverage. They have no coverage instrumentation or floors. Type-only and
+re-export-only modules have no executable statements to measure.
+
+Reports are written to each measured package's `coverage/` directory: terminal
+summary, HTML (`coverage/index.html`), LCOV, and JSON summary. Turbo caches and
+restores these reports using `outputs: ["coverage/**"]`. CI uploads available
+reports as the `test-and-coverage-reports` artifact, including after test failures, for
+14 days. Ordinary `bun run test` remains available without instrumentation.
+Reports are generated even when tests fail (`reportOnFailure: true`).
+The 95% floors leave room for defensive paths without requiring contrived tests.
+Coverage measures executed code, not assertion quality or complete behavior.
+
+CI also writes JSON test results for every workspace and a combined Actions
+summary showing check outcomes, failed tests, and coverage against thresholds.
+Independent test suites continue after another suite fails. The same report is
+posted as a PR comment for branches in this repository by a separate job with
+PR write permission; test execution retains read-only permissions. Fork PRs use
+the Actions summary and downloadable artifact. Reports link to the run logs.
+
+### Package size and dependency auditing
+
+`bun run test:size` builds and checks the six library packages through Turbo.
+Each check packs the workspace with Bun 1.3.14 into a temporary directory,
+without running lifecycle scripts or publishing anything. It measures compressed
+tarball bytes, unpacked file bytes, and file count, and writes the complete file
+inventory and result to `packages/<name>/reports/size.json`. Runtime dependencies
+are not included in these sizes. Required protocol schemas, licenses, and
+provenance remain included.
+
+`package-size.config.json` sets a packed and unpacked byte budget for each
+library. Initial budgets allow approximately 20% growth above the current build,
+rounded up to KiB. Either exceeded budget fails CI. The archive must retain every
+declared export target, every compiled JavaScript/declaration file in `dist`, and
+the protocol's schemas, licenses, and provenance explicitly listed in the config.
+Missing required files and unexpected package files fail the check. Intentional growth
+requires reviewing and updating the relevant budget. Size checks run uncached
+to inspect the actual package contents on every run. They depend on the libraries'
+own builds and still run when an unrelated application build fails.
+
+MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaration
+maps, and the TypeScript sources in the archive. Verification rejects malformed
+maps, missing or incorrect source targets, and missing mapping comments. Packaged
+sources are limited to existing `src/**/*.ts` files; other libraries retain their
+existing restrictions. MCP's budgets are 85 KiB packed and 355 KiB unpacked,
+allowing approximately 20% growth after package metadata and README additions.
+Every library archive must include its package-root README and LICENSE; protocol
+and Clerk also require their package-root NOTICE files. Size budgets include the
+required legal notices.
+
+`bun run test:audit` queries Bun's advisory service for the complete `bun.lock`.
+It runs outside Turbo caching because advisories change independently of Git.
+High or critical findings fail the check, as do connection failures and malformed
+scanner responses. The report is written to `reports/audit.json`; it does not
+claim to attribute advisories to individual workspaces.
