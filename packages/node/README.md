@@ -13,8 +13,8 @@
 Node.js transports for Toolgrain: process stdio, a managed HTTP listener, and
 handlers for an existing Node application.
 
-[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/transports.md) ·
-[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[Documentation](https://toolgrain.mintlify.site/transports/overview) ·
+[Examples](https://toolgrain.mintlify.site/examples) ·
 [npm](https://www.npmjs.com/package/@toolgrain/node)
 
 ## Installation
@@ -88,7 +88,7 @@ default to loopback on any port. Set production hosts explicitly. Applications
 own CORS, TLS, and trusted proxy normalization. Forwarded headers are ignored.
 
 Auth-configured servers require HTTP. See the
-[authorization guide](https://github.com/keshavkatwe/toolgrain/blob/main/docs/authorization.md).
+[authorization guide](https://toolgrain.mintlify.site/guides/authorization).
 
 ## Requirements and protocol support
 
@@ -96,8 +96,8 @@ ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. Both MCP `2026-07-28` and
 `2025-06-18` are supported over stdio and independent HTTP POSTs with JSON
 responses. See the
-[support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md)
-and [client compatibility notes](https://github.com/keshavkatwe/toolgrain/blob/main/docs/compatibility.md).
+[support policy](https://toolgrain.mintlify.site/project/support-policy)
+and [client compatibility notes](https://toolgrain.mintlify.site/compatibility/protocol).
 
 ## License
 

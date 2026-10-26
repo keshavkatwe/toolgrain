@@ -8,7 +8,7 @@
     "url": "git+https://github.com/keshavkatwe/toolgrain.git",
     "directory": "packages/clerk"
   },
-  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/clerk#readme",
+  "homepage": "https://toolgrain.mintlify.site/reference/clerk",
   "bugs": {
     "url": "https://github.com/keshavkatwe/toolgrain/issues"
   },

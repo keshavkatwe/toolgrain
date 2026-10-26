@@ -1,18 +1,18 @@
 # Runtime and dependency support
 
-This guide now lives in the [Toolgrain documentation](./project/support-policy.mdx).
+This guide now lives in the [Toolgrain documentation](https://toolgrain.mintlify.site/project/support-policy).
 
-The links below preserve existing GitHub section URLs. Edit the linked MDX page
-when updating this guide.
+The links below preserve existing GitHub section URLs.
+[Edit the guide source](./project/support-policy.mdx).
 
 ## Supported versions
 
-[Read this section](./project/support-policy.mdx#supported-versions).
+[Read this section](https://toolgrain.mintlify.site/project/support-policy#supported-versions).
 
 ## Required CI
 
-[Read this section](./project/support-policy.mdx#required-ci).
+[Read this section](https://toolgrain.mintlify.site/project/support-policy#required-ci).
 
 ## Upgrade and deprecation rules
 
-[Read this section](./project/support-policy.mdx#upgrade-and-deprecation-rules).
+[Read this section](https://toolgrain.mintlify.site/project/support-policy#upgrade-and-deprecation-rules).

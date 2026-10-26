@@ -13,8 +13,8 @@
 Reusable tools, inferred Zod inputs and outputs, rich results, and request context
 from one TypeScript authoring API.
 
-[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/tools.md) ·
-[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[Documentation](https://toolgrain.mintlify.site/tools/overview) ·
+[Examples](https://toolgrain.mintlify.site/examples) ·
 [npm](https://www.npmjs.com/package/@toolgrain/mcp)
 
 ## Installation
@@ -72,7 +72,7 @@ calls, which bypass server validation and result conversion. Unexpected server
 execution failures return generic errors and reach the optional `onError`
 callback. Request-cached dependencies use `createContext()` and inferred
 accessors; see the
-[context guide](https://github.com/keshavkatwe/toolgrain/blob/main/docs/context.md).
+[context guide](https://toolgrain.mintlify.site/guides/context).
 
 ## Transports and compatibility
 
@@ -83,7 +83,7 @@ or mount a Web handler from
 Both MCP `2026-07-28` and initialization-based `2025-06-18` are supported through
 the same tool API. Current HTTP support uses independent POST requests and JSON
 responses. See the
-[client compatibility notes](https://github.com/keshavkatwe/toolgrain/blob/main/docs/compatibility.md)
+[client compatibility notes](https://toolgrain.mintlify.site/compatibility/protocol)
 for tested clients and limitations.
 
 ## Requirements
@@ -91,8 +91,8 @@ for tested clients and limitations.
 ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6`; TypeScript 5.5.4
 or later with `strict` enabled. Node stack traces can use the included source
 maps with `node --enable-source-maps server.mjs`. See the
-[support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md)
-and [full API guide](https://github.com/keshavkatwe/toolgrain/blob/main/docs/tools.md).
+[support policy](https://toolgrain.mintlify.site/project/support-policy)
+and [full API guide](https://toolgrain.mintlify.site/tools/overview).
 
 ## License
 

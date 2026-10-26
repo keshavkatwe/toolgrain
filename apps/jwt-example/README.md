@@ -27,5 +27,5 @@ not implement login or a token-issuance service.
 This example listens directly over loopback HTTP. For deployment behind TLS or a
 rewriting proxy, supply a normalized public request URL through trusted middleware
 or set `MCP_RESOURCE` to the canonical external URL. See
-[authorization](../../docs/authorization.md) for the hosting contract and Clerk's
+[authorization](https://toolgrain.mintlify.site/guides/authorization) for the hosting contract and Clerk's
 equivalent API.

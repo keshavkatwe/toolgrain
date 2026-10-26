@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documentation and examples
-    url: https://github.com/keshavkatwe/toolgrain/blob/main/docs/README.md
+    url: https://toolgrain.mintlify.site/
     about: Find the quickstart, tool API, transports, authorization, and runnable examples.
   - name: Report a vulnerability privately
     url: https://github.com/keshavkatwe/toolgrain/blob/main/.github/SECURITY.md

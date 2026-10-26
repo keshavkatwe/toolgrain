@@ -12,16 +12,16 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@toolgrain/mcp"><img src="https://img.shields.io/npm/v/%40toolgrain%2Fmcp?style=flat-square&amp;labelColor=20282B&amp;color=E4EE85&amp;label=npm" alt="MCP package on npm"></a>
   <a href="https://github.com/keshavkatwe/toolgrain/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/keshavkatwe/toolgrain/ci.yml?branch=main&amp;style=flat-square&amp;labelColor=20282B&amp;label=checks" alt="CI checks on main"></a>
-  <a href="./docs/support-policy.md"><img src="https://img.shields.io/badge/Node.js-%5E24.20.0-20282B?style=flat-square" alt="Node.js: ^24.20.0"></a>
-  <a href="./docs/support-policy.md"><img src="https://img.shields.io/badge/Bun-%3E%3D1.4.4%20%3C2-20282B?style=flat-square" alt="Bun applications: at least 1.4.4, below 2"></a>
-  <a href="./docs/support-policy.md"><img src="https://img.shields.io/badge/TypeScript-5.5.4%2B-20282B?style=flat-square" alt="TypeScript: 5.5.4 or later"></a>
+  <a href="https://toolgrain.mintlify.site/project/support-policy"><img src="https://img.shields.io/badge/Node.js-%5E24.20.0-20282B?style=flat-square" alt="Node.js: ^24.20.0"></a>
+  <a href="https://toolgrain.mintlify.site/project/support-policy"><img src="https://img.shields.io/badge/Bun-%3E%3D1.4.4%20%3C2-20282B?style=flat-square" alt="Bun applications: at least 1.4.4, below 2"></a>
+  <a href="https://toolgrain.mintlify.site/project/support-policy"><img src="https://img.shields.io/badge/TypeScript-5.5.4%2B-20282B?style=flat-square" alt="TypeScript: 5.5.4 or later"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/Toolgrain_code-MIT-20282B?style=flat-square" alt="Toolgrain code: MIT license"></a>
 </p>
 
 <p align="center">
   <a href="#quickstart">Quickstart</a> ·
-  <a href="./docs/README.md">Documentation</a> ·
-  <a href="./apps/README.md">Examples</a> ·
+  <a href="https://toolgrain.mintlify.site/">Documentation</a> ·
+  <a href="https://toolgrain.mintlify.site/examples">Examples</a> ·
   <a href="#packages">Packages</a> ·
   <a href="./.github/CONTRIBUTING.md">Contributing</a>
 </p>
@@ -101,7 +101,7 @@ Inspector launches the server, prints the response, and exits. The response's
 The result also includes the same JSON as text in `content`. For regular use,
 configure your MCP client to start `node` with the absolute path to `server.mjs`
 as its argument. The server waits for MCP requests on stdin; keep application
-logs on stderr. See [client compatibility](./docs/compatibility.md) for verified
+logs on stderr. See [client compatibility](https://toolgrain.mintlify.site/compatibility/protocol) for verified
 client versions and setup.
 
 ### Prefer HTTP?
@@ -115,9 +115,9 @@ await server.listen(http({ port: 3000 }));
 ```
 
 Your endpoint is `http://127.0.0.1:3000/mcp`. Call `server.close()` during
-application shutdown. See [transports](./docs/transports.md) for existing
+application shutdown. See [transports](https://toolgrain.mintlify.site/transports/overview) for existing
 listeners, HTTP headers, production hosts, and cancellation, or start from a
-[framework example](./apps/README.md).
+[framework example](https://toolgrain.mintlify.site/examples).
 
 ## Why Toolgrain?
 
@@ -156,12 +156,12 @@ see [support and scope](#support-and-scope) before choosing it for your project.
 
 | You want to… | Start here |
 | --- | --- |
-| Reuse tools, validate outputs, or return rich content | [Tool authoring](./docs/tools.md) |
-| Access request details or cancel work | [Handler context](./docs/tools.md#handler-context) |
-| Inject a database or service into tools | [Context providers](./docs/context.md) |
-| Protect an HTTP endpoint with JWT or Clerk | [Authorization](./docs/authorization.md) |
-| Connect Inspector or check tested clients | [Compatibility](./docs/compatibility.md) |
-| Use Express, Hono, Elysia, or Next.js | [Runnable examples](./apps/README.md) |
+| Reuse tools, validate outputs, or return rich content | [Tool authoring](https://toolgrain.mintlify.site/tools/overview) |
+| Access request details or cancel work | [Handler context](https://toolgrain.mintlify.site/tools/overview#handler-context) |
+| Inject a database or service into tools | [Context providers](https://toolgrain.mintlify.site/guides/context) |
+| Protect an HTTP endpoint with JWT or Clerk | [Authorization](https://toolgrain.mintlify.site/guides/authorization) |
+| Connect Inspector or check tested clients | [Compatibility](https://toolgrain.mintlify.site/compatibility/protocol) |
+| Use Express, Hono, Elysia, or Next.js | [Runnable examples](https://toolgrain.mintlify.site/examples) |
 
 ## Packages
 
@@ -192,13 +192,13 @@ under `latest`. Install the same version across Toolgrain libraries.
 | MCP | `2026-07-28` and initialization-based `2025-06-18` |
 
 Node 26 is preview. Repository tooling uses Bun **1.3.14**, separately from the
-application runtime. See the [support policy](./docs/support-policy.md).
+application runtime. See the [support policy](https://toolgrain.mintlify.site/project/support-policy).
 
 Both protocol revisions share the same tool API over stdio and HTTP. HTTP uses
 independent POST requests and JSON responses.
 Sessions, SSE, resumability, resources, prompts, elicitation, progress, and
 subscriptions are outside the current implementation. Check the
-[client verification notes](./docs/compatibility.md) and [roadmap](./ROADMAP.md)
+[client verification notes](https://toolgrain.mintlify.site/compatibility/protocol) and [roadmap](./ROADMAP.md)
 for tested flows and planned work.
 
 ## Contribute

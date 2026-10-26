@@ -23,6 +23,12 @@ for all upstream material. Refer to the preserved LICENSE and provenance.json
 files for each revision. Protocol packages also retain these artifacts under
 dist/vendor/<revision>/, along with a package-root licensing explanation.
 
+Mintlify documentation starter
+
+The documentation setup includes material from Mintlify's starter, licensed
+under MIT, copyright (c) 2026 Mintlify. Its complete, unchanged license and
+copyright notice are preserved in docs/notices/mintlify-starter.txt.
+
 standardwebhooks (Clerk dependency)
 
 standardwebhooks 1.1.1 is installed through @clerk/backend. Its parent-directory

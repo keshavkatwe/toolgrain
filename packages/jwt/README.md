@@ -13,8 +13,8 @@
 Verify OAuth access tokens before tool execution, then read typed, immutable
 claims inside your handlers.
 
-[Documentation](https://github.com/keshavkatwe/toolgrain/blob/main/docs/authorization.md) ·
-[Examples](https://github.com/keshavkatwe/toolgrain/blob/main/apps/README.md) ·
+[Documentation](https://toolgrain.mintlify.site/authentication/jwt) ·
+[Examples](https://toolgrain.mintlify.site/examples) ·
 [npm](https://www.npmjs.com/package/@toolgrain/jwt)
 
 ## Installation
@@ -71,7 +71,7 @@ Expected auth rejections remain public; unexpected provider failures reach the
 server's optional `onError` callback without revealing credentials.
 
 See the
-[authorization guide](https://github.com/keshavkatwe/toolgrain/blob/main/docs/authorization.md)
+[authorization guide](https://toolgrain.mintlify.site/guides/authorization)
 for HTTP mounting, metadata, host/proxy requirements, and issuer configuration.
 
 ## Requirements
@@ -79,7 +79,7 @@ for HTTP mounting, metadata, host/proxy requirements, and issuer configuration.
 ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. The Node example also needs
 TypeScript and `@types/node` as development dependencies. See the
-[support policy](https://github.com/keshavkatwe/toolgrain/blob/main/docs/support-policy.md).
+[support policy](https://toolgrain.mintlify.site/project/support-policy).
 
 ## License
 

@@ -8,7 +8,7 @@
     "url": "git+https://github.com/keshavkatwe/toolgrain.git",
     "directory": "packages/node"
   },
-  "homepage": "https://github.com/keshavkatwe/toolgrain/tree/main/packages/node#readme",
+  "homepage": "https://toolgrain.mintlify.site/reference/node",
   "bugs": {
     "url": "https://github.com/keshavkatwe/toolgrain/issues"
   },
