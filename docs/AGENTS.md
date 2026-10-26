@@ -1,33 +1,42 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
+# Toolgrain documentation instructions
 
-# Documentation project instructions
+Follow the repository's root `AGENTS.md` for product contracts, branches, commits,
+verification, and release rules. These instructions apply to documentation work.
 
-## About this project
+## Site and content
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
-- Pages are MDX files with YAML frontmatter
-- Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
+- The Mintlify site lives in `docs/`, with navigation in `docs.json`. Keep the
+  user-selected Mint theme. Preview and validate from this directory.
+- MDX site pages use YAML frontmatter. Existing Markdown guides remain the current
+  GitHub documentation and are excluded by `.mintignore` until adapted for the
+  site. Migrate an agreed section at a time; avoid parallel copies of a guide.
+- The introduction and quickstart are starter content. Branding work does not
+  establish their examples or requirements as Toolgrain's supported behavior.
+- Document implemented APIs and verified compatibility. Clearly identify proposals
+  and limitations. Check examples against the packages and support policy.
+- The documentation directory is the site root. Keep site links and assets within
+  it, or use explicit public GitHub URLs for repository files outside it.
 
-## Terminology
+## Brand and writing
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- Use **Toolgrain** in prose, `toolgrain` in the approved wordmark, and exact
+  `@toolgrain/*` names for packages. Describe Toolgrain as a TypeScript toolkit for
+  building MCP servers with reusable, typed tools.
+- Reuse approved artwork from `brand/`. Site exports live in `docs/assets/`;
+  preserve their source provenance when updating them.
+- Keep Mint's original backgrounds, typography, spacing, and component styling,
+  with Toolgrain's monochrome logo and project links. The user approved an accent
+  palette only: olive `#657018` for light-mode emphasis and buttons, and citron
+  `#E4EE85` for dark-mode emphasis. Configure these through `docs.json`; do not
+  introduce background or font overrides. Articles remain static, and the mode
+  toggle remains available.
+- Use active voice, second person, concise sentences, and sentence case headings.
+  Use code formatting for commands, paths, package names, and API identifiers.
+- Link ordinary support to GitHub issues. Private security reports follow the
+  repository's security policy. Do not invent social accounts or product links.
 
-## Style preferences
+## Verification
 
-{/* Add any project-specific style rules below */}
-
-- Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
-- Use sentence case for headings
-- Bold for UI elements: Click **Settings**
-- Code formatting for file names, commands, paths, and code references
-
-## Content boundaries
-
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+Run `mint validate` and `mint broken-links` from `docs/`, then `bun run check` from
+the repository root. Review visual changes in light and dark mode and at a narrow
+viewport. Local preview does not authorize deployment or account changes.

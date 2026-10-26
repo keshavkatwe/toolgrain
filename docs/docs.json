@@ -3,48 +3,52 @@
   "theme": "mint",
   "name": "Toolgrain",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#657018",
+    "light": "#E4EE85",
+    "dark": "#657018"
   },
-  "favicon": "/assets/favicon.svg",
+  "favicon": {
+    "light": "/assets/favicon/light.svg",
+    "dark": "/assets/favicon/dark.svg"
+  },
   "navigation": {
-    "pages": [
+    "groups": [
       {
-        "group": "Getting Started",
+        "group": "Getting started",
         "pages": ["index", "quickstart"]
       }
     ],
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "npm packages",
+          "href": "https://www.npmjs.com/org/toolgrain",
+          "icon": "box"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Examples",
+          "href": "https://github.com/keshavkatwe/toolgrain/tree/main/apps",
+          "icon": "code"
         }
       ]
     }
   },
   "logo": {
     "light": "/assets/logo/light.svg",
-    "dark": "/assets/logo/dark.svg"
+    "dark": "/assets/logo/dark.svg",
+    "href": "/"
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@mintlify.com"
+        "href": "https://github.com/keshavkatwe/toolgrain/issues"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "GitHub",
+      "href": "https://github.com/keshavkatwe/toolgrain"
     }
   },
   "contextual": {
@@ -60,10 +64,44 @@
     ]
   },
   "footer": {
+    "links": [
+      {
+        "header": "Project",
+        "items": [
+          {
+            "label": "GitHub",
+            "href": "https://github.com/keshavkatwe/toolgrain"
+          },
+          {
+            "label": "npm packages",
+            "href": "https://www.npmjs.com/org/toolgrain"
+          },
+          {
+            "label": "Releases",
+            "href": "https://github.com/keshavkatwe/toolgrain/releases"
+          }
+        ]
+      },
+      {
+        "header": "Community",
+        "items": [
+          {
+            "label": "Report an issue",
+            "href": "https://github.com/keshavkatwe/toolgrain/issues"
+          },
+          {
+            "label": "Contributing",
+            "href": "https://github.com/keshavkatwe/toolgrain/blob/main/.github/CONTRIBUTING.md"
+          },
+          {
+            "label": "Security",
+            "href": "https://github.com/keshavkatwe/toolgrain/blob/main/.github/SECURITY.md"
+          }
+        ]
+      }
+    ],
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/keshavkatwe/toolgrain"
     }
   }
 }

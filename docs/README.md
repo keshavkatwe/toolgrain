@@ -41,6 +41,11 @@ separate steps.
 
 The starter's MIT license is preserved in [LICENSE](./LICENSE).
 
+The site keeps Mint's original backgrounds, fonts, and component styling, with
+olive and citron accents configured in `docs.json` and Toolgrain's approved
+monochrome logo and favicon from `brand/`. See
+[asset provenance](./assets/README.md) for artwork sources and checksums.
+
 ## Check compatibility
 
 | Reference | Purpose |
