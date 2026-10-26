@@ -16,6 +16,8 @@ remain available; `next` retains `0.1.0-rc.0`.
   lazy, request-cached dependencies with inferred accessors and typed overrides.
 - Packed-package and strict declaration consumers, runtime/platform verification,
   coverage/content/size checks, dependency audits, and Changesets release automation.
+- Hosted [documentation](https://toolgrain.mintlify.site/) with guides, API
+  reference, examples, and project information.
 
 The first complete automated release cycle passed for **0.1.1** on 2026-10-26,
 including publication and fresh npm/Node and Bun consumers. See the
@@ -28,9 +30,6 @@ See the [API guide](README.md), [support policy](docs/support-policy.md), and
 
 These items describe remaining review or verification, without a release date:
 
-- Review the documentation website in
-  [PR #28](https://github.com/keshavkatwe/toolgrain/pull/28). Review/merge,
-  documentation-platform changes, and deployment remain separate decisions.
 - Collect feedback from published stable releases in real applications and
   prioritize reproduced defects. A target application and next release scope are
   not selected.
