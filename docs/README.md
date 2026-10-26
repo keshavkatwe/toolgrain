@@ -48,7 +48,9 @@ from the same directory. When configuring Mintlify's Git connection, set the
 documentation subdirectory to `/docs`. The published site is
 [toolgrain.mintlify.site](https://toolgrain.mintlify.site/).
 
-The starter's MIT license is preserved in [LICENSE](./LICENSE).
+The starter's MIT license and Mintlify attribution are preserved in
+[third-party notices](./notices/mintlify-starter.txt). Toolgrain's license is in
+the repository's [root LICENSE](../LICENSE).
 
 The site keeps Mint's original backgrounds, fonts, and component styling, with
 olive and citron accents configured in `docs.json` and Toolgrain's approved

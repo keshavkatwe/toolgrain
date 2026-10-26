@@ -10,5 +10,5 @@ drafts/
 # Also exclude contributor instructions, READMEs, and asset provenance notes.
 *.md
 
-# Preserve the starter's license in the repository without making it a site page.
-LICENSE
+# Preserve third-party notices in the repository without making them site pages.
+notices/
