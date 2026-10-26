@@ -2,11 +2,11 @@
   <img src="./brand/readme-banner.svg" alt="Toolgrain — a TypeScript toolkit for MCP" width="1200">
 </p>
 
-<h1 align="center">Typed tools.<br>Composable MCP servers.</h1>
+<h1 align="center">Bring your TypeScript<br>application to MCP.</h1>
 
 <p align="center">
-  Your application logic, exposed as reusable MCP tools.<br>
-  Define with Zod. Compose in TypeScript. Serve over stdio or HTTP.
+  Define reusable tools with Zod. Compose them into servers.<br>
+  Serve them from your existing Node or Bun application.
 </p>
 
 <p align="center">
@@ -28,8 +28,95 @@
 
 ---
 
-Toolgrain is a TypeScript toolkit for building [Model Context Protocol](https://modelcontextprotocol.io/)
-servers. Start with a tool, compose a server, then choose how clients connect.
+Expose your application's services to
+[Model Context Protocol](https://modelcontextprotocol.io/) clients through
+standalone, schema-validated tools. Reuse the definitions across servers and
+choose stdio or HTTP for each application.
+
+## Quickstart
+
+### 1. Install
+
+Use Node.js **`^24.20.0`** and a TypeScript project with **strict mode** enabled.
+In a new project directory, initialize npm and install the stable `0.1.1` packages:
+
+```sh
+npm init -y
+npm install @toolgrain/mcp@0.1.1 @toolgrain/node@0.1.1 zod@^4.6.6
+npm install --save-dev typescript @types/node@^24.10.0
+```
+
+### 2. Define your tool and server
+
+Save as `server.mts`. The registration key `greet` is the name clients use to
+discover and call the tool.
+
+```ts
+import { createServer, tool } from "@toolgrain/mcp";
+import { stdio } from "@toolgrain/node";
+import { z } from "zod";
+
+const greet = tool({
+  description: "Greet someone by name",
+  annotations: { readOnlyHint: true },
+  input: z.object({ name: z.string().min(1) }),
+  output: z.object({ message: z.string() }),
+  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+});
+
+const server = createServer({
+  name: "hello-server",
+  version: "1.0.0",
+  tools: { greet },
+});
+
+await server.listen(stdio());
+```
+
+### 3. Compile
+
+```sh
+npx tsc server.mts --strict --module NodeNext --target ES2022 --types node
+```
+
+### 4. Call your tool
+
+Use MCP Inspector's CLI to start the compiled server and call `greet`:
+
+```sh
+npx --yes @modelcontextprotocol/inspector@2.11.0 --cli \
+  --protocol-era modern --format json \
+  --method tools/call --tool-name greet --tool-args-json '{"name":"Ada"}' \
+  node server.mjs
+```
+
+Inspector launches the server, prints the response, and exits. The response's
+`result.structuredContent` contains:
+
+```json
+{ "message": "Hello, Ada!" }
+```
+
+The result also includes the same JSON as text in `content`. For regular use,
+configure your MCP client to start `node` with the absolute path to `server.mjs`
+as its argument. The server waits for MCP requests on stdin; keep application
+logs on stderr. See [client compatibility](./docs/compatibility.md) for verified
+client versions and setup.
+
+### Prefer HTTP?
+
+Replace the `stdio` import and the last line with:
+
+```ts
+import { http } from "@toolgrain/node";
+
+await server.listen(http({ port: 3000 }));
+```
+
+Your endpoint is `http://127.0.0.1:3000/mcp`. Call `server.close()` during
+application shutdown. See [transports](./docs/transports.md) for existing
+listeners, HTTP headers, production hosts, and cancellation, or start from a
+[framework example](./apps/README.md).
 
 ## Why Toolgrain?
 
@@ -64,75 +151,6 @@ Toolgrain implements MCP directly, independently of `@modelcontextprotocol/sdk`.
 The current scope is tool discovery and execution across two protocol revisions;
 see [support and scope](#support-and-scope) before choosing it for your project.
 
-## Quickstart
-
-### 1. Install
-
-Use Node.js **`^24.20.0`** and a TypeScript project with **strict mode** enabled.
-Install the stable `0.1.0` packages:
-
-```sh
-npm install @toolgrain/mcp@0.1.0 @toolgrain/node@0.1.0 zod@^4.6.6
-npm install --save-dev typescript @types/node@^24.10.0
-```
-
-### 2. Define your tool and server
-
-Save as `server.mts`. The registration key `greet` is the name clients use to
-discover and call the tool.
-
-```ts
-import { createServer, tool } from "@toolgrain/mcp";
-import { stdio } from "@toolgrain/node";
-import { z } from "zod";
-
-const greet = tool({
-  description: "Greet someone by name",
-  annotations: { readOnlyHint: true },
-  input: z.object({ name: z.string().min(1) }),
-  output: z.object({ message: z.string() }),
-  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
-});
-
-const server = createServer({
-  name: "hello-server",
-  version: "1.0.0",
-  tools: { greet },
-});
-
-await server.listen(stdio());
-```
-
-### 3. Compile and run
-
-```sh
-npx tsc server.mts --strict --module NodeNext --target ES2022 --types node
-node server.mjs
-```
-
-The server waits for MCP requests on stdin. Configure your MCP client to start
-`node` with the absolute path to `server.mjs` as its argument. Keep application
-logs on stderr.
-
-| Call `greet` with | Receive as structured content and text |
-| --- | --- |
-| `{ "name": "Ada" }` | `{ "message": "Hello, Ada!" }` |
-
-### Prefer HTTP?
-
-Replace the `stdio` import and the last line with:
-
-```ts
-import { http } from "@toolgrain/node";
-
-await server.listen(http({ port: 3000 }));
-```
-
-Your endpoint is `http://127.0.0.1:3000/mcp`. Call `server.close()` during
-application shutdown. See [transports](./docs/transports.md) for existing
-listeners, HTTP headers, production hosts, and cancellation, or start from a
-[framework example](./apps/README.md).
-
 ## Build beyond hello
 
 | You want to… | Start here |
@@ -160,7 +178,7 @@ transport package your application needs; add authorization when you need it.
 
 ## Support and scope
 
-Stable **0.1.0** is [available on npm](https://www.npmjs.com/package/@toolgrain/mcp).
+Stable **0.1.1** is [available on npm](https://www.npmjs.com/package/@toolgrain/mcp).
 
 | Requirement | Supported |
 | --- | --- |
