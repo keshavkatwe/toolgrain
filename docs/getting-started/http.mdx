@@ -1,0 +1,61 @@
+---
+title: "Your first HTTP server"
+description: "Serve the same typed tool through a managed Node HTTP listener."
+---
+
+Keep the tool from the [stdio tutorial](/getting-started/stdio). Replace the transport to own a Node HTTP listener:
+
+```ts src/server.ts
+import { createServer } from "@toolgrain/mcp";
+import { http } from "@toolgrain/node";
+import { greet } from "./tools/greet.js";
+
+const server = createServer({
+  name: "hello-http",
+  version: "1.0.0",
+  tools: { greet },
+});
+const transport = http({ port: 3333 });
+await server.listen(transport);
+console.error("MCP endpoint: http://127.0.0.1:3333/mcp");
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => { void server.close(); });
+}
+```
+
+The listener binds to `127.0.0.1` by default. The route is `/mcp`. A managed listener's default allowed hosts match loopback authorities on its actual bound port; binding and host validation are separate settings.
+
+## Call it
+
+Compile and start the server from your project directory:
+
+```bash
+npx tsc -p tsconfig.json
+node dist/server.js
+```
+
+In a second terminal, use Inspector as described in [client setup](/getting-started/clients),
+or send a direct modern protocol call:
+
+```bash
+curl http://127.0.0.1:3333/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2026-07-28' \
+  -H 'Mcp-Method: tools/call' \
+  -H 'Mcp-Name: greet' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"greet","arguments":{"name":"Ada"},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}'
+```
+
+The response contains the greeting as a tool result. Modern requests include protocol metadata and capabilities on each call; this example declares an empty capability set. Tools with additional required parameter headers need those headers too.
+
+## Existing applications
+
+If your framework owns the listener, use `createHttpHandler()` from `@toolgrain/http` for Web Request/Response, or `createNodeHttpHandler()` from `@toolgrain/node` for Node middleware. The combined handlers own MCP and auth metadata routing; mount them at the application root before body parsing.
+
+See [HTTP behavior](/transports/http) and [framework recipes](/transports/frameworks).
+
+## Before exposing the endpoint
+
+Configure exact public `allowedHosts`, handle trusted proxy normalization in the application, and add authorization when the tools require it. `allowedOrigins` is a separate browser-origin check and does not emit CORS response headers. Applications own CORS, TLS, listener limits, and public URL normalization. The current HTTP implementation uses independent POST requests and JSON responses; it does not provide sessions, SSE streams, or resumability.

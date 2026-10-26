@@ -1,0 +1,70 @@
+---
+title: "Installation"
+description: "Install published packages and configure a strict ESM TypeScript project."
+---
+
+Toolgrain's six libraries are published on npm. Install matching versions across
+Toolgrain packages. The examples in these guides use stable **0.1.1**; npm's
+`latest` tag and the [package changelogs](/project/changelog) identify newer releases.
+
+## Requirements
+
+Use Node.js **24.20.0 or later within 24.x**, or Bun **1.4.4 or later within 1.x**
+for your application. TypeScript requires **5.5.4 or later with strict mode**;
+Zod requires **`^4.6.6`**. Both Classic and Mini user schemas are accepted.
+See the [support policy](/project/support-policy) for the complete contract.
+
+## Install packages
+
+For a stdio server or standalone Node HTTP listener:
+
+```bash
+mkdir hello-toolgrain
+cd hello-toolgrain
+npm init -y
+npm pkg set type=module
+npm install @toolgrain/mcp@0.1.1 @toolgrain/node@0.1.1 zod@^4.6.6
+npm install --save-dev typescript @types/node@^24.10.0
+```
+
+For an existing Web Request/Response application, add `@toolgrain/http@0.1.1`.
+Add `@toolgrain/jwt@0.1.1` or `@toolgrain/clerk@0.1.1` when protecting HTTP
+endpoints. Frameworks keep ownership of their listener and application lifecycle.
+
+## Configure TypeScript
+
+Toolgrain exports compiled ESM and declarations. CommonJS and Node's `node10`
+resolution mode are unsupported. For the modular tutorials, save this configuration:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": false
+  },
+  "include": ["src/**/*.ts"]
+}
+```
+
+Use `.js` extensions for relative imports in TypeScript intended for Node. Compile
+with `tsc`, then run the emitted entry point. Frameworks may own compilation and
+use their own supported module resolution.
+
+`@toolgrain/mcp` includes JavaScript/declaration maps and TypeScript sources for
+debugging and editor navigation. Public exports still resolve to compiled `dist`
+files.
+
+## Develop Toolgrain itself
+
+You do not need to clone this repository to use the libraries. Repository
+contributors use the pinned **Bun 1.3.14** package manager, independently of the
+supported Bun application runtime. See [development](/project/development).
+
+Continue with the [quickstart](/quickstart) for one file, or
+[your first tool](/getting-started/stdio) for a modular application.

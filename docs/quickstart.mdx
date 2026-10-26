@@ -1,0 +1,146 @@
+---
+title: "Quickstart"
+description: "Build a typed MCP tool and call it with Inspector."
+---
+
+Create a server with one `greet` tool. By the end of this guide, an MCP client
+will call it with a name and receive a validated JSON response.
+
+## Prerequisites
+
+This guide uses Node.js and npm. Use **Node.js 24.20.0 or later in the 24.x
+line**, with npm available in your terminal. Check your version with `node --version`.
+
+You will install TypeScript as a development dependency. Toolgrain supports
+TypeScript 5.5.4 or later with strict mode and Zod `^4.6.6`.
+
+## Build and call your server
+
+<Steps>
+  <Step title="Create a project">
+    Create a directory and install matching Toolgrain packages, Zod, and the
+    TypeScript tools:
+
+    ```bash
+    mkdir hello-toolgrain
+    cd hello-toolgrain
+    npm init -y
+    npm install @toolgrain/mcp@0.1.1 @toolgrain/node@0.1.1 zod@^4.6.6
+    npm install --save-dev typescript @types/node@^24.10.0
+    ```
+
+    `@toolgrain/mcp` provides the authoring API. `@toolgrain/node` provides the
+    stdio transport used below. Zod describes and validates your tool's data.
+  </Step>
+  <Step title="Define your tool and server">
+    Save this as `server.mts`. The `.mts` extension identifies the file as an ES
+    module.
+
+    ```ts server.mts
+    import { createServer, tool } from "@toolgrain/mcp";
+    import { stdio } from "@toolgrain/node";
+    import { z } from "zod";
+
+    const greet = tool({
+      title: "Greeting",
+      description: "Greet someone by name",
+      annotations: { readOnlyHint: true },
+      input: z.object({ name: z.string().min(1) }),
+      output: z.object({ message: z.string() }),
+      execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+    });
+
+    const server = createServer({
+      name: "hello-server",
+      version: "1.0.0",
+      tools: { greet },
+    });
+
+    await server.listen(stdio());
+    ```
+
+    The key `greet` in `tools: { greet }` is the name exposed to MCP clients.
+    Toolgrain validates the input before calling `execute`, then validates its
+    return value against the output schema.
+  </Step>
+  <Step title="Compile the server">
+    Compile the file with strict checking and Node's ES module resolution:
+
+    ```bash
+    npx tsc server.mts --strict --module NodeNext --target ES2022 --types node
+    ```
+
+    This creates `server.mjs`, which Node can run.
+  </Step>
+  <Step title="Call your tool">
+    Run this command from the same project directory:
+
+    ```bash
+    npx --yes @modelcontextprotocol/inspector@2.11.0 --cli node server.mjs --protocol-era modern --format json --method tools/call --tool-name greet --tool-arg name=Ada
+    ```
+
+    [MCP Inspector](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector)
+    starts the server, calls `greet`, prints the response, and exits. The
+    `--protocol-era modern` option selects MCP `2026-07-28`.
+
+    Look for this value in `result.structuredContent`:
+
+    ```json
+    { "message": "Hello, Ada!" }
+    ```
+
+    The result also includes a text representation of the same JSON in `content`.
+    Change `name=Ada` to try a different greeting.
+  </Step>
+</Steps>
+
+## Connect an MCP client
+
+Configure your client to launch `node` with the **absolute path to `server.mjs`**
+as its argument. The client starts the stdio process and exchanges MCP messages
+through stdin and stdout.
+
+<Tip>
+  Keep application logs on stderr, for example with `console.error()`. Stdout
+  carries MCP messages. A stdio server waiting quietly for requests is expected.
+</Tip>
+
+See [client compatibility](/compatibility/protocol)
+for verified clients, versions, and setup instructions.
+
+## Use HTTP
+
+Keep the tool and server definitions. Replace the `stdio` import and the final
+`server.listen()` call with:
+
+```ts
+import { http } from "@toolgrain/node";
+
+await server.listen(http({ port: 3333 }));
+```
+
+Compile again and start the server:
+
+```bash
+npx tsc server.mts --strict --module NodeNext --target ES2022 --types node
+node server.mjs
+```
+
+Configure your MCP client's HTTP connection to use `http://127.0.0.1:3333/mcp`.
+The listener binds to loopback by default. Call `server.close()` from your
+application's shutdown path when integrating it into a larger application.
+
+For an existing HTTP listener, use a Web or Node handler. The
+[transport guide](/transports/overview)
+covers host configuration, HTTP headers, and framework integration.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Write more tools" icon="wrench" href="/tools/overview">
+    Add schemas, rich results, request context, and cooperative cancellation.
+  </Card>
+  <Card title="Try an example application" icon="code" href="/examples">
+    Explore stdio, HTTP frameworks, and protected endpoints.
+  </Card>
+</CardGroup>

@@ -1,0 +1,103 @@
+---
+title: "Introduction"
+description: "Bring your TypeScript application to MCP with reusable, typed tools."
+---
+
+Toolgrain is a TypeScript toolkit for building [Model Context Protocol](https://modelcontextprotocol.io/)
+servers. Define tools with Zod, compose them into a server, and connect them to
+your application's services over stdio or HTTP.
+
+<CardGroup cols={2}>
+  <Card title="Build your first server" icon="rocket" href="/quickstart">
+    Install Toolgrain, define a tool, and make your first MCP call.
+  </Card>
+  <Card title="Explore the examples" icon="code" href="/examples">
+    Start from stdio, Node HTTP, Express, Hono, Elysia, or Next.js.
+  </Card>
+</CardGroup>
+
+## Define a tool once
+
+Describe the input and output with Zod. Toolgrain infers your handler's types and
+validates values at runtime.
+
+```ts
+import { tool } from "@toolgrain/mcp";
+import { z } from "zod";
+
+const greet = tool({
+  description: "Greet someone by name",
+  input: z.object({ name: z.string().min(1) }),
+  output: z.object({ message: z.string() }),
+  execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+});
+```
+
+Register `greet` with `createServer({ name, version, tools: { greet } })`. The
+registration key becomes the name clients discover and call. Reuse the same tool
+definition across servers and transports.
+
+## Build around your application
+
+- **Types follow your schemas.** Input and declared output schemas check handler
+  types and parse runtime values, including defaults and transforms.
+- **Tools compose.** Keep definitions alongside the application services they
+  expose, then choose which tools each server registers.
+- **Choose your transport.** Use stdio, start a Node HTTP listener, or mount a
+  Web or Node handler in an existing application.
+- **Add dependencies and authorization.** Resolve services through typed, lazy
+  context providers and protect HTTP endpoints with JWT or Clerk OAuth.
+
+Toolgrain implements MCP directly, independently of `@modelcontextprotocol/sdk`.
+
+## Choose your packages
+
+Start with `@toolgrain/mcp` and a transport package. Install the same version
+across Toolgrain libraries.
+
+| Package | What it provides |
+| --- | --- |
+| [`@toolgrain/mcp`](/reference/mcp) | Tool definitions, servers, validation, rich results, and request context |
+| [`@toolgrain/node`](/reference/node) | Stdio, a managed HTTP listener, and Node HTTP handlers |
+| [`@toolgrain/http`](/reference/http) | Web `Request`/`Response` handlers for existing applications |
+| [`@toolgrain/jwt`](/reference/jwt) | JWT access-token verification for HTTP endpoints |
+| [`@toolgrain/clerk`](/reference/clerk) | Clerk OAuth access-token verification for HTTP endpoints |
+| [`@toolgrain/protocol`](/reference/protocol) | Pinned MCP wire types and protocol version constants |
+
+## Compatibility and scope
+
+| Requirement | Supported |
+| --- | --- |
+| Module format | ESM |
+| Node.js | `^24.20.0` |
+| Bun applications | `>=1.4.4 <2` |
+| TypeScript | 5.5.4 or later, with strict mode |
+| Zod | `^4.6.6`, Classic or Mini |
+| MCP revisions | `2026-07-28` and `2025-06-18` |
+
+Both MCP revisions use the same tool API over stdio and HTTP. HTTP uses
+independent POST requests with JSON responses. Sessions, SSE, resumability,
+resources, prompts, elicitation, progress, and subscriptions are outside the
+current implementation.
+
+See the [support policy](/project/support-policy)
+for runtime and dependency commitments, and
+[client compatibility](/compatibility/protocol)
+for verified client versions and flows.
+
+## Go further
+
+<CardGroup cols={2}>
+  <Card title="Tool authoring" icon="wrench" href="/tools/overview">
+    Define schemas, return rich content, and use request context and cancellation.
+  </Card>
+  <Card title="Context providers" icon="layer-group" href="/guides/context">
+    Connect tools to databases and services with request-scoped caching.
+  </Card>
+  <Card title="HTTP and frameworks" icon="globe" href="/transports/overview">
+    Pick a listener or handler that fits your application.
+  </Card>
+  <Card title="Authorization" icon="lock" href="/guides/authorization">
+    Verify access tokens and read verified identities in your tools.
+  </Card>
+</CardGroup>

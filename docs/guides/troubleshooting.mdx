@@ -1,0 +1,40 @@
+---
+title: "Troubleshooting"
+description: "Diagnose tool, transport, authorization, and client behavior."
+---
+
+Start by recording the Toolgrain revision/version, client version, runtime, transport, negotiated protocol, and the smallest failing request. Inspector helps separate server behavior from a model's tool selection or a client's result presentation.
+
+## The stdio server appears silent
+
+It may be waiting for protocol messages. Connect an MCP client rather than typing application arguments into stdin. Confirm the configured executable and compiled file exist, use absolute paths, and rebuild before reconnecting. Send logs to stderr; any ordinary text on stdout can corrupt framing.
+
+## A tool is missing or server construction fails
+
+Register definitions created by `tool()`, not raw objects or spreads. Names come from registration keys. Check `ToolNameError` for naming rules and `ToolSchemaError.schemaKind` for input, output, or metadata conversion problems. Inputs need an object root and a representable JSON Schema.
+
+## Invalid input or generic tool failure
+
+Ordinary input validation produces public feedback. A generic `Tool execution failed` points to an unexpected parsing, output, handler, or provider failure: inspect private `onError` diagnostics. Check missing provider registrations and cycles. With an output schema, successful rich results require structured content. Avoid undefined, bigint, cyclic data, and unsupported output values.
+
+## HTTP 403, 404, or rejected headers
+
+Check the endpoint path, URL authority, Host header, and Origin separately. Match exact allowed authorities, including non-default ports when configured. Do not add wildcard hosts. Mount combined handlers at the root before body parsing; filesystem routers need a separate metadata route for protected endpoints. A GET on `/mcp` is not an SSE stream.
+
+## Authentication rejects a token
+
+Use an OAuth access token for the expected public resource. Check issuer, audience, expiration, and signature algorithm. Clerk sessions/API keys/M2M tokens are intentionally rejected. Audience errors distinguish missing `aud` from mismatch and identify the expected resource; do not print or share the raw token to debug this.
+
+Provider outages are separate from invalid credentials. Unexpected auth errors reach `onError` without tool/request details. Read [authorization behavior](/guides/authorization#request-behavior).
+
+## A timeout does not stop the handler
+
+Observe `ctx.signal`, test explicit cancellation/disconnects, and add an application deadline. The tested Codex direct-call path timed out without promptly cancelling server work. A handler that ignores the signal continues until it settles; late results are suppressed.
+
+## Text disappears beside structured data
+
+The tested Claude Code version presented only structured content when both were supplied. Include essential narrative in structured data, or use text-only results without an output schema when that is the tool's contract. See the [client report](/compatibility/clients).
+
+## Report a problem
+
+Open a [GitHub issue](https://github.com/keshavkatwe/toolgrain/issues) with a minimal reproduction and sanitized diagnostics. Include exact versions and whether the same request works in Inspector. Omit secrets, real access tokens, and private application data.

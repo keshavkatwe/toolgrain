@@ -1,0 +1,40 @@
+---
+title: "JWT access tokens"
+description: "Verify OAuth JWT access tokens from your trusted authorization server."
+---
+
+Use `jwt()` from `@toolgrain/jwt` to verify access tokens from a trusted issuer. It verifies signatures, exact issuer, audience, expiration, and not-before claims. This integration does not issue tokens.
+
+```ts
+import { createServer, tool } from "@toolgrain/mcp";
+import { http } from "@toolgrain/node";
+import { jwt, useAuth } from "@toolgrain/jwt";
+import { z } from "zod";
+
+const whoAmI = tool({
+  input: z.object({}),
+  execute(_input, ctx) {
+    const { claims } = useAuth(ctx);
+    return { subject: claims.sub ?? null };
+  },
+});
+const server = createServer({
+  name: "protected", version: "1.0.0", tools: { whoAmI },
+  auth: jwt({ issuer: "https://issuer.example.com" }),
+});
+await server.listen(http({ port: 3000 }));
+```
+
+Replace the example issuer with your authorization server. Request tokens with the public MCP endpoint URL as their resource/audience. In production, configure public allowed hosts and trusted proxy handling before relying on inferred resource URLs.
+
+## Key discovery and algorithms
+
+`issuer` is required. `jwksUrl` overrides discovery; otherwise the integration discovers the issuer's signing keys. Keys rotate and cache. Default algorithms are RS256 and ES256. Only supported asymmetric algorithms are allowed; shared-secret algorithms are rejected at construction.
+
+Standard JWT claims have typed fields. Custom claims remain `unknown`; validate them before application use. Audience arrays must contain strings, and NumericDate claims must be finite.
+
+Missing or mismatched audiences are invalid tokens and receive explicit public guidance identifying the expected resource. Actual claims and raw provider failures remain private. Unsupported token critical headers are invalid tokens; trusted key/crypto or discovery failures are provider outages rather than ordinary credential rejections.
+
+## Further reading
+
+See [JWT API reference](/reference/jwt), the [complete authorization guide](/guides/authorization#jwt), and [apps/jwt-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/jwt-example). The example includes offline signed-token tests; it does not configure your provider's login or consent process.

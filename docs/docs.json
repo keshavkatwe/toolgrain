@@ -1,0 +1,218 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Toolgrain",
+  "colors": {
+    "primary": "#657018",
+    "light": "#E4EE85",
+    "dark": "#657018"
+  },
+  "favicon": {
+    "light": "/assets/favicon/light.svg",
+    "dark": "/assets/favicon/dark.svg"
+  },
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "npm packages",
+          "href": "https://www.npmjs.com/org/toolgrain",
+          "icon": "box"
+        },
+        {
+          "anchor": "Examples",
+          "href": "https://github.com/keshavkatwe/toolgrain/tree/main/apps",
+          "icon": "code"
+        }
+      ]
+    },
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "index",
+              "quickstart",
+              "getting-started/installation",
+              "getting-started/stdio",
+              "getting-started/http",
+              "getting-started/clients"
+            ]
+          },
+          {
+            "group": "Writing tools",
+            "pages": [
+              "tools/definitions",
+              "tools/validation",
+              "tools/results",
+              "tools/errors",
+              "tools/overview"
+            ]
+          },
+          {
+            "group": "Context and services",
+            "pages": [
+              "guides/request-context",
+              "guides/context",
+              "guides/cancellation"
+            ]
+          },
+          {
+            "group": "Transports",
+            "pages": [
+              "transports/stdio",
+              "transports/http",
+              "transports/frameworks",
+              "transports/custom",
+              "transports/overview"
+            ]
+          },
+          {
+            "group": "Authorization",
+            "pages": [
+              "authentication/overview",
+              "authentication/jwt",
+              "authentication/clerk",
+              "guides/authorization"
+            ]
+          },
+          {
+            "group": "Testing and operations",
+            "pages": [
+              "guides/testing",
+              "guides/production",
+              "guides/troubleshooting",
+              "examples"
+            ]
+          },
+          {
+            "group": "Compatibility",
+            "pages": [
+              "compatibility/overview",
+              "compatibility/protocol",
+              "compatibility/clients",
+              "compatibility/published-packages"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "Authoring",
+            "pages": ["reference/mcp", "reference/context", "reference/auth"]
+          },
+          {
+            "group": "Adapters",
+            "pages": [
+              "reference/node",
+              "reference/http",
+              "reference/jwt",
+              "reference/clerk"
+            ]
+          },
+          {
+            "group": "Wire types",
+            "pages": ["reference/protocol"]
+          }
+        ]
+      },
+      {
+        "tab": "Project",
+        "groups": [
+          {
+            "group": "Contribute",
+            "pages": [
+              "project/contributing",
+              "project/development",
+              "project/architecture"
+            ]
+          },
+          {
+            "group": "Policies and releases",
+            "pages": [
+              "project/support-policy",
+              "project/releases",
+              "project/changelog",
+              "project/licensing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/assets/logo/light.svg",
+    "dark": "/assets/logo/dark.svg",
+    "href": "/"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "https://github.com/keshavkatwe/toolgrain/issues"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "GitHub",
+      "href": "https://github.com/keshavkatwe/toolgrain"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "links": [
+      {
+        "header": "Project",
+        "items": [
+          {
+            "label": "GitHub",
+            "href": "https://github.com/keshavkatwe/toolgrain"
+          },
+          {
+            "label": "npm packages",
+            "href": "https://www.npmjs.com/org/toolgrain"
+          },
+          {
+            "label": "Releases",
+            "href": "https://github.com/keshavkatwe/toolgrain/releases"
+          }
+        ]
+      },
+      {
+        "header": "Community",
+        "items": [
+          {
+            "label": "Report an issue",
+            "href": "https://github.com/keshavkatwe/toolgrain/issues"
+          },
+          {
+            "label": "Contributing",
+            "href": "/project/contributing"
+          },
+          {
+            "label": "Security",
+            "href": "https://github.com/keshavkatwe/toolgrain/blob/main/.github/SECURITY.md"
+          }
+        ]
+      }
+    ],
+    "socials": {
+      "github": "https://github.com/keshavkatwe/toolgrain"
+    }
+  }
+}
