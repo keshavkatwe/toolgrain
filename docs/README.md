@@ -19,6 +19,28 @@ stdio or a Node listener, or `@toolgrain/http` for a Web handler. JWT and Clerk
 are optional integrations. See the [package overview](../README.md#packages)
 for individual installation guides.
 
+## Mintlify site
+
+The Mintlify site lives in this directory. `docs.json` defines its navigation and
+Mint theme, and `assets/` contains the site's static files. The introduction and
+quickstart are starter pages awaiting Toolgrain content. Existing Markdown guides
+remain the current documentation on GitHub; `.mintignore` excludes them from the
+site until their content and repository-relative links are adapted for Mintlify.
+
+With the Mintlify CLI installed, run these commands from the repository root:
+
+```sh
+cd docs
+mint dev
+```
+
+To validate the site and check links, run `mint validate` and `mint broken-links`
+from the same directory. When configuring Mintlify's Git connection, set the
+documentation subdirectory to `/docs`. Hosting configuration and deployment are
+separate steps.
+
+The starter's MIT license is preserved in [LICENSE](./LICENSE).
+
 ## Check compatibility
 
 | Reference | Purpose |

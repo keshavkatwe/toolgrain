@@ -1,0 +1,14 @@
+# Mintlify automatically ignores these files and directories:
+# .git, .github, .claude, .agents, .idea, node_modules,
+# README.md, LICENSE.md, CHANGELOG.md, CONTRIBUTING.md
+
+# Draft content
+drafts/
+*.draft.mdx
+
+# Existing Markdown guides use repository-relative links. Keep them as GitHub
+# documentation until they are adapted to site pages. This also excludes AGENTS.md.
+*.md
+
+# Preserve the starter's license in the repository without making it a site page.
+LICENSE
