@@ -3,16 +3,20 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
   workflow_call:
+    inputs:
+      full:
+        description: Force the complete baseline on the selected commit
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,17 +28,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          fetch-depth: 0
           persist-credentials: false
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version-file: package.json
 
       - name: Set up Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24.20.0"
+
+      - name: Choose checks from changed files
+        id: plan
+        env:
+          CI_FULL: ${{ inputs.full }}
+        run: node packages/repo-tools/src/cli.mjs ci-plan
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
 
       - name: Install dependencies
         id: install
@@ -56,38 +67,54 @@ jobs:
 
       - name: Check types
         id: types
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.profile == 'full' }}
         run: bun run check-types
 
       - name: Test libraries with coverage and run example smoke tests
         id: tests
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.profile == 'full' }}
         run: bun run test:coverage test:examples --continue=dependencies-successful
 
       - name: Build packages
         id: build
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.profile == 'full' }}
         run: bun run build
+
+      - name: Build libraries for package documentation or metadata
+        id: package-build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.profile == 'package' }}
+        run: bun run build --filter='./packages/*'
+
+      - name: Smoke test packed installations
+        id: package-smoke
+        if: ${{ !cancelled() && steps.package-build.outcome == 'success' }}
+        run: node packages/repo-tools/src/cli.mjs clean-install --checks=runtime
 
       - name: Verify compiled packages and declarations
         id: packages
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.plan.outputs.profile == 'full' }}
         run: bun run test:package
 
       - name: Check library package sizes and contents
         id: size
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.profile != 'docs' && steps.plan.outcome == 'success' }}
         run: bun run test:size
 
       - name: Test CI checks and report generation
         id: reporting
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.profile == 'full' }}
         run: bun run test:ci
+
+      - name: Check MDX, navigation, links and documentation assets
+        id: docs
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.plan.outputs.docs == 'true' }}
+        run: bun run test:docs
 
       - name: Write package check summary
         if: ${{ !cancelled() }}
         env:
           CI_STEPS: ${{ toJSON(steps) }}
+          CI_PROFILE: ${{ steps.plan.outputs.profile || 'full' }}
         run: node packages/repo-tools/src/cli.mjs ci-report
 
       - name: Upload package check reports

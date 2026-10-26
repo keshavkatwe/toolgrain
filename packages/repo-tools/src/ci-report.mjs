@@ -32,12 +32,16 @@ const escapeMarkdown = (value) =>
  */
 export function main() {
   const reportErrors = [];
+  const profile = process.env.CI_PROFILE ?? "full";
+  const coverageRequired = profile === "full";
+  const sizeRequired = profile !== "docs";
   const read = (path, kind) => readReport(path, kind, reportErrors);
   const lines = [
     "<!-- toolgrain-ci-report -->",
     "## Package CI report",
     "",
     `Commit: ${escapeMarkdown(process.env.GITHUB_SHA ?? "local")}`,
+    `Check profile: **${escapeMarkdown(profile)}**. Skipped checks are not verification of those flows.`,
     "",
     "### CI checks",
     "",
@@ -54,13 +58,15 @@ export function main() {
     "",
     "### Coverage",
     "",
-    "Each metric must meet its workspace floor. Missing reports are not a pass.",
+    coverageRequired
+      ? "Each metric must meet its workspace floor. Missing reports are not a pass."
+      : "Not required for this change profile. Runtime source, dependencies and verification changes require full coverage.",
     "",
     "| Workspace | Statements | Branches | Functions | Lines | Floor | Result |",
     "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
   );
   const failures = [];
-  for (const workspace of libraries.filter(
+  for (const workspace of (coverageRequired ? libraries : []).filter(
     (path) => path !== "packages/protocol",
   )) {
     const total = read(
@@ -93,12 +99,14 @@ export function main() {
     "",
     "### Library package sizes",
     "",
-    "Sizes cover each package's own tarball, including declarations and required vendor artifacts; dependencies are excluded.",
+    sizeRequired
+      ? "Sizes cover each package's own tarball, including declarations and required vendor artifacts; dependencies are excluded."
+      : "Not required: this change does not affect packaged files.",
     "",
     "| Workspace | Packed / budget (bytes) | Unpacked / budget (bytes) | Files | Result |",
     "| --- | ---: | ---: | ---: | --- |",
   );
-  for (const workspace of libraries) {
+  for (const workspace of sizeRequired ? libraries : []) {
     const report = read(`${workspace}/reports/size.json`, "size");
     if (!report || report.status === "error") {
       lines.push(

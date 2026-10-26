@@ -36,7 +36,7 @@ function fixture(run) {
   }
 }
 
-function report(root, expectedExit = 0) {
+function report(root, expectedExit = 0, profile = "full") {
   // CI runs the renderer with Node even though the script tests run with Bun.
   const result = spawnSync("node", [cli.pathname, "ci-report"], {
     cwd: root,
@@ -44,6 +44,7 @@ function report(root, expectedExit = 0) {
     env: {
       ...process.env,
       CI_STEPS: JSON.stringify({ tests: { outcome: "failure" } }),
+      CI_PROFILE: profile,
       GITHUB_STEP_SUMMARY: join(root, "summary.md"),
     },
   });
@@ -52,6 +53,21 @@ function report(root, expectedExit = 0) {
   assert.equal(markdown, readFileSync(join(root, "summary.md"), "utf8"));
   return markdown;
 }
+
+test("editorial reports identify unneeded coverage instead of reusing stale results", () => {
+  fixture(({ root, write }) => {
+    write("packages/mcp/coverage/coverage-summary.json", "invalid old report");
+    write("packages/mcp/reports/size.json", "invalid old report");
+    const markdown = report(root, 0, "docs");
+    assert.match(markdown, /Check profile: \*\*docs\*\*/);
+    assert.match(markdown, /Not required for this change profile/);
+    assert.match(
+      markdown,
+      /Not required: this change does not affect packaged files/,
+    );
+    assert.doesNotMatch(markdown, /Report errors|Below threshold/);
+  });
+});
 
 test("publishes check status and the specific coverage shortfall", () => {
   fixture(({ root, write }) => {

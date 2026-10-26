@@ -17,6 +17,7 @@
     "test:size": "turbo run test:size --filter='./packages/*' --continue=dependencies-successful",
     "test:audit": "bun packages/repo-tools/src/cli.mjs audit",
     "test:ci": "bun run --cwd packages/repo-tools test:ci",
+    "test:docs": "bun packages/repo-tools/src/cli.mjs docs",
     "release:check": "node packages/repo-tools/src/cli.mjs release check",
     "verify:inspector": "node packages/repo-tools/src/cli.mjs verify-inspector",
     "changeset": "changeset",
