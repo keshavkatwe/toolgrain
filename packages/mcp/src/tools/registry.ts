@@ -7,6 +7,10 @@ import {
 } from "./definition.js";
 import { ToolInputError, UnknownToolError } from "./errors.js";
 
+/**
+ * Tools indexed by exposed MCP names. Values must be frozen definitions made with `tool()`;
+ * names come from these keys, not from a definition's variable name or title.
+ */
 export type ToolMap = Record<string, RegisteredTool>;
 
 export interface ToolEntry extends ToolMetadata {

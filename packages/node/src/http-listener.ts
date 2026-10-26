@@ -7,6 +7,7 @@ import type { HttpOptions } from "@toolgrain/http";
 import type { RequestTransport } from "@toolgrain/mcp";
 import { createNodeHttpHandler } from "./http.js";
 
+/** Managed listener settings plus the shared HTTP endpoint and validation options. */
 export interface HttpTransportOptions extends HttpOptions {
   /** Defaults to 3000. Use 0 to let the operating system choose a port. */
   port?: number;
@@ -14,12 +15,23 @@ export interface HttpTransportOptions extends HttpOptions {
   hostname?: string;
 }
 
+/** Single-use Node HTTP listener owned by the MCP server to which it is attached. */
 export interface HttpTransport extends RequestTransport {
   /** A copied bound address, or undefined before startup and after closing. */
   address(): AddressInfo | undefined;
 }
 
-/** Own a Node HTTP listener with combined MCP routing and local host defaults. */
+/**
+ * Create a managed Node HTTP transport for independent MCP POSTs with JSON responses.
+ * `server.listen()` starts its listener and public auth metadata routes when configured.
+ * Default accepted hosts are loopback authorities on the actual listening port;
+ * `hostname` controls binding separately from the `allowedHosts` request policy.
+ *
+ * @param options - Listener settings, exact endpoint path, allowlists, and body limit.
+ * @returns A single-use request transport with a copied bound-address accessor.
+ * Closing through the server aborts active requests and closes listener connections.
+ * @throws For an invalid port or bind hostname; listener startup errors reject `listen()`.
+ */
 export function http(options: HttpTransportOptions = {}): HttpTransport {
   const port = options.port ?? 3000;
   const hostname = options.hostname ?? "127.0.0.1";

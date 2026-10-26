@@ -1,6 +1,14 @@
 import { AuthError } from "./errors.js";
 
-/** Validate the audience of an already verified token without disclosing its claims. */
+/**
+ * Require an already verified token's audience to contain the exact MCP resource URL.
+ * This checks only audience membership, not signatures, issuers, expiry, or revocation.
+ *
+ * @param audience - Verified `aud` claim: a string or array of strings.
+ * @param resource - Expected resource URL to match exactly.
+ * @throws `AuthError` with `invalid_token` for missing, malformed, or mismatched audiences.
+ * Missing and mismatched claims include public guidance without disclosing received claims.
+ */
 export function validateTokenAudience(
   audience: unknown,
   resource: string,

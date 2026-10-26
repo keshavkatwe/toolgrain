@@ -3,7 +3,15 @@ import type { AuthIdentity, AuthReadonly } from "./types.js";
 
 const key = Symbol.for("@toolgrain/mcp/auth-context/v1");
 
-/** Typed integrations bind their accessor to a stable, registered provider symbol. */
+/**
+ * Create a synchronous accessor for a provider's already verified identity snapshot.
+ * Reading the identity performs no verification, network request, or lazy resolution.
+ *
+ * @typeParam Identity - Plain identity data returned by the matching provider.
+ * @param type - The provider's identity symbol; use `Symbol.for()` across package copies.
+ * @returns An accessor accepting a tool context and returning its deeply frozen identity.
+ * The accessor throws if that context has no identity for this provider.
+ */
 export function createAuthAccessor<Identity extends object>(type: symbol) {
   return (ctx: ToolContext): AuthReadonly<Identity> => {
     const auth = Object.getOwnPropertyDescriptor(ctx, key)?.value as

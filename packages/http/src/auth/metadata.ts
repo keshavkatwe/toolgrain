@@ -7,7 +7,16 @@ import {
   resourceMetadataUrl,
 } from "./resource.js";
 
-/** Mount publicly at the standard well-known route corresponding to the MCP endpoint. */
+/**
+ * Create a public GET/HEAD handler for OAuth protected-resource metadata.
+ * Mount it at the well-known route corresponding to the MCP resource path. Host
+ * validation applies before metadata work, and responses use `Cache-Control: no-store`.
+ *
+ * @param server - Auth-configured MCP server supplying public authorization metadata.
+ * @param options - Host allowlist; defaults to loopback hosts on any port.
+ * @returns A Web request handler for public metadata; unmatched paths return 404.
+ * @throws If the server has no auth provider or the host allowlist is invalid.
+ */
 export function createProtectedResourceMetadataHandler(
   server: Server,
   options: Pick<HttpOptions, "allowedHosts"> = {},

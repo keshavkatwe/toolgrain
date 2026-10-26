@@ -1,33 +1,51 @@
 import {
   AuthError,
   type AuthProvider,
+  type AuthReadonly,
   createAuthAccessor,
   isAuthError,
+  type ToolContext,
   validateAuthUrl,
   validateTokenAudience,
 } from "@toolgrain/mcp";
 import { createRemoteJWKSet, customFetch, errors, jwtVerify } from "jose";
 import { discoverJwks, fetchJson } from "./discovery.js";
 
+/** Standard verified JWT claims plus provider-specific claims typed as `unknown`. */
 export interface JwtClaims {
+  /** Required issuer, verified against the configured issuer URL. */
   readonly iss: string;
+  /** Required audience containing the exact resolved MCP resource URL. */
   readonly aud: string | readonly string[];
+  /** Required expiration time as NumericDate seconds since the Unix epoch. */
   readonly exp: number;
+  /** Optional subject identifier; its meaning is defined by the authorization server. */
   readonly sub?: string;
+  /** Optional issued-at time as NumericDate seconds since the Unix epoch. */
   readonly iat?: number;
+  /** Optional not-before time as NumericDate seconds; enforced during JWT verification. */
   readonly nbf?: number;
+  /** Optional token identifier supplied by the authorization server. */
   readonly jti?: string;
+  /** Additional verified claims; narrow their types before using them in application policy. */
   readonly [claim: string]: unknown;
 }
 
+/** Plain JWT identity exposed by the synchronous `useAuth(ctx)` accessor. */
 export interface JwtAuth {
+  /** Verified claims, copied and deeply frozen when attached to a server invocation. */
   readonly claims: JwtClaims;
 }
 
+/** Trusted issuer, signing keys, audience override, and accepted signature algorithms. */
 export interface JwtOptions {
+  /** Expected issuer and advertised authorization server; HTTPS or HTTP loopback for development. */
   issuer: string;
+  /** Explicit signing-key URL; otherwise discovered from the issuer's OAuth/OIDC metadata. */
   jwksUrl?: string;
+  /** Canonical public MCP resource and required audience; otherwise inferred by the HTTP adapter. */
   resource?: string;
+  /** Supported asymmetric signature algorithms; defaults to `RS256` and `ES256`. The array is copied. */
   algorithms?: readonly string[];
 }
 
@@ -55,9 +73,28 @@ const invalidCodes = new Set([
   "ERR_JWKS_NO_MATCHING_KEY",
 ]);
 
-export const useAuth = createAuthAccessor<JwtAuth>(type);
+/**
+ * Read this invocation's already verified, deeply frozen JWT identity synchronously.
+ * Performs no token verification or network work; configure `jwt()` on the server first.
+ *
+ * @param ctx - Toolgrain context from a handler or lazy provider on a JWT-protected server.
+ * @returns Readonly identity containing the verified token claims.
+ * @throws If the context is unauthenticated or belongs to a different auth provider.
+ */
+export const useAuth: (ctx: ToolContext) => AuthReadonly<JwtAuth> =
+  createAuthAccessor<JwtAuth>(type);
 
-/** Verify access tokens issued by a trusted OAuth server; this does not issue tokens. */
+/**
+ * Create an authorization provider verifying OAuth JWT access tokens for an MCP resource.
+ * Verifies signatures, issuer, expiry, and audience; signing keys are fetched lazily.
+ * This provider does not issue tokens or implement login, consent, or an authorization server.
+ *
+ * @param options - Trusted issuer, optional signing-key URL/resource, and allowed algorithms.
+ * @returns A frozen provider for `createServer({ auth })`; read its identity with `useAuth(ctx)`.
+ * @throws For invalid configuration. During verification, credential failures become
+ * `AuthError("invalid_token")`; discovery, key retrieval, and provider failures become
+ * `AuthError("temporarily_unavailable")` with the original private cause.
+ */
 export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
   const issuer = validateAuthUrl(options.issuer);
   const explicit =

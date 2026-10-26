@@ -2,7 +2,9 @@ import type { ToolRequest } from "./tools/context.js";
 
 /** Private diagnostics for an unexpected tool failure; no arguments or auth data are added. */
 export interface ToolErrorDetails {
+  /** Exposed registration name of the tool whose execution failed. */
   readonly toolName: string;
+  /** Frozen request metadata; arguments and authorization credentials are not added. */
   readonly request: ToolRequest;
 }
 

@@ -9,13 +9,34 @@ import { type HttpOptions, resolveHttpOptions } from "./options.js";
 import { parameterHeaders } from "./parameter-headers.js";
 import { readRequest } from "./request.js";
 
+/** Callable Web handler for independent MCP requests and configured public auth metadata. */
 export interface HttpHandler {
+  /**
+   * Route and process a Web request, validating hosts before auth or body work.
+   * @param request - Original request, including its complete URL, headers, and unread body.
+   * @returns A protocol, metadata, validation-error, or unmatched-route response.
+   */
   (request: Request): Promise<Response>;
-  /** Match owned endpoint paths before passing a request to framework middleware. */
+  /**
+   * Match owned endpoint paths before passing a request to framework middleware.
+   * This checks only the pathname, not hosts, methods, credentials, or protocol validity.
+   * @param pathname - Absolute URL pathname with any significant trailing slash preserved.
+   * @returns Whether this handler owns the MCP endpoint or configured metadata path.
+   */
   readonly matches: (pathname: string) => boolean;
 }
 
-/** Combined MCP and public authorization metadata handler. Mount at the root. */
+/**
+ * Create a combined MCP and public authorization-metadata handler using Web requests/responses.
+ * Mount at the application root with the complete request URL and an unread body.
+ * Hosts are validated before owned-route authentication, body parsing, and tool work.
+ *
+ * @param server - MCP server to authorize and dispatch independent POST requests.
+ * @param options - Endpoint path, host/origin allowlists, and incoming JSON byte limit.
+ * @returns A callable handler with `matches(pathname)` for framework delegation.
+ * The application owns TLS, CORS, proxy normalization, and its framework listener.
+ * @throws For invalid endpoint/allowlist/size configuration or invalid tool parameter headers.
+ */
 export function createHttpHandler(
   server: Server,
   options: HttpOptions = {},
