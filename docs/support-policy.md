@@ -1,7 +1,7 @@
 # Runtime and dependency support
 
-All six libraries are published as stable **0.1.0**. This policy defines their
-runtime and dependency contract. CI configuration alone does not establish that
+All six libraries publish stable releases under npm's `latest` tag. This policy
+defines their runtime and dependency contract. CI configuration alone does not establish that
 an unrun platform has passed; releases require a green supported matrix. See the
 [published-package verification](./rc0-acceptance-2026-10-25.md) for recorded results.
 

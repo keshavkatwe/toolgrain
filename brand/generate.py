@@ -1,10 +1,11 @@
-"""Regenerate portable SVG artwork. Requires fonttools==4.60.1 (build-only)."""
+"""Regenerate portable artwork with the build-only dependencies in requirements.txt."""
 
 import hashlib
 import json
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+import resvg_py
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
@@ -13,6 +14,7 @@ from fontTools.varLib.instancer import instantiateVariableFont
 
 ROOT = Path(__file__).resolve().parent
 NS = "{http://www.w3.org/2000/svg}"
+ET.register_namespace("", "http://www.w3.org/2000/svg")
 brand = json.loads((ROOT / "brand.json").read_text())
 source = ROOT / brand["fontSource"]["localPath"]
 font = instantiateVariableFont(TTFont(source), {"wght": 800}, inplace=False)
@@ -102,14 +104,117 @@ sheet = (
 )
 (ROOT / "brand-sheet.svg").write_text(sheet)
 
+
+def banner_text(text, left, baseline, size, color, spacing=0):
+    """Outline banner type with the same pinned Manrope source as the wordmark."""
+    pen = SVGPathPen(glyphs)
+    text_scale = size / units
+    cursor = left
+    for char in text:
+        glyph = glyphs[cmap[ord(char)]]
+        glyph.draw(TransformPen(pen, (text_scale, 0, 0, -text_scale, cursor, baseline)))
+        cursor += glyph.width * text_scale + spacing
+    return f'<path d="{pen.getCommands()}" fill="{color}"/>'
+
+
+# Keep the approved lockup's paths and proportions intact inside the presentation.
+logo = (ROOT / "logo-dark.svg").read_text().split(">", 1)[1].rsplit("</svg>", 1)[0].strip()
+colors = brand["colors"]
+banner = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-labelledby="banner-title banner-description">
+  <title id="banner-title">Toolgrain</title>
+  <desc id="banner-description">A TypeScript toolkit for MCP. Reusable tools converge into a server and connect over stdio or HTTP.</desc>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="{colors['graphite']}"/>
+      <stop offset="1" stop-color="{colors['obsidian']}"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="{colors['graphite']}" stroke-width="1"/>
+    </pattern>
+    <clipPath id="frame"><rect width="1200" height="360" rx="16"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="360" fill="{colors['obsidian']}"/>
+    <rect x="656" width="544" height="360" fill="url(#grid)" opacity=".5"/>
+    <path d="M64 65H112" stroke="{colors['citron']}" stroke-width="3"/>
+    <g transform="translate(60 104) scale(1.585)" fill="{colors['ivory']}">{logo}</g>
+    {banner_text('A TypeScript toolkit for MCP', 68, 280, 20, colors['slate'])}
+    <g id="routing-art" transform="translate(694 52) scale(.94)">
+      <g fill="none" stroke="{colors['slate']}" stroke-width="2" stroke-linecap="round" opacity=".45">
+        <path d="M80 36H120Q136 36 136 52V112Q136 128 152 128H210"/>
+        <path d="M80 128H210"/>
+        <path d="M80 220H120Q136 220 136 204V144Q136 128 152 128"/>
+        <path d="M330 128Q352 128 352 106V90Q352 68 374 68H392"/>
+        <path d="M330 128Q352 128 352 150V190Q352 212 374 212H392"/>
+      </g>
+      <g fill="{colors['obsidian']}" stroke="{colors['graphite']}" stroke-width="2">
+        <rect x="0" y="12" width="80" height="48" rx="6"/>
+        <rect x="0" y="104" width="80" height="48" rx="6"/>
+        <rect x="0" y="196" width="80" height="48" rx="6"/>
+        <rect x="392" y="44" width="80" height="48" rx="6"/>
+        <rect x="392" y="188" width="80" height="48" rx="6"/>
+      </g>
+      <g fill="none" stroke="{colors['slate']}" stroke-width="2" stroke-linecap="round" opacity=".6">
+        <path d="M18 30H44M18 42H60M18 122H56M18 134H38M18 214H42M18 226H60"/>
+        <path d="M410 62H454M410 74H438M410 206H438M410 218H454"/>
+      </g>
+      <path d="M210 76L230 64H330L310 76Z" fill="{colors['silver']}" opacity=".3"/>
+      <path d="M310 76L330 64V168L310 180Z" fill="{colors['graphite']}"/>
+      <rect x="210" y="76" width="100" height="104" fill="url(#surface)" stroke="{colors['slate']}" stroke-opacity=".5"/>
+      <path d="M228 103H292M228 128H292M228 153H292" stroke="{colors['slate']}" stroke-opacity=".4"/>
+      <g fill="{colors['citron']}">
+        <circle cx="228" cy="103" r="3"/>
+        <circle cx="228" cy="128" r="3"/>
+        <circle cx="228" cy="153" r="3"/>
+        <circle cx="108" cy="128" r="4"/>
+        <circle cx="352" cy="182" r="4"/>
+      </g>
+      <path d="M108 128H165M330 128Q352 128 352 106V96" fill="none" stroke="{colors['citron']}" stroke-width="2" stroke-linecap="round"/>
+    </g>
+  </g>
+  <rect x=".5" y=".5" width="1199" height="359" rx="15.5" fill="none" stroke="{colors['graphite']}"/>
+</svg>
+'''
+(ROOT / "readme-banner.svg").write_text(banner)
+
+# Reuse the banner's routing illustration in a layout sized for social previews.
+banner_tree = ET.fromstring(banner)
+routing = banner_tree.find(f".//{NS}g[@id='routing-art']")
+definitions = banner_tree.find(f"{NS}defs")
+assert routing is not None and definitions is not None
+routing.tail = definitions.tail = None
+routing.set("transform", "translate(748 188) scale(.9)")
+social = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-labelledby="social-title social-description">
+  <title id="social-title">Toolgrain — bring your TypeScript application to MCP</title>
+  <desc id="social-description">Reusable tools. Composable servers. Zod validation with stdio and HTTP transports.</desc>
+  {ET.tostring(definitions, encoding='unicode')}
+  <rect width="1280" height="640" fill="{colors['obsidian']}"/>
+  <rect x="704" width="576" height="640" fill="url(#grid)" opacity=".4"/>
+  <g transform="translate(76 48) scale(1.28)" fill="{colors['ivory']}">{logo}</g>
+  <path d="M80 204H128" stroke="{colors['citron']}" stroke-width="3"/>
+  {banner_text('Bring your TypeScript', 80, 286, 54, colors['ivory'])}
+  {banner_text('application to MCP.', 80, 356, 54, colors['ivory'])}
+  {banner_text('Reusable tools. Composable servers.', 82, 426, 23, colors['silver'])}
+  {banner_text('Zod validation · stdio · HTTP', 82, 466, 20, colors['slate'])}
+  {ET.tostring(routing, encoding='unicode')}
+  <path d="M80 536H1200" stroke="{colors['graphite']}"/>
+  {banner_text('github.com/keshavkatwe/toolgrain', 82, 581, 17, colors['slate'])}
+</svg>
+'''
+(ROOT / "social-preview.svg").write_text(social)
+(ROOT / "social-preview.png").write_bytes(
+    resvg_py.svg_to_bytes(svg_string=social, width=1280, height=640, skip_system_fonts=True)
+)
+
 manifest = {
     "fontSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
     "generator": "fonttools 4.60.1",
+    "rasterizer": f"resvg_py {resvg_py.__version__} (resvg {resvg_py.__resvg_version__})",
     "wordmark": "Outlined Manrope ExtraBold, 800 weight, -0.045em tracking",
     "files": {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in sorted(ROOT.glob("*.svg"))
+        for path in sorted([*ROOT.glob("*.svg"), ROOT / "social-preview.png"])
     },
 }
 (ROOT / "provenance.json").write_text(json.dumps(manifest, indent=2) + "\n")
-print(f"Generated {len(manifest['files'])} SVG assets; all wordmarks are outlined.")
+print(f"Generated {len(manifest['files'])} artwork files; all wordmarks are outlined.")

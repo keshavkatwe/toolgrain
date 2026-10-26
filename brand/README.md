@@ -3,8 +3,9 @@
 Approved on 2026-10-23: the Monolith visual direction, continuous restrained
 motion, logo mark, wordmark, and lockup. This directory is the shared source for
 Toolgrain brand artwork and design tokens. Reuse these assets in future work
-instead of recreating the logo. The root and package READMEs use the fixed-color
-lockups for light and dark themes. Website deployment remains separate work.
+instead of recreating the logo. The root README uses the self-contained dark
+banner; package READMEs use the fixed-color lockups for light and dark themes.
+Website deployment remains separate work.
 
 ## Artwork
 
@@ -17,12 +18,16 @@ lockups for light and dark themes. Website deployment remains separate work.
 | `mark-dark.svg`, `mark-light.svg` | Standalone mark |
 | `mark.svg` | Editable mark source; inherits CSS color when inlined |
 | `brand-sheet.svg` | Self-contained visual brand reference |
+| `readme-banner.svg` | Root README banner with the approved lockup and static routing artwork |
+| `social-preview.svg`, `social-preview.png` | Editable vector source and 1280 × 640 PNG for GitHub's social preview |
 | `brand.json` | Shared colors, typography, artwork locations, and motion tokens |
 
-The lockup and wordmark use outlined paths, with no font installation or network
-dependency. SVGs have transparent backgrounds. Use the fixed-color variants in
-image tags and design applications; use the `currentColor` variants when inlining
-the SVG in an application. Choose one high-contrast color for the core logo.
+The lockup, wordmark, banner, and social-preview typography use outlined paths,
+with no font installation or network dependency. Logo and wordmark SVGs have transparent
+backgrounds; the banner includes its own obsidian background for both themes.
+Use the fixed-color variants in image tags and design applications; use the
+`currentColor` variants when inlining the SVG in an application. Choose one
+high-contrast color for the core logo.
 
 The mark echoes the hero's monolithic routing junction. Its separate circular
 grain can become the moving request in larger brand presentations. The metallic
@@ -55,16 +60,21 @@ Reduced motion shows a complete static scene. Documentation articles stay still.
 
 ## Regeneration and provenance
 
-`mark.svg` and `brand.json` are editable sources. The outlined wordmark comes
-from the pinned, unmodified Manrope source in `source/`. Regenerate the derived
-SVGs with Python and `fonttools==4.60.1`:
+`mark.svg` and `brand.json` are editable sources; `generate.py` defines the banner
+and social-preview layouts. The outlined wordmark comes from the pinned,
+unmodified Manrope source in `source/`. In a Python 3.10+ virtual environment,
+install the pinned build dependencies and regenerate the derived artwork:
 
 ```sh
+python3 -m pip install -r brand/requirements.txt
 python3 brand/generate.py
 ```
 
-FontTools is a build-only requirement, not a Toolgrain library dependency.
-`provenance.json` records source and generated-file checksums. The upstream
+FontTools and resvg-py are build-only requirements, not Toolgrain library
+dependencies. The PNG is rendered from the self-contained SVG without loading
+system fonts. `provenance.json` records renderer versions and source/generated-file
+checksums. Upload `social-preview.png` in the repository's Settings → General →
+Social preview; GitHub accepts PNG, JPG, or GIF files under 1 MB. The upstream
 font commit is recorded in `brand.json`; preserve the accompanying OFL and
 FONTLOG files when redistributing the font. The font remains under its original
 SIL Open Font License. Toolgrain-owned artwork follows the repository MIT license.

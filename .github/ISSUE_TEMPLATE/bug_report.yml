@@ -13,7 +13,7 @@ body:
     attributes:
       label: Package and runtime versions
       description: Include affected Toolgrain packages, Node or Bun, TypeScript, and Zod.
-      placeholder: "@toolgrain/mcp 0.1.0, @toolgrain/node 0.1.0, Node 24.20.0, TypeScript 5.5.4, Zod 4.6.6"
+      placeholder: "@toolgrain/mcp 0.1.1, @toolgrain/node 0.1.1, Node 24.20.0, TypeScript 5.5.4, Zod 4.6.6"
     validations:
       required: true
   - type: input

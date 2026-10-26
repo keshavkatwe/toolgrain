@@ -1,8 +1,8 @@
 # Toolgrain documentation
 
 Start with the [quickstart](../README.md#quickstart) to build a typed tool and
-serve it over stdio or HTTP. Install the same stable `0.1.0` version across
-Toolgrain packages.
+serve it over stdio or HTTP. Install matching stable versions across Toolgrain
+packages; npm's `latest` tag selects the current stable release.
 
 ## Build a server
 

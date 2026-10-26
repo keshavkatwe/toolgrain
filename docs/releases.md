@@ -1,14 +1,26 @@
 # Versioning and releases
 
-All six libraries are published as stable **0.1.0** under npm's `latest` tag.
+All six libraries share a stable version under npm's `latest` tag. Check
+[npm](https://www.npmjs.com/package/@toolgrain/mcp) for the current version and
+[package releases](https://github.com/keshavkatwe/toolgrain/releases) for release notes.
 The historical [v0.1.0 release](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0)
 and [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
 remain available. `next` still points to RC0.
 
 Changesets automation is active on `main`, with package-local changelogs and
-package-scoped GitHub releases. The first main runs correctly selected no release
-for repository-only work. The first full bot Release PR/publication cycle remains
-to be verified when a real user-facing changeset is ready.
+package-scoped GitHub releases.
+
+## Verified automated release
+
+The first complete automated cycle published **0.1.1** for all six libraries on
+2026-10-26. [Release PR #37](https://github.com/keshavkatwe/toolgrain/pull/37)
+merged as commit `fed5a82826e66b485bad7cdb86fbc2238ae7a3e4`.
+The [publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/40274053979)
+passed release verification, the supported runtime/platform matrix, archive
+packing, npm publication, package tags/releases, and registry integrity checks.
+Both **Published node consumers** and **Published bun consumers** passed against
+the public packages after publication. These results verify this release cycle;
+client-flow coverage remains limited to the [compatibility reports](compatibility.md).
 
 ## Record a change
 
@@ -69,7 +81,7 @@ commit is pinned; CLI and Action upgrades must be reviewed together.
 No local version bump, manual npm publish, combined `vX.Y.Z` tag, or separate
 GitHub release command is needed for this flow. The existing `v0.1.0` and RC0
 release records are preserved. Repository-only changes use empty changesets and
-do not select a library release. The next user-facing changeset starts the first
+do not select a library release. User-facing changesets create or update the next
 automated Release PR.
 
 ## npm publication setup
@@ -96,7 +108,7 @@ all active workflow branches use pinned references.
 The active tag ruleset blocks updates and deletions for every tag, without bypass
 actors. New release tags can still be created by the publication workflow.
 
-The source repository is public, so the next publication automatically requests
+The source repository is public, so publications automatically request
 npm provenance. RC0 and 0.1.0 were published without provenance while the source
 was private. All six trusted publishers completed their first successful OIDC
 publication for 0.1.0; a new or replacement binding must complete its first
