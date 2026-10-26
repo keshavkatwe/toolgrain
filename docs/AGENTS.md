@@ -13,6 +13,10 @@ verification, and release rules. These instructions apply to documentation work.
 - Navigation separates Guides, API reference, and Project. Keep the
   quickstart's install, compile, and Inspector flow runnable against the published
   packages. Recheck its commands and expected output when changing the example.
+- Follow the root README's installation convention: omit Toolgrain package version
+  pins so npm's `latest` tag selects stable releases. Remind readers to use matching
+  Toolgrain versions. Preserve runtime/peer minimums and exact versions in dated
+  verification evidence and historical release records.
 - Document implemented APIs and verified compatibility. Clearly identify proposals
   and limitations. Check examples against the packages and support policy.
 - The documentation directory is the site root. Keep site links and assets within

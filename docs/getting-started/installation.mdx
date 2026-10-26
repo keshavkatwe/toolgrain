@@ -3,9 +3,9 @@ title: "Installation"
 description: "Install published packages and configure a strict ESM TypeScript project."
 ---
 
-Toolgrain's six libraries are published on npm. Install matching versions across
-Toolgrain packages. The examples in these guides use stable **0.1.1**; npm's
-`latest` tag and the [package changelogs](/project/changelog) identify newer releases.
+Toolgrain's six libraries are published on npm. Install matching stable versions
+across Toolgrain packages. The commands below resolve npm's `latest` tag. See the
+[package changelogs](/project/changelog) for release notes.
 
 ## Requirements
 
@@ -23,12 +23,12 @@ mkdir hello-toolgrain
 cd hello-toolgrain
 npm init -y
 npm pkg set type=module
-npm install @toolgrain/mcp@0.1.1 @toolgrain/node@0.1.1 zod@^4.6.6
+npm install @toolgrain/mcp @toolgrain/node zod@^4.6.6
 npm install --save-dev typescript @types/node@^24.10.0
 ```
 
-For an existing Web Request/Response application, add `@toolgrain/http@0.1.1`.
-Add `@toolgrain/jwt@0.1.1` or `@toolgrain/clerk@0.1.1` when protecting HTTP
+For an existing Web Request/Response application, add `@toolgrain/http`.
+Add `@toolgrain/jwt` or `@toolgrain/clerk` when protecting HTTP
 endpoints. Frameworks keep ownership of their listener and application lifecycle.
 
 ## Configure TypeScript
