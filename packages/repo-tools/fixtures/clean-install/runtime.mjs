@@ -391,7 +391,6 @@ test("signed JWT and Clerk OAuth verification enforce audiences and freeze ident
                   object: "clerk_idp_oauth_access_token",
                   id: "oat_support",
                   client_id: "client_support",
-                  type: "oauth_token",
                   subject: "user_support",
                   scopes: ["profile"],
                   revoked: false,

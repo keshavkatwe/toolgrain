@@ -87,10 +87,11 @@ export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
         if (token.startsWith("oat_")) {
           const verified = await client.idPOAuthAccessToken.verify(token);
           verifyOptions.signal.throwIfAborted();
+          // Clerk may omit `type` for opaque tokens; reject incompatible values when supplied.
           if (
             verified.revoked ||
             verified.expired ||
-            verified.type !== "oauth_token" ||
+            (verified.type !== undefined && verified.type !== "oauth_token") ||
             !verified.subject.startsWith("user_") ||
             !verified.clientId
           )

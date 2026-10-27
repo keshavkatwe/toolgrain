@@ -29,11 +29,11 @@ const sign = (claims: JWTPayload = {}, typ = "at+jwt") =>
   })
     .setProtectedHeader({ alg: "RS256", kid: "one", typ })
     .sign(key.privateKey);
+// Clerk's live opaque-token verification response has no `type` field.
 const opaque = (changes: Record<string, unknown> = {}) => ({
   object: "clerk_idp_oauth_access_token",
   id: "oat_one",
   client_id: "client_one",
-  type: "oauth_token",
   subject: "user_alice",
   scopes: ["profile"],
   revoked: false,
@@ -130,6 +130,58 @@ it("verifies opaque OAuth tokens with Clerk and validates their audience", async
       provider.verify("oat_wrong", verifyOptions()),
     ).rejects.toMatchObject({ code: "invalid_token" });
   }
+});
+
+it("authorizes tool execution from Clerk's opaque response without a type field", async () => {
+  mockFetch();
+  const server = createServer({
+    name: "clerk-opaque",
+    version: "1",
+    auth: clerk(options),
+    tools: {
+      who: tool({
+        input: z.object({}),
+        execute(_input, ctx) {
+          return useAuth(ctx);
+        },
+      }),
+    },
+  });
+  try {
+    const scope = await server.authorize("oat_valid", { resource });
+    try {
+      expect(
+        await server.handle(
+          {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "who" },
+          },
+          { protocolVersion: "2025-06-18", auth: scope },
+        ),
+      ).toHaveProperty("result.structuredContent", {
+        userId: "user_alice",
+        clientId: "client_one",
+        scopes: ["profile"],
+      });
+    } finally {
+      scope.dispose();
+    }
+  } finally {
+    await server.close();
+  }
+});
+
+it("accepts an explicit OAuth type in opaque verification responses", async () => {
+  mockFetch(opaque({ type: "oauth_token" }));
+  await expect(
+    clerk(options).verify("oat_valid", verifyOptions()),
+  ).resolves.toEqual({
+    userId: "user_alice",
+    clientId: "client_one",
+    scopes: ["profile"],
+  });
 });
 
 it.each([

@@ -39,7 +39,6 @@ function mockClerk() {
         return Response.json({
           object: "clerk_idp_oauth_access_token",
           id: "oat_test",
-          type: "oauth_token",
           client_id: "client_inspector",
           subject: "user_alice",
           scopes: ["openid", "profile"],
