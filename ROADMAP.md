@@ -33,8 +33,8 @@ These items describe remaining review or verification, without a release date:
 - Collect feedback from published stable releases in real applications and
   prioritize reproduced defects. A target application and next release scope are
   not selected.
-- Expand client coverage for Cursor execution/cancellation, modern Claude Code,
-  live OAuth login, and GUI flows. These remain unverified.
+- Expand client coverage for modern Claude Code, live OAuth login, and GUI flows
+  beyond the dated reviews. These remain unverified.
 
 A local application pilot passed nine automated checks against published
 Toolgrain 0.1.2 packages on 2026-10-27, covering persistent task workflows,
@@ -42,8 +42,13 @@ concurrent requests, validation, restart recovery, and cooperative cancellation
 over stdio and HTTP in both supported protocol eras. Real-user feedback and the
 client checks above remain pending.
 
-The tested Codex direct-call timeout does not promptly abort server work. The
-tested Claude Code client hides supplemental text alongside structured content.
+Cursor desktop 3.26.16 passed execution and recovery checks against published
+0.1.2 packages over stdio, HTTP, and protected HTTP on 2026-10-27. Stopping a
+running stdio or HTTP call did not abort server work; see the
+[Cursor follow-up](docs/compatibility/clients.mdx#cursor-desktop-follow-up).
+
+The tested Codex direct-call timeout also does not promptly abort server work.
+The tested Claude Code client hides supplemental text alongside structured content.
 Controls and workarounds are recorded in the
 [interoperability report](docs/interoperability-2026-10-22.md) and
 [published-package verification](docs/rc0-acceptance-2026-10-25.md).

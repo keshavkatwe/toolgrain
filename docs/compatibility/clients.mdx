@@ -33,8 +33,9 @@ other nine reproduce the same timeout limitation across three configurations
 and three transports. Claude Code passes 30 of 33 assertions in each of two runs;
 the other three reproduce the same rich-result limitation across transports.
 Both tested workarounds for that limitation pass in all three transports.
-Cursor passes four discovery/authentication checks; its tool execution and
-cancellation remain unverified. Four explicit cancellation/disconnect controls
+Cursor passes four discovery/authentication checks; that CLI review did not test
+execution or cancellation. See the later [desktop follow-up](#cursor-desktop-follow-up).
+Four explicit cancellation/disconnect controls
 and three Claude Code timeout-response checks also pass.
 
 ## Issues
@@ -120,9 +121,10 @@ needed. This verifies the MCP client and its model-facing normalization, rather
 than a live Anthropic account/inference path. See the
 [Claude Code headless documentation](https://code.claude.com/docs/en/headless).
 
-Cursor's installed desktop version is 0.48.6. Its UI probe stalled and returned
-only an empty HTML accessibility surface, so a separate official Cursor Agent
-CLI release was downloaded and unpacked into the temporary test directory.
+Cursor's installed desktop version was 0.48.6 during that review. Its UI probe
+stalled and returned only an empty HTML accessibility surface, so a separate
+official Cursor Agent CLI release was downloaded and unpacked into the temporary
+test directory.
 The desktop installation was not upgraded. `CURSOR_CONFIG_DIR` and
 `NODE_COMPILE_CACHE` point to disposable test folders; only the local fixture
 servers were approved with `mcp enable`, then checked with `mcp list-tools`.
@@ -136,8 +138,8 @@ credentials receive 401 and expose no protected tools. Its CLI subsequently
 reports `fetch failed` while attempting OAuth discovery against the deliberately
 offline authorization-server URL; a real OAuth login flow was not tested.
 The public MCP CLI exposes discovery/listing commands rather than direct tool
-execution, and no signed-in Cursor model session was started. This remains a
-coverage gap for Cursor, not a verified execution pass.
+execution, and no signed-in Cursor model session was started. Execution and
+cancellation remain unverified for that CLI build.
 
 Claude Code offered `2025-11-25` during initialization and successfully accepted
 Toolgrain's `2025-06-18` response. Setting `MCP_SDK_GENERATION=v2` and
@@ -150,7 +152,8 @@ The protected fixture uses a synthetic bearer token and custom `AuthProvider`.
 Its tool reads the verified identity using `createAuthAccessor`, and the context
 fixture checks that concurrent provider access shares one value per request.
 JWT/Clerk OAuth login, interactive GUI tool use, remote deployments, parameter
-header annotations, and image/audio presentation remain outside this report.
+header annotations, and image/audio presentation were outside the 2026-10-22
+review.
 
 Local JSON evidence is stored in the ignored `reports/compatibility/` directory:
 
@@ -167,3 +170,63 @@ The capture proxy uses Node's HTTP request API to preserve the external Host
 authority, including during protected-resource metadata discovery. These local
 artifacts are supplementary evidence; the table above records the tested scope
 and the remaining gaps.
+
+## Cursor desktop follow-up
+
+On **2026-10-27**, Cursor desktop **3.26.16** was tested on macOS arm64 with
+Node **24.20.0**, Zod **4.6.7**, and freshly installed npm packages
+`@toolgrain/mcp` and `@toolgrain/node` **0.1.2**. Their HTTP and protocol
+dependencies also resolved to 0.1.2. The fixture imported installed packages,
+without workspace library imports. The signed-in desktop Agent performed the
+calls, with each tool call approved in the UI.
+
+Cursor offered `2025-11-25` and accepted `2025-06-18`. These results establish
+only the negotiated legacy flow, not modern Cursor compatibility or support for
+the originally offered revision.
+
+| Check | Result |
+| --- | --- |
+| Stdio Unicode greeting with declared structured output | Pass; `Hello, Cursor-雪!` reached the chat |
+| Stdio greeting after stopping a prior request | Pass |
+| HTTP Unicode greeting with declared structured output | Pass; `Hello, HTTP-雪!` reached the chat |
+| HTTP greeting after stopping a prior request | Pass |
+| Protected HTTP context call | Pass; verified synthetic bearer identity and request-cached provider value reached the chat |
+| Stdio Ctrl+C during a running tool | Client limitation; server work continued for 60 seconds |
+| HTTP Stop during a running tool | Client limitation; server work continued for 60 seconds |
+
+Five execution/recovery checks passed. The two cancellation probes are recorded
+as client limitations, not passing server-cancellation checks.
+
+### Stop does not abort the tested server work
+
+To reproduce, register a `slow` tool that waits 60 seconds, records when its
+handler starts and when `ctx.signal` aborts, and returns `finished`. Enable the
+server in the workspace's `.cursor/mcp.json`, ask Agent to call `slow` once,
+approve the call, and stop the request while the handler is running. Keep Cursor
+and the MCP connection open throughout the observation window.
+
+The stdio probe used Ctrl+C; the HTTP probe used the visible Stop control.
+Cursor stopped the chat requests, but neither capture contained a matching
+`notifications/cancelled`, and neither handler observed an abort. Both handlers
+returned `finished` after their full 60-second wait. The HTTP request remained
+connected through that response. Subsequent greetings succeeded over the same
+connections. An earlier 10-second timing attempt finished before Stop and was
+excluded from the cancellation results.
+
+Four direct controls against the same published-package fixture passed:
+explicit stdio cancellation aborted the handler and suppressed its response in
+both supported revisions, and HTTP disconnection aborted the handler in both
+revisions. These controls distinguish the observed Cursor behavior from a
+Toolgrain cancellation or capture-proxy failure. Applications doing expensive
+work should continue to enforce their own execution deadlines.
+
+Protected HTTP used a synthetic bearer token and custom `AuthProvider`; it did
+not exercise live JWT/Clerk OAuth login. Protected HTTP cancellation, Cursor CLI
+or ACP execution, modern Cursor flows, and other GUI/result-presentation paths
+remain unverified. See Cursor's [MCP documentation](https://cursor.com/docs/mcp)
+for its current configuration and approval controls.
+
+Supplementary captures, the fixture, assertions, and the seven-check summary are
+stored locally under ignored `reports/cursor-2026-10-27/`. Four separate passing
+cancellation controls are recorded there as well. No library implementation
+changed during this follow-up.
