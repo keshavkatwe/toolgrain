@@ -60,8 +60,9 @@ The starter's MIT license and Mintlify attribution are preserved in
 the repository's [root LICENSE](../LICENSE).
 
 The site keeps Mint's original backgrounds, fonts, and component styling, with
-olive and citron accents configured in `docs.json` and Toolgrain's approved
-monochrome logo and favicon from `brand/`. See
+olive and citron accents configured in `docs.json`. Toolgrain's documentation
+logo places its mark on a rounded citron tile; the favicon uses the monochrome
+mark. Both come from `brand/`. See
 [asset provenance](./assets/README.md) for artwork sources and checksums.
 
 ## Check compatibility
