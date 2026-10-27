@@ -208,7 +208,7 @@ social = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" widt
 
 manifest = {
     "fontSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-    "generator": "fonttools 4.60.1",
+    "generator": "fonttools 4.60.2",
     "rasterizer": f"resvg_py {resvg_py.__version__} (resvg {resvg_py.__resvg_version__})",
     "wordmark": "Outlined Manrope ExtraBold, 800 weight, -0.045em tracking",
     "files": {

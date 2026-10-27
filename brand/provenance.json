@@ -1,6 +1,6 @@
 {
   "fontSha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
-  "generator": "fonttools 4.60.1",
+  "generator": "fonttools 4.60.2",
   "rasterizer": "resvg_py 0.5.0 (resvg 0.48.1)",
   "wordmark": "Outlined Manrope ExtraBold, 800 weight, -0.045em tracking",
   "files": {
