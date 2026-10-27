@@ -36,6 +36,15 @@ These items describe remaining review or verification, without a release date:
 - Expand client coverage for live OAuth login and client configurations/GUI flows
   beyond the dated reviews. These remain unverified.
 
+A live Clerk OAuth check against published **0.1.2** packages on **2026-10-27**
+completed browser consent and token exchange in Inspector 2.11.0, but reproduced
+an adapter defect: a valid opaque token was rejected because Clerk's verification
+response omitted the `type` field required by the adapter. Authenticated tool
+execution did not occur. See the
+[live Clerk follow-up](docs/compatibility/clients.mdx#live-clerk-oauth-follow-up).
+An unreleased workspace fix and regression coverage now handle the omitted field.
+Live JWT OAuth and successful end-to-end OAuth with a published fix remain unverified.
+
 A local application pilot passed nine automated checks against published
 Toolgrain 0.1.2 packages on 2026-10-27, covering persistent task workflows,
 concurrent requests, validation, restart recovery, and cooperative cancellation

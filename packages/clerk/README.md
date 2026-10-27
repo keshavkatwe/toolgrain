@@ -81,6 +81,16 @@ proxy URLs through trusted application middleware. See the
 [authorization guide](https://toolgrain.mintlify.site/guides/authorization)
 for Clerk setup, HTTP mounting, resource inference, and host/proxy requirements.
 
+## Opaque-token compatibility
+
+Published **0.1.2** can reject a valid opaque OAuth access token with
+`401 invalid_token` after successful consent and token exchange, even when the
+audience is correct. Its adapter requires a `type` field that Clerk's live
+verification response omitted. The corrected adapter accepts the omitted field
+while retaining the remaining token checks. See the
+[dated verification and fix status](https://toolgrain.mintlify.site/compatibility/clients#live-clerk-oauth-follow-up).
+Live end-to-end verification of a published fix remains pending.
+
 ## Requirements
 
 ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;

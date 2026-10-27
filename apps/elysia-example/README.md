@@ -82,6 +82,13 @@ tools require an OAuth access token.
 It listens on `http://127.0.0.1:3007/mcp`, so it can run alongside the regular
 example. Root `bun run dev` continues to start the regular example on port 3003.
 
+Published **0.1.2** has a confirmed opaque-token validation defect: a valid token
+can receive `401 invalid_token` after successful consent and token exchange,
+despite a correct audience. This repository includes the correction and offline
+regression coverage. See the
+[live Clerk verification record](https://toolgrain.mintlify.site/compatibility/clients#live-clerk-oauth-follow-up)
+for the cause and the pending live verification of a published fix.
+
 ### Configure the server
 
 From this directory, create `.env.local` using `.env.example` as a template:
