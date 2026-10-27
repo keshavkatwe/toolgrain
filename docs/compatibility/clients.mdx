@@ -146,7 +146,10 @@ Toolgrain's `2025-06-18` response. Setting `MCP_SDK_GENERATION=v2` and
 `MCP_PROTOCOL_NEGOTIATION=auto` did not produce a modern handshake in version
 2.1.191. This is not evidence that Toolgrain supports `2025-11-25`. Current
 [Claude Code documentation](https://code.claude.com/docs/en/mcp#mcp-client-runtimes)
-describes newer builds with a v2 runtime; those builds were not tested here.
+describes newer builds with a v2 runtime; those builds were not tested in the
+2026-10-22 review.
+The later [Claude Code follow-up](#claude-code-v2-follow-up) checks that runtime
+in version 2.1.311.
 
 The protected fixture uses a synthetic bearer token and custom `AuthProvider`.
 Its tool reads the verified identity using `createAuthAccessor`, and the context
@@ -230,3 +233,77 @@ Supplementary captures, the fixture, assertions, and the seven-check summary are
 stored locally under ignored `reports/cursor-2026-10-27/`. Four separate passing
 cancellation controls are recorded there as well. No library implementation
 changed during this follow-up.
+
+## Claude Code v2 follow-up
+
+On **2026-10-27**, the official Claude Code **2.1.311** native macOS arm64 npm
+package was tested in an isolated installation. The server fixture used Node
+**24.20.0**, Zod **4.6.7**, and freshly installed `@toolgrain/mcp` and
+`@toolgrain/node` **0.1.2**, with HTTP and protocol dependencies also at 0.1.2.
+No workspace library imports or library implementation changes were involved.
+
+Both configurations explicitly set `MCP_SDK_GENERATION=v2`. With
+`MCP_PROTOCOL_NEGOTIATION=auto`, Claude Code used `server/discover` and
+`2026-07-28` request metadata over stdio, HTTP, and protected HTTP. With
+`MCP_PROTOCOL_NEGOTIATION=legacy`, it initialized and negotiated `2025-06-18`
+over all three transports. Each transport's context tool confirmed its request
+revision. See the official [runtime controls](https://code.claude.com/docs/en/mcp#mcp-client-runtimes).
+
+| Configuration/check | Passed | Total | Result |
+| --- | ---: | ---: | --- |
+| v2 automatic negotiation; modern stdio, HTTP, and protected HTTP | 30 | 33 | Three cases reproduce the rich-text presentation limitation |
+| v2 forced legacy; stdio, HTTP, and protected HTTP | 30 | 33 | Same limitation |
+| Two-second tool-timeout responses across both configurations | 6 | 6 | Timeout errors reached the model-facing results |
+| Modern timeout cancellation, all three transports | 3 | 3 | Handlers aborted before client exit |
+| Legacy stdio timeout cancellation | 1 | 1 | Handler aborted before client exit |
+| Legacy HTTP/protected HTTP handler abort before client exit | 0 | 2 | Cancellation notifications remained advisory; disconnection later aborted the handlers |
+| Direct stdio cancellation and HTTP disconnect controls, both revisions | 4 | 4 | Pass |
+
+The 33 execution assertions in each configuration cover discovery/execution,
+ASCII and Unicode greetings, invalid inputs, a typed variant, rich results and
+both documented presentation workarounds, request-cached context, a verified
+synthetic bearer identity, public expected errors, and private unexpected errors.
+The six non-passing rich-result assertions are not counted as passes: the wire
+responses included `Rich report` alongside `{ "count": 2 }`, but Claude Code
+supplied only `{"count":2}` to the model-facing result. Including the narrative
+in structured content or returning text without structured content continued to
+work over every tested transport in both revisions.
+
+### Timeout cancellation by revision
+
+The cancellation probes set `MCP_TOOL_TIMEOUT=2000` and called a tool that waits
+ten seconds and records `ctx.signal` aborts. The loopback model endpoint held its
+final response for three seconds after receiving the timeout results. This kept
+the Claude Code process open while checking server cancellation separately from
+client shutdown.
+
+In modern mode, stdio sent a matching `notifications/cancelled`, while HTTP and
+protected HTTP disconnected their pending requests. All three handlers observed
+an abort approximately two seconds after starting, and returned no successful
+tool result during the pre-exit observation window.
+
+In forced legacy mode, stdio cancellation also aborted its handler. HTTP and
+protected HTTP instead sent cancellation notifications, which Toolgrain accepted
+as advisory. Neither handler aborted during the additional three-second window;
+both aborted when the client connections subsequently closed. This preserves
+the independent-request contract: a legacy notification carries no safe
+client/session identity for cancelling another request. Applications must
+continue to apply their own deadlines when necessary.
+
+### Method and remaining limits
+
+The actual Claude Code process discovered and executed the MCP tools. A
+deterministic loopback Messages API fixture supplied tool-use messages and
+recorded the tool results returned to the model. Configuration, API credentials,
+and bearer identities were synthetic and isolated; no live inference or OAuth
+login was used. The installed user CLI and user configuration were unchanged.
+
+Explicit runtime/negotiation overrides were tested, rather than an account's
+feature-flag rollout or default settings. Live Anthropic inference, interactive
+Esc/Ctrl+C, other GUI paths, live JWT/Clerk OAuth login, and remote deployment
+remain unverified. These probes do not extend Toolgrain's protocol or transport
+scope.
+
+Supplementary raw reports, the fixture, and assertions remain ignored under
+`reports/claude-2026-10-27/`. Its summary distinguishes execution assertions,
+client timeout feedback, server abort observations, and direct controls.

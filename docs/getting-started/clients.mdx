@@ -58,3 +58,10 @@ Toolgrain does not issue tokens or run an OAuth login UI. See [authentication](/
 ## What has been verified
 
 Inspector checks pass. Tested Codex and Claude Code flows work with documented timeout and rich-result presentation limitations. Cursor desktop 3.26.16 passed legacy execution and recovery checks over stdio, HTTP, and protected HTTP, with a documented limitation: stopping the tested stdio and HTTP calls did not abort server work. See the [dated interoperability report](/compatibility/clients#cursor-desktop-follow-up) before making a client-compatibility claim.
+
+Claude Code 2.1.311's explicit v2 runtime was also tested in modern and forced
+legacy modes over all three transports. Its rich-text presentation limitation
+remains; modern timeout cancellation aborted server work, while legacy HTTP
+notifications remained advisory until disconnection. See the
+[Claude Code follow-up](/compatibility/clients#claude-code-v2-follow-up) for the
+exact configuration, results, and limits.

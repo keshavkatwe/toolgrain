@@ -33,7 +33,7 @@ These items describe remaining review or verification, without a release date:
 - Collect feedback from published stable releases in real applications and
   prioritize reproduced defects. A target application and next release scope are
   not selected.
-- Expand client coverage for modern Claude Code, live OAuth login, and GUI flows
+- Expand client coverage for live OAuth login and client configurations/GUI flows
   beyond the dated reviews. These remain unverified.
 
 A local application pilot passed nine automated checks against published
@@ -46,6 +46,12 @@ Cursor desktop 3.26.16 passed execution and recovery checks against published
 0.1.2 packages over stdio, HTTP, and protected HTTP on 2026-10-27. Stopping a
 running stdio or HTTP call did not abort server work; see the
 [Cursor follow-up](docs/compatibility/clients.mdx#cursor-desktop-follow-up).
+
+Claude Code 2.1.311's explicit v2 runtime was checked against published 0.1.2
+packages on 2026-10-27. Modern and forced legacy calls worked over all three
+transports, with the existing rich-text presentation limitation; timeout
+cancellation differed by protocol. See the
+[Claude Code follow-up](docs/compatibility/clients.mdx#claude-code-v2-follow-up).
 
 The tested Codex direct-call timeout also does not promptly abort server work.
 The tested Claude Code client hides supplemental text alongside structured content.
