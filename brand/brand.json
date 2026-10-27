@@ -26,6 +26,8 @@
     "darkBackground": "logo-dark.svg",
     "lightBackground": "logo-light.svg",
     "inheritColor": "logo.svg",
+    "siteDarkBackground": "logo-site-dark.svg",
+    "siteLightBackground": "logo-site-light.svg",
     "markDarkBackground": "mark-dark.svg",
     "markLightBackground": "mark-light.svg",
     "wordmarkDarkBackground": "wordmark-dark.svg",

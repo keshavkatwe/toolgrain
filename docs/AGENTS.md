@@ -30,11 +30,13 @@ verification, and release rules. These instructions apply to documentation work.
 - Reuse approved artwork from `brand/`. Site exports live in `docs/assets/`;
   preserve their source provenance when updating them.
 - Keep Mint's original backgrounds, typography, spacing, and component styling,
-  with Toolgrain's monochrome logo and project links. The user approved an accent
-  palette only: olive `#657018` for light-mode emphasis and buttons, and citron
-  `#E4EE85` for dark-mode emphasis. Configure these through `docs.json`; do not
-  introduce background or font overrides. Articles remain static, and the mode
-  toggle remains available.
+  with Toolgrain's documentation lockups and project links. The logo places the
+  existing mark on a rounded citron tile, with an obsidian wordmark in light mode
+  and an ivory wordmark in dark mode. Reuse `brand/logo-site-light.svg` and
+  `brand/logo-site-dark.svg`. The accent palette is olive `#657018` for light-mode
+  emphasis and buttons, and citron `#E4EE85` for dark-mode emphasis. Configure
+  these through `docs.json`; do not introduce page background or font overrides.
+  Articles remain static, and the mode toggle remains available.
 - Use active voice, second person, concise sentences, and sentence case headings.
   Use code formatting for commands, paths, package names, and API identifiers.
 - Link ordinary support to GitHub issues. Private security reports follow the

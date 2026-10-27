@@ -14,6 +14,7 @@ Website deployment remains separate work.
 | `logo-dark.svg` | Mark and wordmark on dark backgrounds |
 | `logo-light.svg` | Mark and wordmark on light backgrounds |
 | `logo.svg` | Inline SVG inheriting the surrounding CSS color |
+| `logo-site-dark.svg`, `logo-site-light.svg` | Documentation lockups with the mark on a rounded citron tile |
 | `wordmark-dark.svg`, `wordmark-light.svg` | Wordmark without the mark |
 | `mark-dark.svg`, `mark-light.svg` | Standalone mark |
 | `mark.svg` | Editable mark source; inherits CSS color when inlined |
@@ -24,7 +25,8 @@ Website deployment remains separate work.
 
 The lockup, wordmark, banner, and social-preview typography use outlined paths,
 with no font installation or network dependency. Logo and wordmark SVGs have transparent
-backgrounds; the banner includes its own obsidian background for both themes.
+backgrounds, except for the citron tile in the documentation lockups; the banner
+includes its own obsidian background for both themes.
 Use the fixed-color variants in image tags and design applications; use the
 `currentColor` variants when inlining the SVG in an application. Choose one
 high-contrast color for the core logo.
@@ -43,6 +45,12 @@ for a dedicated small-size asset rather than squeezing the full lockup.
 Keep proportions intact. Do not retype, stretch, recolor individual letters,
 or add effects to the core logo. Use ivory on obsidian and obsidian on light
 surfaces. Citron is an accent for links, active states, and request motion.
+
+The documentation lockups also use citron behind the obsidian mark, with an
+obsidian wordmark on light surfaces and an ivory wordmark on dark surfaces.
+These variants preserve the original outlined shapes and their relative scale.
+Use them at 156px wide or larger. Keep the tile inside the SVG rather than
+adding a background around the full header or wordmark.
 
 Display typography uses Manrope ExtraBold; body text uses Manrope Regular.
 Code uses DM Mono with a system monospace fallback. Only Manrope's source is

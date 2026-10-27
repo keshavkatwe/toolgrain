@@ -1,14 +1,14 @@
 {
   "artwork": {
-    "logo/light.svg": "brand/logo-light.svg",
-    "logo/dark.svg": "brand/logo-dark.svg",
+    "logo/light.svg": "brand/logo-site-light.svg",
+    "logo/dark.svg": "brand/logo-site-dark.svg",
     "favicon/light.svg": "brand/mark-light.svg",
     "favicon/dark.svg": "brand/mark-dark.svg"
   },
   "sha256": {
     "favicon/dark.svg": "402e9052fd260745589c677fbfec6292f1ec44aa62007fac29c0c536050c6215",
     "favicon/light.svg": "9b0f824c9fc5874efed2e64c0cf09036bdaa9abacb8b88efaa9e90e4cf7e8d9f",
-    "logo/dark.svg": "ba21d2c2deb50590b9dd98571814d484fd0a9e1ed9fb08a5636a5bc92af6d12c",
-    "logo/light.svg": "0ee2c6dd5a7e2ba7f5628646977814d6a3a85324fadcb0f41678810aa91b2cfb"
+    "logo/dark.svg": "0a5a88605e1f901e957dcabacfd785427ea2f9cd77d69d22b3cc2683473b84a9",
+    "logo/light.svg": "8a563519a247c1d4fd4f2b1ef0401b3eeccfe109aa17b6368a8a49e3ff7a9418"
   }
 }
