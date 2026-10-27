@@ -69,6 +69,17 @@ for suffix, color in variants.items():
     )
     (ROOT / f"logo{suffix}.svg").write_text(svg(word_width + word_x + 10, lockup_height, content, color, "Toolgrain"))
 
+# Documentation lockups retain the outlined artwork and place the mark on citron.
+for suffix, color in (("-light", brand["colors"]["obsidian"]), ("-dark", brand["colors"]["ivory"])):
+    site_word_x = 104
+    content = (
+        f'<rect width="84" height="84" rx="20" fill="{brand["colors"]["citron"]}"/>'
+        f'<g transform="translate(13.025 7.535) scale({mark_scale})" fill="{brand["colors"]["obsidian"]}">{mark_paths}</g>'
+        f'<g transform="translate({site_word_x-x0:.3f} {(lockup_height-word_height)/2-y0:.3f})">'
+        f'<path d="{word_paths}"/></g>'
+    )
+    (ROOT / f"logo-site{suffix}.svg").write_text(svg(word_width + site_word_x + 10, lockup_height, content, color, "Toolgrain"))
+
 sheet_width, sheet_height = 1200, 860
 lockup = f'<g transform="translate(0 7.84) scale({mark_scale})">{mark_paths}</g><g transform="translate({word_x-x0:.3f} {(lockup_height-word_height)/2-y0:.3f})"><path d="{word_paths}"/></g>'
 swatches = []

@@ -7,7 +7,9 @@ remains in [`brand/`](../../brand/README.md).
 ## Artwork
 
 `logo/light.svg` and `logo/dark.svg` are unchanged copies of the approved
-`brand/logo-light.svg` and `brand/logo-dark.svg` lockups. `favicon/light.svg` and
+`brand/logo-site-light.svg` and `brand/logo-site-dark.svg` lockups, which place
+the obsidian mark on a rounded citron tile and use a theme-specific wordmark.
+`favicon/light.svg` and
 `favicon/dark.svg` reuse the corresponding approved standalone marks. Preserve
 the complete mark and wordmark proportions. Toolgrain-owned artwork follows the
 repository's MIT license.
