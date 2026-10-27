@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/mcp",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Define reusable, typed MCP tools and servers with Zod validation.",
   "license": "MIT",
   "repository": {

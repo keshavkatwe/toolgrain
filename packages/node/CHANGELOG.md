@@ -1,5 +1,13 @@
 # @toolgrain/node
 
+## 0.1.3
+
+### Patch Changes
+
+- @toolgrain/http@0.1.3
+  - @toolgrain/mcp@0.1.3
+  - @toolgrain/protocol@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

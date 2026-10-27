@@ -1,5 +1,11 @@
 # @toolgrain/jwt
 
+## 0.1.3
+
+### Patch Changes
+
+- @toolgrain/mcp@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
