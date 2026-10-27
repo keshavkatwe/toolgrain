@@ -18,7 +18,13 @@ Modern listings include cache/server metadata and icons. Legacy results omit mod
 
 ## Client evidence
 
-Inspector 2.11.0 passes the existing checks in both revisions and automatic discovery. Tested Codex and Claude Code tool flows work with documented timeout/presentation limitations. Cursor discovery/auth checks passed; execution and cancellation remain unverified. Modern Claude Code coverage, live OAuth login, GUI flows, and remote deployment remain open in the report.
+Inspector 2.11.0 passes the existing checks in both revisions and automatic discovery. Tested Codex tool flows work with the documented timeout limitation.
+
+The [Cursor desktop follow-up](/compatibility/clients#cursor-desktop-follow-up) verified legacy execution and recovery over stdio, HTTP, and protected HTTP in version 3.26.16. Stopping its tested calls did not abort server work on any of those transports. The [additional checks](/compatibility/clients#additional-cursor-client-checks) verified CLI execution in version 2026.10.22-27dcf5f, including modern HTTP and protected HTTP. The tested desktop configuration failed modern negotiation probes; both clients failed the modern stdio probe.
+
+The [Claude Code v2 follow-up](/compatibility/clients#claude-code-v2-follow-up) checked version 2.1.311 with explicit modern and forced legacy configurations over all three transports. Supplemental rich text remained hidden alongside structured content. Modern timeout and interactive Esc/Ctrl+C probes aborted handlers across all three transports; legacy HTTP cancellation notifications remained advisory until disconnection.
+
+Live OAuth login, account-controlled client rollouts, other GUI flows, and remote deployment remain unverified.
 
 See the [2026-10-22 client report](/compatibility/clients) for exact versions, assertion counts, controls, and workarounds, and [protocol verification](/compatibility/protocol) for setup and repeatable Inspector commands. Do not silently promote an old partial result into a current complete compatibility claim.
 

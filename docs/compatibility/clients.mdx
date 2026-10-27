@@ -33,8 +33,9 @@ other nine reproduce the same timeout limitation across three configurations
 and three transports. Claude Code passes 30 of 33 assertions in each of two runs;
 the other three reproduce the same rich-result limitation across transports.
 Both tested workarounds for that limitation pass in all three transports.
-Cursor passes four discovery/authentication checks; its tool execution and
-cancellation remain unverified. Four explicit cancellation/disconnect controls
+Cursor passes four discovery/authentication checks; that CLI review did not test
+execution or cancellation. See the later [desktop follow-up](#cursor-desktop-follow-up).
+Four explicit cancellation/disconnect controls
 and three Claude Code timeout-response checks also pass.
 
 ## Issues
@@ -120,9 +121,10 @@ needed. This verifies the MCP client and its model-facing normalization, rather
 than a live Anthropic account/inference path. See the
 [Claude Code headless documentation](https://code.claude.com/docs/en/headless).
 
-Cursor's installed desktop version is 0.48.6. Its UI probe stalled and returned
-only an empty HTML accessibility surface, so a separate official Cursor Agent
-CLI release was downloaded and unpacked into the temporary test directory.
+Cursor's installed desktop version was 0.48.6 during that review. Its UI probe
+stalled and returned only an empty HTML accessibility surface, so a separate
+official Cursor Agent CLI release was downloaded and unpacked into the temporary
+test directory.
 The desktop installation was not upgraded. `CURSOR_CONFIG_DIR` and
 `NODE_COMPILE_CACHE` point to disposable test folders; only the local fixture
 servers were approved with `mcp enable`, then checked with `mcp list-tools`.
@@ -136,21 +138,25 @@ credentials receive 401 and expose no protected tools. Its CLI subsequently
 reports `fetch failed` while attempting OAuth discovery against the deliberately
 offline authorization-server URL; a real OAuth login flow was not tested.
 The public MCP CLI exposes discovery/listing commands rather than direct tool
-execution, and no signed-in Cursor model session was started. This remains a
-coverage gap for Cursor, not a verified execution pass.
+execution, and no signed-in Cursor model session was started. Execution and
+cancellation remain unverified for that CLI build.
 
 Claude Code offered `2025-11-25` during initialization and successfully accepted
 Toolgrain's `2025-06-18` response. Setting `MCP_SDK_GENERATION=v2` and
 `MCP_PROTOCOL_NEGOTIATION=auto` did not produce a modern handshake in version
 2.1.191. This is not evidence that Toolgrain supports `2025-11-25`. Current
 [Claude Code documentation](https://code.claude.com/docs/en/mcp#mcp-client-runtimes)
-describes newer builds with a v2 runtime; those builds were not tested here.
+describes newer builds with a v2 runtime; those builds were not tested in the
+2026-10-22 review.
+The later [Claude Code follow-up](#claude-code-v2-follow-up) checks that runtime
+in version 2.1.311.
 
 The protected fixture uses a synthetic bearer token and custom `AuthProvider`.
 Its tool reads the verified identity using `createAuthAccessor`, and the context
 fixture checks that concurrent provider access shares one value per request.
 JWT/Clerk OAuth login, interactive GUI tool use, remote deployments, parameter
-header annotations, and image/audio presentation remain outside this report.
+header annotations, and image/audio presentation were outside the 2026-10-22
+review.
 
 Local JSON evidence is stored in the ignored `reports/compatibility/` directory:
 
@@ -167,3 +173,211 @@ The capture proxy uses Node's HTTP request API to preserve the external Host
 authority, including during protected-resource metadata discovery. These local
 artifacts are supplementary evidence; the table above records the tested scope
 and the remaining gaps.
+
+## Cursor desktop follow-up
+
+On **2026-10-27**, Cursor desktop **3.26.16** was tested on macOS arm64 with
+Node **24.20.0**, Zod **4.6.7**, and freshly installed npm packages
+`@toolgrain/mcp` and `@toolgrain/node` **0.1.2**. Their HTTP and protocol
+dependencies also resolved to 0.1.2. The fixture imported installed packages,
+without workspace library imports. The signed-in desktop Agent performed the
+calls, with each tool call approved in the UI.
+
+Cursor offered `2025-11-25` and accepted `2025-06-18`. These results establish
+only the negotiated legacy flow, not modern Cursor compatibility or support for
+the originally offered revision.
+
+| Check | Result |
+| --- | --- |
+| Stdio Unicode greeting with declared structured output | Pass; `Hello, Cursor-雪!` reached the chat |
+| Stdio greeting after stopping a prior request | Pass |
+| HTTP Unicode greeting with declared structured output | Pass; `Hello, HTTP-雪!` reached the chat |
+| HTTP greeting after stopping a prior request | Pass |
+| Protected HTTP context call | Pass; verified synthetic bearer identity and request-cached provider value reached the chat |
+| Stdio Ctrl+C during a running tool | Client limitation; server work continued for 60 seconds |
+| HTTP Stop during a running tool | Client limitation; server work continued for 60 seconds |
+
+Five execution/recovery checks passed. The two cancellation probes are recorded
+as client limitations, not passing server-cancellation checks.
+
+### Stop does not abort the tested server work
+
+To reproduce, register a `slow` tool that waits 60 seconds, records when its
+handler starts and when `ctx.signal` aborts, and returns `finished`. Enable the
+server in the workspace's `.cursor/mcp.json`, ask Agent to call `slow` once,
+approve the call, and stop the request while the handler is running. Keep Cursor
+and the MCP connection open throughout the observation window.
+
+The stdio probe used Ctrl+C; the HTTP probe used the visible Stop control.
+Cursor stopped the chat requests, but neither capture contained a matching
+`notifications/cancelled`, and neither handler observed an abort. Both handlers
+returned `finished` after their full 60-second wait. The HTTP request remained
+connected through that response. Subsequent greetings succeeded over the same
+connections. An earlier 10-second timing attempt finished before Stop and was
+excluded from the cancellation results.
+
+Four direct controls against the same published-package fixture passed:
+explicit stdio cancellation aborted the handler and suppressed its response in
+both supported revisions, and HTTP disconnection aborted the handler in both
+revisions. These controls distinguish the observed Cursor behavior from a
+Toolgrain cancellation or capture-proxy failure. Applications doing expensive
+work should continue to enforce their own execution deadlines.
+
+Protected HTTP used a synthetic bearer token and custom `AuthProvider`; it did
+not exercise live JWT/Clerk OAuth login. The additional checks below address
+protected HTTP cancellation, CLI/ACP execution, and modern negotiation. Live
+OAuth login and other GUI/result-presentation paths remain unverified. See
+Cursor's [MCP documentation](https://cursor.com/docs/mcp) for its current
+configuration and approval controls.
+
+Supplementary captures, the fixture, assertions, and the seven-check summary are
+stored locally under ignored `reports/cursor-2026-10-27/`. Four separate passing
+cancellation controls are recorded there as well. No library implementation
+changed during this follow-up.
+
+### Additional Cursor client checks
+
+Later on **2026-10-27**, the same published-package fixtures were checked with
+Cursor desktop **3.26.16** and the official Cursor CLI
+**2026.10.22-27dcf5f**. The CLI used a dedicated local profile, normal Cursor
+sign-in, and its default Auto model through an actual
+[ACP session](https://cursor.com/docs/cli/acp). Only the named fixture MCP tools
+were approved. The CLI's [MCP discovery command](https://cursor.com/docs/cli/mcp)
+also listed all nine tools on each of five endpoints.
+
+| Additional check | Passed | Total | Result |
+| --- | ---: | ---: | --- |
+| Desktop protected HTTP recovery: context and Unicode greeting | 2 | 2 | Verified identity, cached context, and greeting reached the chat after Stop |
+| CLI discovery: legacy stdio/HTTP/protected HTTP and modern HTTP/protected HTTP | 5 | 5 | Nine tools listed per endpoint |
+| CLI execution: greeting and context on those five endpoints | 10 | 10 | Exact results reached the client; context confirmed each revision |
+| Desktop protected HTTP Stop during a running tool | 0 | 1 | Server work continued for its full 60-second wait |
+| Desktop modern negotiation: stdio, HTTP, and protected HTTP | 0 | 3 | The tested configuration failed to connect to the negotiation probes |
+| CLI modern stdio discovery | 0 | 1 | Client returned `Unsupported protocol version` |
+| Direct modern stdio discovery and context control | 2 | 2 | The stdio negotiation fixture accepted modern requests |
+
+The protected HTTP Stop probe sent a synthetic bearer token and negotiated
+`2025-06-18`. Cursor stopped the chat request, but sent no matching cancellation
+notification and kept the HTTP request connected. The handler observed no abort
+and returned `finished` after 60 seconds. The subsequent context and greeting
+calls passed. This extends the earlier Stop limitation to protected HTTP; it
+does not verify a live OAuth login.
+
+The modern negotiation fixtures rejected legacy `initialize` with error
+`-32022` and `data.supported: ["2026-07-28"]`, then forwarded modern requests to
+the unchanged published Toolgrain server. Ordinary endpoints retained both
+protocol eras. This fixture gate exercised client fallback; it is not a new
+Toolgrain server configuration API.
+
+On those HTTP probes, the CLI retried with `server/discover` and sent modern
+version, method, and tool-name headers and request metadata. Both modern
+context results confirmed `2026-07-28`; protected context included the verified
+synthetic identity. Ordinary stdio, HTTP, and protected HTTP instead confirmed
+`2025-06-18`. All five Unicode greetings reached the model's final response.
+
+The tested desktop configuration offered `2025-11-25` to both modern HTTP
+probes, then attempted an SSE fallback that received HTTP 405. It sent no
+`server/discover`. Both desktop and CLI also offered a legacy revision to the
+modern stdio probe and failed with `Unsupported protocol version`. These are
+observed client limitations, not passing modern compatibility checks. They do
+not establish behavior for other builds or account-controlled rollouts.
+
+Captures, the authenticated CLI transcript, and report assertions remain ignored
+under `reports/cursor-2026-10-27/followup/`. Cursor CLI interactive/print-mode
+behavior and cancellation, live JWT/Clerk OAuth login, other GUI presentation
+paths, and remote deployment remain unverified.
+
+## Claude Code v2 follow-up
+
+On **2026-10-27**, the official Claude Code **2.1.311** native macOS arm64 npm
+package was tested in an isolated installation. The server fixture used Node
+**24.20.0**, Zod **4.6.7**, and freshly installed `@toolgrain/mcp` and
+`@toolgrain/node` **0.1.2**, with HTTP and protocol dependencies also at 0.1.2.
+No workspace library imports or library implementation changes were involved.
+
+Both configurations explicitly set `MCP_SDK_GENERATION=v2`. With
+`MCP_PROTOCOL_NEGOTIATION=auto`, Claude Code used `server/discover` and
+`2026-07-28` request metadata over stdio, HTTP, and protected HTTP. With
+`MCP_PROTOCOL_NEGOTIATION=legacy`, it initialized and negotiated `2025-06-18`
+over all three transports. Each transport's context tool confirmed its request
+revision. See the official [runtime controls](https://code.claude.com/docs/en/mcp#mcp-client-runtimes).
+
+| Configuration/check | Passed | Total | Result |
+| --- | ---: | ---: | --- |
+| v2 automatic negotiation; modern stdio, HTTP, and protected HTTP | 30 | 33 | Three cases reproduce the rich-text presentation limitation |
+| v2 forced legacy; stdio, HTTP, and protected HTTP | 30 | 33 | Same limitation |
+| Two-second tool-timeout responses across both configurations | 6 | 6 | Timeout errors reached the model-facing results |
+| Modern timeout cancellation, all three transports | 3 | 3 | Handlers aborted before client exit |
+| Legacy stdio timeout cancellation | 1 | 1 | Handler aborted before client exit |
+| Legacy HTTP/protected HTTP handler abort before client exit | 0 | 2 | Cancellation notifications remained advisory; disconnection later aborted the handlers |
+| Direct stdio cancellation and HTTP disconnect controls, both revisions | 4 | 4 | Pass |
+
+The 33 execution assertions in each configuration cover discovery/execution,
+ASCII and Unicode greetings, invalid inputs, a typed variant, rich results and
+both documented presentation workarounds, request-cached context, a verified
+synthetic bearer identity, public expected errors, and private unexpected errors.
+The six non-passing rich-result assertions are not counted as passes: the wire
+responses included `Rich report` alongside `{ "count": 2 }`, but Claude Code
+supplied only `{"count":2}` to the model-facing result. Including the narrative
+in structured content or returning text without structured content continued to
+work over every tested transport in both revisions.
+
+### Timeout cancellation by revision
+
+The cancellation probes set `MCP_TOOL_TIMEOUT=2000` and called a tool that waits
+ten seconds and records `ctx.signal` aborts. The loopback model endpoint held its
+final response for three seconds after receiving the timeout results. This kept
+the Claude Code process open while checking server cancellation separately from
+client shutdown.
+
+In modern mode, stdio sent a matching `notifications/cancelled`, while HTTP and
+protected HTTP disconnected their pending requests. All three handlers observed
+an abort approximately two seconds after starting, and returned no successful
+tool result during the pre-exit observation window.
+
+In forced legacy mode, stdio cancellation also aborted its handler. HTTP and
+protected HTTP instead sent cancellation notifications, which Toolgrain accepted
+as advisory. Neither handler aborted during the additional three-second window;
+both aborted when the client connections subsequently closed. This preserves
+the independent-request contract: a legacy notification carries no safe
+client/session identity for cancelling another request. Applications must
+continue to apply their own deadlines when necessary.
+
+### Interactive cancellation
+
+A later **2026-10-27** probe exercised the actual interactive terminal with
+Esc and Ctrl+C, separately, for every transport in both configurations. The
+fixture waited ten seconds; the harness sent a key after the handler started
+and kept the CLI open for three more seconds before cleanup. All **12** terminal
+sessions displayed `Interrupted` and remained open during that observation.
+
+| Interactive check | Handlers aborted before cleanup | Total |
+| --- | ---: | ---: |
+| Modern stdio, HTTP, and protected HTTP; both keys | 6 | 6 |
+| Legacy stdio; both keys | 2 | 2 |
+| Legacy HTTP and protected HTTP; both keys | 0 | 4 |
+
+The eight observed aborts occurred within 81 ms of sending the key. Stdio sent
+matching cancellation notifications; modern HTTP disconnected the pending
+requests. The four legacy HTTP probes sent advisory cancellation notifications,
+with no handler abort or successful result during the pre-cleanup window.
+These are client limitations, not passing server-cancellation checks. This
+interactive probe used the same deterministic local model endpoint; it does not
+establish live Anthropic inference or other GUI behavior.
+
+### Method and remaining limits
+
+The actual Claude Code process discovered and executed the MCP tools. A
+deterministic loopback Messages API fixture supplied tool-use messages and
+recorded the tool results returned to the model. Configuration, API credentials,
+and bearer identities were synthetic and isolated; no live inference or OAuth
+login was used. The installed user CLI and user configuration were unchanged.
+
+Explicit runtime/negotiation overrides were tested, rather than an account's
+feature-flag rollout or default settings. Live Anthropic inference,
+other GUI paths, live JWT/Clerk OAuth login, and remote deployment
+remain unverified. These probes do not extend Toolgrain's protocol or transport
+scope.
+
+Supplementary raw reports, the fixture, and assertions remain ignored under
+`reports/claude-2026-10-27/`. Its summary distinguishes execution assertions,
+client timeout feedback, server abort observations, and direct controls.
