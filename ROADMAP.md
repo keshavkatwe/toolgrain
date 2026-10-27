@@ -44,13 +44,20 @@ client checks above remain pending.
 
 Cursor desktop 3.26.16 passed execution and recovery checks against published
 0.1.2 packages over stdio, HTTP, and protected HTTP on 2026-10-27. Stopping a
-running stdio or HTTP call did not abort server work; see the
+running call did not abort server work over stdio, HTTP, or protected HTTP; see the
 [Cursor follow-up](docs/compatibility/clients.mdx#cursor-desktop-follow-up).
+Cursor CLI 2026.10.22-27dcf5f also passed legacy stdio/HTTP and modern HTTP
+execution checks.
+The tested desktop configuration failed modern negotiation probes, and both
+clients failed the modern stdio probe. See the
+[additional checks](docs/compatibility/clients.mdx#additional-cursor-client-checks).
 
 Claude Code 2.1.311's explicit v2 runtime was checked against published 0.1.2
 packages on 2026-10-27. Modern and forced legacy calls worked over all three
 transports, with the existing rich-text presentation limitation; timeout
-cancellation differed by protocol. See the
+cancellation differed by protocol. Interactive Esc/Ctrl+C checks also confirmed
+aborts on all modern transports and legacy stdio, with legacy HTTP notifications
+remaining advisory. See the
 [Claude Code follow-up](docs/compatibility/clients.mdx#claude-code-v2-follow-up).
 
 The tested Codex direct-call timeout also does not promptly abort server work.

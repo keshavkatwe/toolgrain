@@ -224,15 +224,67 @@ Toolgrain cancellation or capture-proxy failure. Applications doing expensive
 work should continue to enforce their own execution deadlines.
 
 Protected HTTP used a synthetic bearer token and custom `AuthProvider`; it did
-not exercise live JWT/Clerk OAuth login. Protected HTTP cancellation, Cursor CLI
-or ACP execution, modern Cursor flows, and other GUI/result-presentation paths
-remain unverified. See Cursor's [MCP documentation](https://cursor.com/docs/mcp)
-for its current configuration and approval controls.
+not exercise live JWT/Clerk OAuth login. The additional checks below address
+protected HTTP cancellation, CLI/ACP execution, and modern negotiation. Live
+OAuth login and other GUI/result-presentation paths remain unverified. See
+Cursor's [MCP documentation](https://cursor.com/docs/mcp) for its current
+configuration and approval controls.
 
 Supplementary captures, the fixture, assertions, and the seven-check summary are
 stored locally under ignored `reports/cursor-2026-10-27/`. Four separate passing
 cancellation controls are recorded there as well. No library implementation
 changed during this follow-up.
+
+### Additional Cursor client checks
+
+Later on **2026-10-27**, the same published-package fixtures were checked with
+Cursor desktop **3.26.16** and the official Cursor CLI
+**2026.10.22-27dcf5f**. The CLI used a dedicated local profile, normal Cursor
+sign-in, and its default Auto model through an actual
+[ACP session](https://cursor.com/docs/cli/acp). Only the named fixture MCP tools
+were approved. The CLI's [MCP discovery command](https://cursor.com/docs/cli/mcp)
+also listed all nine tools on each of five endpoints.
+
+| Additional check | Passed | Total | Result |
+| --- | ---: | ---: | --- |
+| Desktop protected HTTP recovery: context and Unicode greeting | 2 | 2 | Verified identity, cached context, and greeting reached the chat after Stop |
+| CLI discovery: legacy stdio/HTTP/protected HTTP and modern HTTP/protected HTTP | 5 | 5 | Nine tools listed per endpoint |
+| CLI execution: greeting and context on those five endpoints | 10 | 10 | Exact results reached the client; context confirmed each revision |
+| Desktop protected HTTP Stop during a running tool | 0 | 1 | Server work continued for its full 60-second wait |
+| Desktop modern negotiation: stdio, HTTP, and protected HTTP | 0 | 3 | The tested configuration failed to connect to the negotiation probes |
+| CLI modern stdio discovery | 0 | 1 | Client returned `Unsupported protocol version` |
+| Direct modern stdio discovery and context control | 2 | 2 | The stdio negotiation fixture accepted modern requests |
+
+The protected HTTP Stop probe sent a synthetic bearer token and negotiated
+`2025-06-18`. Cursor stopped the chat request, but sent no matching cancellation
+notification and kept the HTTP request connected. The handler observed no abort
+and returned `finished` after 60 seconds. The subsequent context and greeting
+calls passed. This extends the earlier Stop limitation to protected HTTP; it
+does not verify a live OAuth login.
+
+The modern negotiation fixtures rejected legacy `initialize` with error
+`-32022` and `data.supported: ["2026-07-28"]`, then forwarded modern requests to
+the unchanged published Toolgrain server. Ordinary endpoints retained both
+protocol eras. This fixture gate exercised client fallback; it is not a new
+Toolgrain server configuration API.
+
+On those HTTP probes, the CLI retried with `server/discover` and sent modern
+version, method, and tool-name headers and request metadata. Both modern
+context results confirmed `2026-07-28`; protected context included the verified
+synthetic identity. Ordinary stdio, HTTP, and protected HTTP instead confirmed
+`2025-06-18`. All five Unicode greetings reached the model's final response.
+
+The tested desktop configuration offered `2025-11-25` to both modern HTTP
+probes, then attempted an SSE fallback that received HTTP 405. It sent no
+`server/discover`. Both desktop and CLI also offered a legacy revision to the
+modern stdio probe and failed with `Unsupported protocol version`. These are
+observed client limitations, not passing modern compatibility checks. They do
+not establish behavior for other builds or account-controlled rollouts.
+
+Captures, the authenticated CLI transcript, and report assertions remain ignored
+under `reports/cursor-2026-10-27/followup/`. Cursor CLI interactive/print-mode
+behavior and cancellation, live JWT/Clerk OAuth login, other GUI presentation
+paths, and remote deployment remain unverified.
 
 ## Claude Code v2 follow-up
 
@@ -290,6 +342,28 @@ the independent-request contract: a legacy notification carries no safe
 client/session identity for cancelling another request. Applications must
 continue to apply their own deadlines when necessary.
 
+### Interactive cancellation
+
+A later **2026-10-27** probe exercised the actual interactive terminal with
+Esc and Ctrl+C, separately, for every transport in both configurations. The
+fixture waited ten seconds; the harness sent a key after the handler started
+and kept the CLI open for three more seconds before cleanup. All **12** terminal
+sessions displayed `Interrupted` and remained open during that observation.
+
+| Interactive check | Handlers aborted before cleanup | Total |
+| --- | ---: | ---: |
+| Modern stdio, HTTP, and protected HTTP; both keys | 6 | 6 |
+| Legacy stdio; both keys | 2 | 2 |
+| Legacy HTTP and protected HTTP; both keys | 0 | 4 |
+
+The eight observed aborts occurred within 81 ms of sending the key. Stdio sent
+matching cancellation notifications; modern HTTP disconnected the pending
+requests. The four legacy HTTP probes sent advisory cancellation notifications,
+with no handler abort or successful result during the pre-cleanup window.
+These are client limitations, not passing server-cancellation checks. This
+interactive probe used the same deterministic local model endpoint; it does not
+establish live Anthropic inference or other GUI behavior.
+
 ### Method and remaining limits
 
 The actual Claude Code process discovered and executed the MCP tools. A
@@ -299,8 +373,8 @@ and bearer identities were synthetic and isolated; no live inference or OAuth
 login was used. The installed user CLI and user configuration were unchanged.
 
 Explicit runtime/negotiation overrides were tested, rather than an account's
-feature-flag rollout or default settings. Live Anthropic inference, interactive
-Esc/Ctrl+C, other GUI paths, live JWT/Clerk OAuth login, and remote deployment
+feature-flag rollout or default settings. Live Anthropic inference,
+other GUI paths, live JWT/Clerk OAuth login, and remote deployment
 remain unverified. These probes do not extend Toolgrain's protocol or transport
 scope.
 

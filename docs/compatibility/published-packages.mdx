@@ -52,10 +52,12 @@ recorded as limitations and are not counted as passing checks.
 
 Cursor execution/cancellation and GUI flows were unverified in this review. A
 later [Cursor desktop follow-up](/compatibility/clients#cursor-desktop-follow-up)
-checked execution and cancellation against published 0.1.2 packages. Modern
-Claude Code was also checked against 0.1.2 in the later
-[v2 follow-up](/compatibility/clients#claude-code-v2-follow-up); live OAuth login
-remains unverified. HTTP scope is independent POST requests with JSON responses.
+checked execution and cancellation against published 0.1.2 packages, including
+protected HTTP Stop and [CLI execution/modern negotiation](/compatibility/clients#additional-cursor-client-checks).
+Modern Claude Code was also checked against 0.1.2 in the later
+[v2 follow-up](/compatibility/clients#claude-code-v2-follow-up), including
+interactive cancellation; live OAuth login remains unverified. HTTP scope is
+independent POST requests with JSON responses.
 Resources, prompts, elicitation, persistent sessions, streaming, progress,
 resumability, and subscriptions remain outside this release.
 
