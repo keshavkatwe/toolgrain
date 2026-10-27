@@ -25,14 +25,6 @@ Check the endpoint path, URL authority, Host header, and Origin separately. Matc
 
 Use an OAuth access token for the expected public resource. Check issuer, audience, expiration, and signature algorithm. Clerk sessions/API keys/M2M tokens are intentionally rejected. Audience errors distinguish missing `aud` from mismatch and identify the expected resource; do not print or share the raw token to debug this.
 
-Published `@toolgrain/clerk@0.1.2` can also reject a valid opaque OAuth access
-token with `401 invalid_token` after successful consent and token exchange,
-even when its audience is correct. The adapter requires a `type` field that
-Clerk's live verification response omitted. An unreleased fix and regression
-tests cover that response shape. See the
-[live Clerk verification record](/compatibility/clients#live-clerk-oauth-follow-up)
-for the cause, correction, and remaining live-verification limits.
-
 Provider outages are separate from invalid credentials. Unexpected auth errors reach `onError` without tool/request details. Read [authorization behavior](/guides/authorization#request-behavior).
 
 ## A timeout does not stop the handler

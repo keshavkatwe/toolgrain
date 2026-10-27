@@ -24,13 +24,7 @@ The [Cursor desktop follow-up](/compatibility/clients#cursor-desktop-follow-up) 
 
 The [Claude Code v2 follow-up](/compatibility/clients#claude-code-v2-follow-up) checked version 2.1.311 with explicit modern and forced legacy configurations over all three transports. Supplemental rich text remained hidden alongside structured content. Modern timeout and interactive Esc/Ctrl+C probes aborted handlers across all three transports; legacy HTTP cancellation notifications remained advisory until disconnection.
 
-The [live Clerk OAuth follow-up](/compatibility/clients#live-clerk-oauth-follow-up)
-completed real consent and token exchange in Inspector, but published 0.1.2
-rejected a valid opaque access token because the verification response omitted
-`type`. The unreleased workspace fix accepts the omitted field and includes
-regression coverage. A working end-to-end live OAuth flow with a published fix,
-account-controlled client rollouts, other GUI flows, and remote deployment remain
-unverified.
+Live OAuth login, account-controlled client rollouts, other GUI flows, and remote deployment remain unverified.
 
 See the [2026-10-22 client report](/compatibility/clients) for exact versions, assertion counts, controls, and workarounds, and [protocol verification](/compatibility/protocol) for setup and repeatable Inspector commands. Do not silently promote an old partial result into a current complete compatibility claim.
 

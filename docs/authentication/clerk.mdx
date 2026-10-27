@@ -5,17 +5,6 @@ description: "Protect an HTTP server with Clerk OAuth JWT or opaque access token
 
 `clerk()` accepts Clerk OAuth JWT and opaque access tokens. Session tokens, API keys, and M2M tokens are intentionally excluded. Both the publishable key and secret key are required.
 
-**Known failure in 0.1.2:** the [live Clerk OAuth check](/compatibility/clients#live-clerk-oauth-follow-up)
-completed consent and token exchange, but the adapter rejected a valid opaque
-access token. Clerk's verification response omitted a `type` field that the
-adapter requires. Successful live authenticated tool execution and live JWT
-OAuth remain unverified.
-
-The unreleased workspace fix accepts an omitted `type` while rejecting an
-incompatible explicit value. Revocation, expiration, user/client identity, and
-resource-audience checks still apply. A published fix has not yet been verified
-with the live OAuth flow.
-
 ```ts
 import { clerk, useAuth } from "@toolgrain/clerk";
 import { createServer, tool } from "@toolgrain/mcp";
@@ -48,8 +37,4 @@ Configure a Clerk OAuth application, a public client with the appropriate redire
 
 The repository's ordinary Elysia flow is credential-free on port 3003. Its separate `dev:clerk` flow uses port 3007 and reads keys from the workspace's ignored `.env.local`. Missing keys fail startup. Do not treat an unprotected example as an auth smoke test.
 
-Token verification is covered by offline JWT/opaque-token responses. The dated
-[live check](/compatibility/clients#live-clerk-oauth-follow-up) records the opaque-token
-failure and the remaining gaps; it does not establish a working end-to-end OAuth
-flow. Live verification requires your local keys and provider configuration.
-See [the full guide](/guides/authorization#clerk) and [Clerk reference](/reference/clerk).
+Token verification is covered by offline JWT/opaque-token responses. Live OAuth login and consent require your local keys and provider configuration and are not claimed as fully verified client flows. See [the full guide](/guides/authorization#clerk) and [Clerk reference](/reference/clerk).

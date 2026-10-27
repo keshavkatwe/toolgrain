@@ -111,11 +111,6 @@ the MCP clients you intend to support. See [Clerk's OAuth guide](https://clerk.c
 For a runnable framework application and Inspector OAuth setup, see the
 [Elysia Clerk example](https://github.com/keshavkatwe/toolgrain/blob/main/apps/elysia-example/README.md#clerk-authorization-and-inspector).
 
-Published **0.1.2** has a [reproduced live opaque-token failure](/compatibility/clients#live-clerk-oauth-follow-up):
-the adapter rejects Clerk verification responses without `type`, even when the
-token and audience are valid. The unreleased workspace fix accepts the omitted
-field; successful end-to-end live OAuth with a published fix remains unverified.
-
 Enable `aud_claim_enabled` in Clerk's instance OAuth application settings. Clerk
 then includes the requested OAuth `resource` in access tokens' audience. Both JWT
 and opaque tokens must include the resolved MCP resource as their audience.
