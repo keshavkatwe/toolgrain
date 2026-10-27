@@ -36,6 +36,12 @@ These items describe remaining review or verification, without a release date:
 - Expand client coverage for Cursor execution/cancellation, modern Claude Code,
   live OAuth login, and GUI flows. These remain unverified.
 
+A local application pilot passed nine automated checks against published
+Toolgrain 0.1.2 packages on 2026-10-27, covering persistent task workflows,
+concurrent requests, validation, restart recovery, and cooperative cancellation
+over stdio and HTTP in both supported protocol eras. Real-user feedback and the
+client checks above remain pending.
+
 The tested Codex direct-call timeout does not promptly abort server work. The
 tested Claude Code client hides supplemental text alongside structured content.
 Controls and workarounds are recorded in the
