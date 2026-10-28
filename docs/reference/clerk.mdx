@@ -9,9 +9,34 @@ description: "Public exports and behavior of @toolgrain/clerk."
 clerk(options: ClerkOptions): AuthProvider<ClerkAuth>
 ```
 
-`ClerkOptions` requires `publishableKey: string` and `secretKey: string`, with optional `resource: string` and `scopesSupported: readonly string[]`. Issuer is derived from the publishable key; resource defaults to the validated public HTTP endpoint. Keys are server configuration, not tool inputs.
+`ClerkOptions` requires `publishableKey: string` and `secretKey: string`, with optional `resource: string` and `scopesSupported: readonly ClerkOAuthScope[]`. Issuer is derived from the publishable key; resource defaults to the validated public HTTP endpoint. Keys are server configuration, not tool inputs.
 
 `scopesSupported` declares this resource's public scope catalog. It is validated and copied at provider construction and appears as `scopes_supported` in protected-resource metadata. Omission leaves that field absent; `[]` advertises no scopes. It does not enforce required scopes or change Clerk's OAuth settings. See [resource scopes](/guides/authorization#resource-scopes).
+
+## Scope names
+
+`CLERK_OAUTH_SCOPES` is a frozen tuple of Clerk's documented built-ins:
+`openid`, `profile`, `email`, `offline_access`, `public_metadata`,
+`private_metadata`, and `user:org:read`. The last requires Organizations to be
+enabled. `ClerkBuiltInOAuthScope` is the closed literal union of that tuple.
+
+`ClerkOAuthScope` provides built-in autocomplete and also accepts custom scope
+names, which Clerk supports per instance. It is not a compile-time allowlist;
+configuration still rejects invalid OAuth scope syntax at runtime. Create custom
+scopes in Clerk and assign them to the appropriate OAuth applications before
+advertising them. Instance metadata and application settings determine which
+scopes clients may actually request. See [Clerk's scope documentation](https://clerk.com/docs/guides/configure/auth-strategies/oauth/how-clerk-implements-oauth#scopes).
+
+```ts
+import type { ClerkOAuthScope } from "@toolgrain/clerk";
+
+const scopesSupported = ["openid", "profile", "posts:read"] satisfies
+  readonly ClerkOAuthScope[];
+```
+
+Use only the scopes your resource needs. Exporting the built-in catalog does not
+make every scope required or request it by default. Generic JWT/custom providers
+use provider-defined scope names; there is no universal closed OAuth scope list.
 
 The provider accepts verified Clerk OAuth JWT or opaque access tokens for a user and client. JWT token types must identify an access token, and required user/client claims must be present. Revoked/expired opaque tokens are rejected. Sessions, API keys, and M2M tokens are unsupported.
 

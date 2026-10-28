@@ -139,6 +139,10 @@ All six libraries share a stable version under npm `latest`; `next` retains
   unchanged without explicit agreement. Preserve full supported release verification
   and post-publication integrity/fresh-consumer checks. Never republish a version,
   restore consumed bootstrap records, or invent a release to exercise automation.
+- RC publication requires explicit authorization and manual dispatch from a prepared
+  `prerelease/X.Y.Z-rc.N` branch, using npm's `rc` tag and preserving stable `latest`.
+  Candidate state stays off main. Stable publication follows successful acceptance
+  and the separately reviewed stable Release PR; never auto-promote an RC.
 - Toolgrain-owned code/artwork is MIT, copyright Keshav Katwe. Preserve upstream
   protocol licenses/provenance and all package notices unchanged. Renew the Clerk
   `standardwebhooks` notice review when changing that dependency release.

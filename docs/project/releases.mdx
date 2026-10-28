@@ -104,8 +104,9 @@ Only the six libraries are publishable, with public access, the explicit npmjs
 registry, and stable `latest` configuration. The workflow retains filename
 `publish.yml`, environment `npm`, and the six validated trusted-publisher
 bindings for `keshavkatwe/toolgrain`. No npm token secret or local login is
-required. The environment permits only main; it has no required reviewers.
-The reviewed Release PR is the publication gate.
+required. The environment currently permits only main; it has no required reviewers.
+The reviewed Release PR is the stable publication gate. An RC needs an explicitly
+allowed, exact prerelease branch as described below; do not broaden this to all branches.
 
 GitHub Actions must be allowed to create pull requests in repository settings
 (**Actions → General → Allow GitHub Actions to create and approve pull requests**).
@@ -158,10 +159,44 @@ version without publishing. Local preparation can use `release:status`,
 `release:version`, and `release:check` in a disposable checkout; do not version
 main manually alongside the bot's Release PR.
 
-This automation is intentionally for stable releases. It refuses prerelease
-state or versions. A future RC series needs a reviewed channel policy/workflow
-change before entering Changesets prerelease mode. Do not repeat the initial
-0.0.0 bootstrap used to select RC0. The stable baseline's documented client
+## Verify a release candidate before stable publication
+
+Stable automation on `main` continues to reject prerelease state and versions.
+The same `publish.yml` workflow also supports manually dispatched RC publication
+from an exact `prerelease/X.Y.Z-rc.N` branch. It retains the existing npm trusted
+publisher filename and `npm` environment. RCs use npm's `rc` tag; `latest` stays
+on the existing stable version, and historical `next` is unchanged.
+
+1. Finish the implementation on its PR branch, then create a separate candidate
+   branch such as `prerelease/0.2.0-rc.0` from the exact implementation commit.
+2. Run `bun run changeset pre enter rc`, then `bun run release:version`. Set
+   `publishConfig.tag` to `rc` in all six library manifests. Changesets selects
+   versions and changelogs; `release:version` aligns the Bun workspace metadata.
+   Review and commit the candidate state only when committing is authorized.
+3. Verify the complete prepared source, then push the candidate branch. Allow
+   only that exact branch in the `npm` environment's deployment-branch settings,
+   alongside the existing main rule. Do not change npm trusted-publisher bindings.
+4. Manually dispatch **npm publication** selecting that candidate branch, for
+   example `gh workflow run publish.yml --ref prerelease/0.2.0-rc.0` from an
+   authenticated maintainer account. Pushes to RC branches do not publish.
+5. The workflow checks the branch/version/pre-state/tag, runs the complete
+   existing release verification, and packs the candidate. Before publishing,
+   it rejects a packed plan that targets `latest`, a different version, or an
+   unrelated package. Post-publication checks verify `rc`, unchanged stable
+   `latest` in both npm metadata formats, archive integrity, and fresh Node/Bun consumers.
+6. Install matching candidate versions in the real application and test automatic
+   scope selection, CIMD and DCR authorization, consent, refresh/retry, and tool
+   access. Record the exact candidate and results on the implementation PR.
+   Failed acceptance requires a new immutable candidate version.
+
+Keep the implementation PR in draft until acceptance passes. Candidate version
+commits, prerelease state, RC manifest tags, and generated candidate changelogs
+stay on the candidate branch. After acceptance and explicit stable-release
+authorization, merge the reviewed implementation PR and use the ordinary stable
+Release PR. Do not merge the RC branch or automatically promote a candidate to
+`latest`. Remove the exact RC branch's environment permission after the series.
+
+Do not repeat the initial 0.0.0 bootstrap used to select RC0. The stable baseline's documented client
 limitations remain in the [published-package verification](/compatibility/published-packages).
 
 References: [Changesets automation](https://changesets.dev/guide/automating),

@@ -14,6 +14,7 @@ import {
   validateTokenAudience,
 } from "@toolgrain/mcp";
 import { decodeProtectedHeader } from "jose";
+import type { ClerkOAuthScope } from "./scopes.js";
 
 /** Plain identity from a verified Clerk OAuth access token, exposed by `useAuth(ctx)`. */
 export interface ClerkAuth {
@@ -34,7 +35,7 @@ export interface ClerkOptions {
   /** Canonical public MCP resource and required token audience; otherwise inferred by the HTTP adapter. */
   resource?: string;
   /** Resource scopes advertised in discovery; copied and validated, without enforcing required scopes. */
-  scopesSupported?: readonly string[];
+  scopesSupported?: readonly ClerkOAuthScope[];
 }
 
 const type = Symbol.for("@toolgrain/clerk/auth/v1");

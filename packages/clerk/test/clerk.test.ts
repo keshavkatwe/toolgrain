@@ -2,7 +2,7 @@ import { createServer, tool } from "@toolgrain/mcp";
 import { exportJWK, generateKeyPair, type JWTPayload, SignJWT } from "jose";
 import { afterEach, expect, expectTypeOf, it, vi } from "vitest";
 import { z } from "zod";
-import { clerk, useAuth } from "../src/index.js";
+import { CLERK_OAUTH_SCOPES, clerk, useAuth } from "../src/index.js";
 
 const domain = "sample-app.clerk.accounts.dev";
 const issuer = `https://${domain}`;
@@ -78,6 +78,20 @@ it("copies resource scopes for discovery without requiring every supported scope
   expect(() => clerk({ ...options, scopesSupported: ["bad scope"] })).toThrow(
     "OAuth scopes",
   );
+});
+
+it("supports instance-defined custom scopes alongside the typed built-in catalog", async () => {
+  mockFetch(opaque({ scopes: ["posts:read"] }));
+  const provider = clerk({
+    ...options,
+    scopesSupported: ["profile", "posts:read"],
+  });
+  expect(provider.scopesSupported).toEqual(["profile", "posts:read"]);
+  expect(await provider.verify("oat_valid", verifyOptions())).toHaveProperty(
+    "scopes",
+    ["posts:read"],
+  );
+  expect(Object.isFrozen(CLERK_OAUTH_SCOPES)).toBe(true);
 });
 
 it("derives the issuer, verifies an OAuth JWT, and exposes a plain typed identity", async () => {

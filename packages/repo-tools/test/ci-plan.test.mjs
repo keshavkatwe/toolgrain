@@ -222,17 +222,33 @@ test("workflow wiring preserves release gates, skips duplicate main runs and kee
   for (const name of ["main-checks", "main-support"])
     assert.equal(
       publish.jobs[name].if,
-      "needs.select-mode.outputs.mode != 'publish'",
+      "needs.select-mode.outputs.mode != 'publish' && github.ref == 'refs/heads/main'",
     );
   assert.equal(
     publish.jobs.verify.if,
     "needs.select-mode.outputs.mode == 'publish'",
   );
   assert.deepEqual(publish.jobs.pack.needs, ["select-mode", "verify"]);
-  assert.equal(publish.jobs.publish.needs, "pack");
+  assert.deepEqual(publish.jobs.publish.needs, ["select-mode", "pack"]);
   assert.equal(publish.jobs.publish.environment, "npm");
   assert.equal(publish.jobs.publish.permissions["id-token"], "write");
-  assert.deepEqual(publish.jobs.registry.needs, ["pack", "publish"]);
+  assert.deepEqual(publish.jobs.registry.needs, [
+    "select-mode",
+    "pack",
+    "publish",
+  ]);
+  assert.match(publish.jobs["select-mode"].if, /workflow_dispatch/);
+  assert.match(publish.jobs["select-mode"].if, /refs\/heads\/prerelease\//);
+  assert(
+    publish.jobs.publish.steps.some(({ run }) =>
+      run?.includes("validatePublishPlan"),
+    ),
+  );
+  assert(
+    publish.jobs.registry.steps.some(({ run }) =>
+      run?.includes("--preserve-latest"),
+    ),
+  );
   assert.equal(publish.jobs.consumers.needs, "registry");
   assert.equal(support.jobs.required.name, "Support checks");
   assert.match(support.jobs.required.if, /^\$\{\{ always\(\) \}\}$/);
