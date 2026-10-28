@@ -163,6 +163,13 @@ see [support and scope](#support-and-scope) before choosing it for your project.
 | Connect Inspector or check tested clients | [Compatibility](https://toolgrain.mintlify.site/compatibility/protocol) |
 | Use Express, Hono, Elysia, or Next.js | [Runnable examples](https://toolgrain.mintlify.site/examples) |
 
+## For AI agents
+
+Give your AI assistant [`llms.txt`](https://toolgrain.mintlify.site/llms.txt)
+for the documentation index or
+[`llms-full.txt`](https://toolgrain.mintlify.site/llms-full.txt)
+for the complete documentation.
+
 ## Packages
 
 Install Toolgrain libraries at the same version. Start with `mcp` and the
