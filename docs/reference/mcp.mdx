@@ -83,6 +83,39 @@ Wraps explicit MCP content. `content` is a required readonly array of protocol c
 
 Overloads preserve structured-data presence and explicit error flags. Successful results with an output schema require structured content; text-only explicit errors remain valid. Use `McpStructuredResult<T>` for typed reusable helpers, rather than widening to a possibly unstructured result. [Result rules](/tools/results) cover conversion differences between revisions.
 
+## Content helpers
+
+These helpers require Toolgrain 0.3.0 or later. Check the
+[publication status](/project/releases#current-release-status) before installing.
+
+Typed constructors for blocks passed to `mcpResult({ content: [...] })`:
+
+| Method | Arguments / result |
+| --- | --- |
+| `content.text(text, options?)` | String and optional `ContentOptions`; text block |
+| `content.image(options)` | `ImageContentOptions` with required `data` and `mimeType`; image block |
+| `content.audio(options)` | `AudioContentOptions` with required `data` and `mimeType`; audio block |
+| `content.resourceLink(options)` | `ResourceLinkOptions` with required `uri` and `name`; resource-link block |
+| `content.resource(value, options?)` | `ResourceContentOptions` with required `uri` and either `text` or `blob`, plus optional `ContentOptions`; embedded-resource block |
+
+`BinaryContentData` is a base64 string or `Uint8Array`, including Node `Buffer`.
+Image/audio `data` and binary resource `blob` accept this type. Byte views are
+encoded synchronously; strings pass through unchanged. Image/audio MIME types
+are explicit. Resource MIME types are optional.
+
+`ContentOptions` contains optional `annotations` and `_meta`. Image, audio, and
+resource-link options include these fields directly. Embedded resources keep
+their own `_meta` inside `value`; the second argument describes the enclosing
+block. All options accept readonly inputs, and returned blocks have readonly
+types with literal `type` discriminators.
+
+The `content` namespace is frozen. Its methods construct ordinary blocks without
+I/O or registration. They do not mutate inputs, deeply freeze returned objects,
+or validate media bytes/base64 strings. Nested metadata remains referenced until
+server result conversion validates and copies the content. See
+[rich-content examples](/tools/results#content-types) for composition and
+client-presentation limits.
+
 ## Errors and diagnostics
 
 - `ToolNameError(toolName)` exposes `toolName` for an invalid registration key.

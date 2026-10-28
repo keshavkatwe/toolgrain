@@ -2,6 +2,7 @@ import { clerk, useAuth as useClerkAuth } from "@toolgrain/clerk";
 import { createHttpHandler } from "@toolgrain/http";
 import { jwt, useAuth as useJwtAuth } from "@toolgrain/jwt";
 import {
+  content,
   createContext,
   createServer,
   mcpResult,
@@ -36,11 +37,46 @@ export const greet = tool({
   },
 });
 
+export const report = tool({
+  input: z.object({}),
+  output: z.object({ count: z.string().transform(Number).pipe(z.number()) }),
+  execute: () =>
+    mcpResult({
+      content: [
+        content.text("Report ready"),
+        content.image({
+          data: new Uint8Array([0, 128, 255]),
+          mimeType: "image/png",
+        }),
+        content.audio({ data: "AID/", mimeType: "audio/wav" }),
+        content.resourceLink({
+          uri: "https://example.com/report.pdf",
+          name: "report.pdf",
+        }),
+        content.resource(
+          {
+            uri: "report:///summary.txt",
+            text: "Résumé 世界",
+            _meta: { "example.com/resource": true },
+          },
+          {
+            _meta: { "example.com/block": true },
+          },
+        ),
+        content.resource({
+          uri: "report:///data.bin",
+          blob: new Uint8Array([255]),
+        }),
+      ],
+      structuredContent: { count: "2" },
+    }),
+});
+
 export function server() {
   return createServer({
     name: "clean-install",
     version: "1.0.0",
-    tools: { greet },
+    tools: { greet, report },
     context: [greeting],
     resources: [
       resource({

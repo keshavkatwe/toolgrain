@@ -34,7 +34,7 @@ it.each([
           output,
           execute: () =>
             copy.mcpResult({
-              content: [{ type: "text", text: "From a copy" }],
+              content: [copy.content.text("From a copy")],
               structuredContent: { ok: true },
             }),
         }),

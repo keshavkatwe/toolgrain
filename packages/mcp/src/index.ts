@@ -26,6 +26,15 @@ export { resource } from "./resources/definition.js";
 export type { HandleOptions, Server, ServerOptions } from "./server.js";
 export { createServer } from "./server.js";
 export type {
+  AudioContentOptions,
+  BinaryContentData,
+  ContentOptions,
+  ImageContentOptions,
+  ResourceContentOptions,
+  ResourceLinkOptions,
+} from "./tools/content-helpers.js";
+export { content } from "./tools/content-helpers.js";
+export type {
   ToolClient,
   ToolContext,
   ToolContextOptions,

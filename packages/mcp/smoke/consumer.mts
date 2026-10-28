@@ -1,6 +1,8 @@
 import {
   AuthError,
+  type ContentOptions,
   type ContextProvider,
+  content,
   createContext,
   createServer,
   type McpErrorResult,
@@ -79,6 +81,37 @@ const readonlyVariant = tool({ ...readonlyReport, title: "Readonly variant" });
 const structuredError: McpStructuredResult<number> & McpErrorResult<number> =
   mcpResult({ content: [], isError: true, structuredContent: 1 });
 void structuredError;
+const contentOptions: ContentOptions = {
+  annotations: { audience: ["assistant"] },
+  _meta: { "example.com/block": true },
+} as const;
+const imageBlock = content.image({
+  data: new Uint8Array([0, 128, 255]),
+  mimeType: "image/png",
+  ...contentOptions,
+});
+const imageType: "image" = imageBlock.type;
+const reusableBlocks = [
+  content.text("Report ready", contentOptions),
+  imageBlock,
+  content.audio({ data: "AID/", mimeType: "audio/wav" }),
+  content.resourceLink({
+    uri: "https://example.com/report.pdf",
+    name: "report.pdf",
+    icons,
+  }),
+  content.resource({ uri: "report:///summary.txt", text: "Summary" }),
+  content.resource({ uri: "report:///data.bin", blob: new Uint8Array([255]) }),
+];
+const contentReport = tool({
+  input: z.object({}),
+  output: z.object({ count: z.string().transform(Number).pipe(z.number()) }),
+  execute: () =>
+    mcpResult({ content: reusableBlocks, structuredContent: { count: "2" } }),
+});
+const inferredContent: McpStructuredResult<{ count: string }> =
+  contentReport.execute({}, toolContext());
+void [imageType, inferredContent];
 const preservedMiniInput: typeof miniInput = miniTool.input;
 const miniReturn: { count: string } = miniTool.execute(
   { count: 2 },
@@ -168,6 +201,20 @@ const discovery: DiscoverResult = {
 void discovery;
 
 function rejectedDefinitions() {
+  // @ts-expect-error Images require an explicit MIME type.
+  content.image({ data: new Uint8Array() });
+  // @ts-expect-error Audio requires bytes or a base64 string, not a numeric array.
+  content.audio({ data: [0, 128, 255], mimeType: "audio/wav" });
+  // @ts-expect-error Resource links require a name.
+  content.resourceLink({ uri: "https://example.com/report" });
+  // @ts-expect-error Embedded resources require a URI.
+  content.resource({ text: "Summary" });
+  // @ts-expect-error Embedded resources require text or a binary blob.
+  content.resource({ uri: "report:///empty" });
+  // @ts-expect-error Embedded text and binary contents are mutually exclusive.
+  content.resource({ uri: "report:///mixed", text: "Summary", blob: "AA==" });
+  // @ts-expect-error Typed blocks preserve their discriminators.
+  imageBlock.type = "audio";
   const wrongError = () =>
     mcpResult({ content: [], isError: true, structuredContent: "wrong" });
   const textOnly = () => mcpResult({ content: [] });
