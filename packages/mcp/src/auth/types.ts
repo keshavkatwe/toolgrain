@@ -6,6 +6,8 @@ export interface AuthProvider<Identity extends object = object> {
   readonly resource?: string;
   /** Nonempty list of trusted authorization-server URLs advertised in public metadata. */
   readonly authorizationServers: readonly string[];
+  /** Optional resource scope catalog for discovery, copied at server creation; not a required-scope policy. */
+  readonly scopesSupported?: readonly string[];
   /**
    * Verify token authenticity, validity, and resource audience before returning plain identity data.
    * The server copies and deeply freezes the identity before exposing it to handlers.
@@ -32,6 +34,8 @@ export interface AuthMetadata {
   readonly resource?: string;
   /** Trusted authorization-server URLs advertised by protected-resource metadata. */
   readonly authorizationServers: readonly string[];
+  /** Resource scopes advertised as `scopes_supported`; absent means unspecified, empty means none. */
+  readonly scopesSupported?: readonly string[];
 }
 
 /** An opaque, single-use authorization for one server invocation. Always dispose it. */

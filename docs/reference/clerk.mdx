@@ -9,7 +9,9 @@ description: "Public exports and behavior of @toolgrain/clerk."
 clerk(options: ClerkOptions): AuthProvider<ClerkAuth>
 ```
 
-`ClerkOptions` requires `publishableKey: string` and `secretKey: string`, with optional `resource: string`. Issuer is derived from the publishable key; resource defaults to the validated public HTTP endpoint. Keys are server configuration, not tool inputs.
+`ClerkOptions` requires `publishableKey: string` and `secretKey: string`, with optional `resource: string` and `scopesSupported: readonly string[]`. Issuer is derived from the publishable key; resource defaults to the validated public HTTP endpoint. Keys are server configuration, not tool inputs.
+
+`scopesSupported` declares this resource's public scope catalog. It is validated and copied at provider construction and appears as `scopes_supported` in protected-resource metadata. Omission leaves that field absent; `[]` advertises no scopes. It does not enforce required scopes or change Clerk's OAuth settings. See [resource scopes](/guides/authorization#resource-scopes).
 
 The provider accepts verified Clerk OAuth JWT or opaque access tokens for a user and client. JWT token types must identify an access token, and required user/client claims must be present. Revoked/expired opaque tokens are rejected. Sessions, API keys, and M2M tokens are unsupported.
 

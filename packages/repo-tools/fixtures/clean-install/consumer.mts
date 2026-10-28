@@ -48,11 +48,16 @@ export const nodeHandler = (hosted: ReturnType<typeof server>) =>
   createNodeHttpHandler(hosted);
 export const listener = () => http({ port: 0 });
 
-export const jwtProvider = () => jwt({ issuer: "https://auth.example.com" });
-export const clerkProvider = () =>
+export const jwtProvider = (scopesSupported?: readonly string[]) =>
+  jwt({
+    issuer: "https://auth.example.com",
+    ...(scopesSupported === undefined ? {} : { scopesSupported }),
+  });
+export const clerkProvider = (scopesSupported?: readonly string[]) =>
   clerk({
     publishableKey: "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
     secretKey: "sk_test_example",
+    ...(scopesSupported === undefined ? {} : { scopesSupported }),
   });
 
 // Check inferred values and rejected inputs against the installed declarations.

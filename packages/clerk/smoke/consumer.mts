@@ -18,6 +18,7 @@ const server = createServer({
   auth: clerk({
     publishableKey: "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
     secretKey: "sk_test_example",
+    scopesSupported: ["openid", "profile"] as const,
   }),
 });
 await server.close();

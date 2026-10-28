@@ -12,6 +12,7 @@ interface AuthProvider<Identity extends object = object> {
   readonly type: symbol;
   readonly resource?: string;
   readonly authorizationServers: readonly string[];
+  readonly scopesSupported?: readonly string[];
   verify(accessToken: string, options: AuthVerifyOptions): Promise<Identity>;
 }
 interface AuthVerifyOptions {
@@ -22,7 +23,7 @@ interface AuthVerifyOptions {
 
 `type` identifies the provider/accessor pairing. Use a stable registered symbol when compatible package copies must interoperate. `verify()` must honor cancellation where possible and return structured-cloneable plain identity data. Toolgrain copies/freezes the verified identity per request. Custom providers own cryptographic verification and their application-specific checks.
 
-`AuthMetadata` contains optional `resource` and readonly `authorizationServers`; `server.getAuthMetadata()` returns it when configured. `AuthReadonly<T>` recursively describes the frozen identity view, including arrays.
+`AuthMetadata` contains optional `resource`, readonly `authorizationServers`, and optional readonly `scopesSupported`; `server.getAuthMetadata()` returns a fresh copy when configured. Supported scopes describe the resource's discovery catalog, not a required-scope policy. Omission leaves `scopes_supported` absent; `[]` advertises an empty catalog. Scope arrays are validated and copied at construction. `AuthReadonly<T>` recursively describes the frozen identity view, including arrays.
 
 ## createAuthAccessor
 
@@ -36,17 +37,23 @@ The accessor is synchronous and rejects contexts without a matching verified ide
 ## AuthError and isAuthError
 
 ```ts
-new AuthError(code: AuthErrorCode, options?: ErrorOptions & { description?: string })
+new AuthError(code: AuthErrorCode, options?: ErrorOptions & {
+  description?: string;
+  requiredScopes?: readonly string[];
+})
 isAuthError(value: unknown): value is AuthError
 ```
 
-`AuthErrorCode` is `"invalid_request" | "invalid_token" | "access_denied" | "temporarily_unavailable"`. The error exposes `code` and optional public `description`; `cause` stays private. Only put safe, intentional client guidance in `description`. `isAuthError()` recognizes compatible branded errors.
+`AuthErrorCode` is `"invalid_request" | "invalid_token" | "access_denied" | "insufficient_scope" | "temporarily_unavailable"`. The error exposes `code`, optional public `description`, and optional readonly `requiredScopes`; `cause` stays private. Only put safe, intentional client guidance in `description`. `isAuthError()` recognizes compatible branded errors.
+
+Use `requiredScopes` only with `insufficient_scope`; other codes reject it with `TypeError`. The array is validated, copied, and frozen. When a verifier throws this error, HTTP adapters emit a 403 Bearer challenge with `error="insufficient_scope"` and, for a nonempty array, a space-delimited `scope`. Omitted or empty required scopes omit that challenge field. Supported resource scopes are never substituted for required scopes. Tool-handler exceptions retain the [tool error contract](/tools/errors).
 
 | Code | HTTP status |
 | --- | --- |
 | `invalid_request` | 400 |
 | `invalid_token` | 401 |
 | `access_denied` | 403 |
+| `insufficient_scope` | 403, with a Bearer challenge |
 | `temporarily_unavailable` | 503 |
 
 Unexpected auth failures, including provider outages, reach `onError` once without tool/request details; expected rejections and cancelled late failures do not. Do not convert every trusted-key or upstream failure into `invalid_token`.
@@ -56,6 +63,8 @@ Unexpected auth failures, including provider outages, reach `onError` once witho
 `server.authorize(token, { resource, signal? })` returns a server-bound, single-use `AuthScope`. It exposes readonly `signal` and `dispose(): void`. Pass the scope to `server.handle(message, { auth: scope })` exactly once and always dispose it in `finally`. Scope verification/body reading/tool work observe cancellation and server close.
 
 ## Validation helpers
+
+`validateAuthScopes(scopes: readonly string[]): readonly string[]` validates unique RFC 6749 scope tokens and returns a frozen copy preserving case and order. Empty arrays are valid. Empty tokens, duplicates, whitespace, quotes, backslashes, non-ASCII characters, and non-array inputs throw `TypeError` without echoing values. Custom providers' `scopesSupported`, integration options, and `AuthError.requiredScopes` use the same validation.
 
 `validateAuthUrl(value: string): string` validates authorization/resource URLs, requiring HTTPS except permitted loopback HTTP. `validateTokenAudience(audience: unknown, resource: string): void` checks a verified token's audience, accepts a string or all-string array, and throws `AuthError("invalid_token")` for missing/mismatched audiences with safe public guidance. Call it **after** token verification; it does not authenticate arbitrary claims.
 

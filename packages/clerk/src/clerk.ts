@@ -9,6 +9,7 @@ import {
   createAuthAccessor,
   isAuthError,
   type ToolContext,
+  validateAuthScopes,
   validateAuthUrl,
   validateTokenAudience,
 } from "@toolgrain/mcp";
@@ -32,6 +33,8 @@ export interface ClerkOptions {
   secretKey: string;
   /** Canonical public MCP resource and required token audience; otherwise inferred by the HTTP adapter. */
   resource?: string;
+  /** Resource scopes advertised in discovery; copied and validated, without enforcing required scopes. */
+  scopesSupported?: readonly string[];
 }
 
 const type = Symbol.for("@toolgrain/clerk/auth/v1");
@@ -59,6 +62,10 @@ export const useAuth: (ctx: ToolContext) => AuthReadonly<ClerkAuth> =
  * failures with `temporarily_unavailable`.
  */
 export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
+  const scopesSupported =
+    options.scopesSupported === undefined
+      ? undefined
+      : validateAuthScopes(options.scopesSupported);
   const key = parsePublishableKey(options.publishableKey, { fatal: true });
   const issuer = validateAuthUrl(`https://${key.frontendApi}`);
   if (!/^sk_(?:test|live)_.+/.test(options.secretKey))
@@ -79,6 +86,7 @@ export function clerk(options: ClerkOptions): AuthProvider<ClerkAuth> {
   });
   return Object.freeze({
     type,
+    ...(scopesSupported === undefined ? {} : { scopesSupported }),
     authorizationServers: Object.freeze([issuer]),
     ...(resource === undefined ? {} : { resource }),
     async verify(token, verifyOptions) {

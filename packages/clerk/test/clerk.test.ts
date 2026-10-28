@@ -59,6 +59,27 @@ function mockFetch(data = opaque()) {
 }
 afterEach(() => vi.unstubAllGlobals());
 
+it("copies resource scopes for discovery without requiring every supported scope", async () => {
+  mockFetch();
+  const scopesSupported = ["openid", "profile", "email", "offline_access"];
+  const provider = clerk({ ...options, scopesSupported });
+  scopesSupported.push("private_metadata");
+  expect(provider.scopesSupported).toEqual([
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+  ]);
+  expect(Object.isFrozen(provider.scopesSupported)).toBe(true);
+  expect(await provider.verify("oat_valid", verifyOptions())).toHaveProperty(
+    "scopes",
+    ["profile"],
+  );
+  expect(() => clerk({ ...options, scopesSupported: ["bad scope"] })).toThrow(
+    "OAuth scopes",
+  );
+});
+
 it("derives the issuer, verifies an OAuth JWT, and exposes a plain typed identity", async () => {
   const fetcher = mockFetch();
   const provider = clerk(options);
