@@ -11,6 +11,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import {
+  publicationPolicy,
+  validatePublishPlan,
+} from "../src/publication-policy.mjs";
 import { checkRelease, syncLockfile } from "../src/release.mjs";
 
 function fixture(t, version = "0.1.0") {
@@ -253,6 +257,23 @@ for (const prerelease of [false, true])
     run("version");
     syncLockfile(directory);
     assert.equal(checkRelease(directory).version, expectedVersion);
+    let policy;
+    if (prerelease) {
+      for (const pkg of checkRelease(directory).packages) {
+        const path = `packages/${pkg.short}/package.json`;
+        const manifest = JSON.parse(readFileSync(join(directory, path)));
+        manifest.publishConfig.tag = "rc";
+        write(path, manifest);
+      }
+      policy = publicationPolicy(checkRelease(directory), {
+        ref: `refs/heads/prerelease/${expectedVersion}`,
+        eventName: "workflow_dispatch",
+        preState: JSON.parse(
+          readFileSync(join(directory, ".changeset/pre.json")),
+        ),
+        stableVersion: "0.1.0",
+      });
+    }
     run("publish-plan", "--output", join(directory, "plan.json"));
     const plan = JSON.parse(
       readFileSync(join(directory, "plan.json")),
@@ -277,6 +298,12 @@ for (const prerelease of [false, true])
     const packed = JSON.parse(
       readFileSync(join(packedDirectory, "publish-plan.json")),
     ).plan.flat();
+    if (policy)
+      validatePublishPlan(
+        { version: 1, plan: [packed] },
+        checkRelease(directory).packages,
+        policy,
+      );
     for (const entry of packed) {
       assert.match(entry.tarball.integrity, /^sha256-/);
       const manifest = JSON.parse(

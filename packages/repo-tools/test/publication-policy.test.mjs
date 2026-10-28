@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   publicationPolicy,
+  stablePublicationBaseline,
   validatePublishPlan,
 } from "../src/publication-policy.mjs";
 
@@ -10,15 +11,13 @@ const names = ["protocol", "mcp", "http", "node", "jwt", "clerk"].map(
 );
 const packages = (tag) =>
   names.map((name) => ({ name, publishConfig: { tag } }));
-const initialVersions = Object.fromEntries(
-  names.map((name) => [name, "0.1.3"]),
-);
-const preState = { mode: "pre", tag: "rc", initialVersions };
+const preState = { mode: "pre", tag: "rc" };
 const rc = { version: "0.2.0-rc.0", packages: packages("rc") };
 const context = {
   ref: "refs/heads/prerelease/0.2.0-rc.0",
   eventName: "workflow_dispatch",
   preState,
+  stableVersion: "0.1.3",
 };
 
 test("stable publication retains the main-only latest policy and refuses prerelease state", () => {
@@ -57,13 +56,8 @@ test("RC publication requires manual dispatch, an exact versioned branch, and on
     { preState: undefined },
     { preState: { ...preState, mode: "exit" } },
     { preState: { ...preState, tag: "latest" } },
-    {
-      preState: {
-        ...preState,
-        initialVersions: { ...initialVersions, [names[0]]: "0.1.2" },
-      },
-    },
-    { preState: { ...preState, initialVersions: {} } },
+    { stableVersion: undefined },
+    { stableVersion: "0.2.0-rc.0" },
   ])
     assert.throws(() => publicationPolicy(rc, { ...context, ...invalid }));
   assert.throws(() => publicationPolicy({ ...rc, version: "0.2.0" }, context));
@@ -110,4 +104,34 @@ test("the publication guard prevents prereleases from changing latest or publish
     validatePublishPlan({ version: 2, plan: [] }, rc.packages, policy),
   );
   assert.throws(() => validatePublishPlan({ version: 1 }, rc.packages, policy));
+});
+
+test("RC baseline is read from npm rather than older Changesets pre-state fields", async () => {
+  const fetchImpl = async () =>
+    Response.json({ "dist-tags": { latest: "0.1.3" } });
+  assert.equal(
+    await stablePublicationBaseline(rc.packages, fetchImpl),
+    "0.1.3",
+  );
+  await assert.rejects(
+    stablePublicationBaseline(rc.packages, async () => Response.json({})),
+    /must already exist/,
+  );
+  await assert.rejects(
+    stablePublicationBaseline(
+      rc.packages,
+      async () => new Response(null, { status: 403 }),
+    ),
+    /cannot read/,
+  );
+  await assert.rejects(
+    stablePublicationBaseline(rc.packages, async (url) =>
+      Response.json({
+        "dist-tags": {
+          latest: String(url).endsWith("mcp") ? "0.1.2" : "0.1.3",
+        },
+      }),
+    ),
+    /one shared/,
+  );
 });

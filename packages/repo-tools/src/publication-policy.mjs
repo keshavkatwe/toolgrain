@@ -7,7 +7,7 @@ const candidate =
 /** Stable automation stays on main; RC publication is an explicit dispatch of a prepared branch. */
 export function publicationPolicy(
   { version, packages },
-  { ref, eventName, preState },
+  { ref, eventName, preState, stableVersion },
 ) {
   if (ref === "refs/heads/main") {
     assert(!preState, "Stable publication refuses Changesets prerelease state");
@@ -32,21 +32,45 @@ export function publicationPolicy(
     "RC publication requires active prerelease state",
   );
   assert.equal(preState.tag, "rc", "RC publication uses only the rc npm tag");
-  const versions = packages.map((pkg) => {
+  for (const pkg of packages) {
     assert.equal(
       pkg.publishConfig.tag,
       "rc",
       "RC manifests must use the rc npm tag",
     );
-    return preState.initialVersions[pkg.name];
-  });
+  }
   assert(
-    versions.every(
-      (version) => stable.test(version) && version === versions[0],
-    ),
-    "RC packages require one shared stable baseline",
+    typeof stableVersion === "string" && stable.test(stableVersion),
+    "RC publication requires a stable registry baseline",
   );
-  return { version, tag: "rc", stableVersion: versions[0] };
+  return { version, tag: "rc", stableVersion };
+}
+
+/** Changesets 3 pre-state has only mode/tag; capture the actual shared npm latest separately. */
+export async function stablePublicationBaseline(packages, fetchImpl = fetch) {
+  const versions = await Promise.all(
+    packages.map(async ({ name }) => {
+      const response = await fetchImpl(
+        `https://registry.npmjs.org/${encodeURIComponent(name)}`,
+        {
+          headers: { accept: "application/vnd.npm.install-v1+json" },
+          signal: AbortSignal.timeout(30000),
+        },
+      );
+      assert(response.ok, `${name}: cannot read the stable registry baseline`);
+      const version = (await response.json())["dist-tags"]?.latest;
+      assert(
+        typeof version === "string" && stable.test(version),
+        `${name}: stable latest must already exist before RC publication`,
+      );
+      return version;
+    }),
+  );
+  assert(
+    versions.length && versions.every((version) => version === versions[0]),
+    "RC packages require one shared stable registry baseline",
+  );
+  return versions[0];
 }
 
 /** Validate the actual native Changesets plan before any archive is published. */

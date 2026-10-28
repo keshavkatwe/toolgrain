@@ -41,10 +41,13 @@ jobs:
           import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
           import assert from 'node:assert/strict';
           import { checkRelease } from './packages/repo-tools/src/release.mjs';
-          import { publicationPolicy } from './packages/repo-tools/src/publication-policy.mjs';
+          import { publicationPolicy, stablePublicationBaseline } from './packages/repo-tools/src/publication-policy.mjs';
           const preState = existsSync('.changeset/pre.json') ? JSON.parse(readFileSync('.changeset/pre.json', 'utf8')) : undefined;
-          const policy = publicationPolicy(checkRelease(process.cwd()), {
+          const source = checkRelease(process.cwd());
+          const stableVersion = process.env.GITHUB_REF === 'refs/heads/main' ? undefined : await stablePublicationBaseline(source.packages);
+          const policy = publicationPolicy(source, {
             ref: process.env.GITHUB_REF, eventName: process.env.GITHUB_EVENT_NAME, preState,
+            stableVersion,
           });
           if (policy.tag === 'rc') {
             assert(readdirSync('.changeset').every(name => name === 'README.md' || !name.endsWith('.md')), 'Version all pending changesets before dispatching an RC');
