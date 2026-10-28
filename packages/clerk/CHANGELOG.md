@@ -1,5 +1,13 @@
 # @toolgrain/clerk
 
+## 0.1.3
+
+### Patch Changes
+
+- 19596ab: Fix `401 invalid_token` responses for valid Clerk opaque OAuth access tokens when Clerk's verification response omits the `type` field. Retain rejection of incompatible explicit token types, revoked or expired tokens, invalid user/client identities, and incorrect resource audiences.
+- @toolgrain/jwt@0.1.3
+  - @toolgrain/mcp@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
