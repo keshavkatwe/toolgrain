@@ -104,8 +104,9 @@ Only the six libraries are publishable, with public access, the explicit npmjs
 registry, and stable `latest` configuration. The workflow retains filename
 `publish.yml`, environment `npm`, and the six validated trusted-publisher
 bindings for `keshavkatwe/toolgrain`. No npm token secret or local login is
-required. The environment permits only main; it has no required reviewers.
-The reviewed Release PR is the publication gate.
+required. The environment currently permits only main; it has no required reviewers.
+The reviewed Release PR is the stable publication gate. An RC needs an explicitly
+allowed, exact prerelease branch as described below; do not broaden this to all branches.
 
 GitHub Actions must be allowed to create pull requests in repository settings
 (**Actions → General → Allow GitHub Actions to create and approve pull requests**).
@@ -158,10 +159,90 @@ version without publishing. Local preparation can use `release:status`,
 `release:version`, and `release:check` in a disposable checkout; do not version
 main manually alongside the bot's Release PR.
 
-This automation is intentionally for stable releases. It refuses prerelease
-state or versions. A future RC series needs a reviewed channel policy/workflow
-change before entering Changesets prerelease mode. Do not repeat the initial
-0.0.0 bootstrap used to select RC0. The stable baseline's documented client
+## Verify a release candidate before stable publication
+
+Stable publication uses the reviewed Release PR on `main`. Prerelease
+publication is a manual dispatch from one protected branch per release series,
+for example `prerelease/0.2`. All six libraries share each candidate version,
+such as `0.2.0-rc.0`, and publish under npm's `rc` tag. Stable `latest` and
+historical `next` stay unchanged.
+
+Keep the `publish.yml` filename, `npm` environment, and existing trusted-publisher
+bindings. In the environment's deployment-branch settings, allow `main` and only
+the exact active series branch. Restrict updates to trusted maintainers and
+review changes to publication code. A feature branch or a per-version branch
+such as `prerelease/0.2.0-rc.0` cannot publish through this RC path.
+
+### Prepare and publish a candidate
+
+1. Review the release infrastructure independently of the feature. Keep the
+   feature PR in draft while preparing and testing its candidate.
+2. Create the series branch from the reviewed infrastructure plus the selected
+   feature commit. Run `bun run changeset pre enter rc`, then
+   `bun run release:version`. Set `publishConfig.tag` to `rc` in all six
+   manifests. Changesets selects versions and changelogs; `release:version`
+   aligns the Bun workspace metadata. Commit the prepared state when authorized.
+3. Run the full local checks, push the series branch, and record its full commit
+   SHA and version. Manually dispatch **npm publication** on that branch with
+   both `version` and `expected_sha`. For example:
+
+   ```sh
+   gh workflow run publish.yml --ref prerelease/0.2 \
+     -f version=0.2.0-rc.0 -f expected_sha=FULL_CANDIDATE_COMMIT_SHA
+   ```
+
+4. The workflow rejects missing or mismatched inputs, the wrong release series,
+   and a stable version or `latest` manifest tag on an RC branch. Pushes alone
+   do not publish. The run uses the exact triggering commit so npm provenance
+   identifies the verified candidate. Moving the branch does not change an
+   already-dispatched run's source; an expected-SHA mismatch fails the run.
+5. The existing complete release verification runs before packing. Publication
+   uses those packed artifacts, validates their package/version/tag plan, and
+   retains a `publication-manifest` artifact containing the source SHA, workflow
+   run, and package archive identities. Post-publication checks verify all six
+   `rc` versions, unchanged stable `latest` in both npm metadata formats, archive
+   integrity, and fresh Node/Bun consumers.
+6. Install the exact candidate in the real application. Record the requirement,
+   installed version, source SHA, workflow run, and observed result on the feature
+   PR. For the OAuth change, check automatic scope selection, fresh CIMD/DCR
+   authorization and consent, refresh/retry, tool access, and removal of the
+   response-enrichment workaround. Local token tests do not replace these checks.
+
+The manual dispatch approves only the specified RC. For ordinary manual stable
+recovery on `main`, leave both RC inputs blank; supplying them on main is rejected.
+
+### If the published candidate fails the requirements
+
+Fix the original feature PR and add a regression test. Bring the fix and its new
+Changeset into the same series branch, then run `bun run release:version` again.
+The next candidate advances from `0.2.0-rc.0` to `0.2.0-rc.1` across all six
+libraries. Review the prepared diff, commit/push when authorized, and dispatch
+with the new version and full SHA. Repeat all publication and acceptance checks.
+No new release branch or environment permission is needed for each candidate.
+
+Never overwrite or unpublish the previous candidate. `rc` moves to the new
+candidate after publication; `latest` remains on stable. A partial publication
+is not an accepted candidate: inspect all six registry versions and the original
+workflow's plan/artifacts before recovery. Never reuse a published candidate
+version for changed source. Keep the exact commit and verified artifact identities
+when recovering a partially published run.
+
+### Release stable after acceptance
+
+Keep candidate version commits, `.changeset/pre.json`, consumed prerelease
+Changesets, and RC manifest tags off main. Once the real application passes and
+stable publication is explicitly authorized, merge the reviewed feature PR and
+use the ordinary stable Changesets Release PR for `0.2.0`.
+
+Check that the stable package implementation matches the accepted candidate,
+allowing the intended version, internal dependency version, and changelog changes.
+A further runtime, external dependency, or exported-API change requires another RC.
+Run the full stable release checks on the exact final commit. Merging the reviewed
+Release PR remains stable publication approval; do not merge the RC branch or
+point `latest` at an RC version. Remove the series branch's environment permission
+when that series is complete.
+
+Do not repeat the initial 0.0.0 bootstrap used to select RC0. The stable baseline's documented client
 limitations remain in the [published-package verification](/compatibility/published-packages).
 
 References: [Changesets automation](https://changesets.dev/guide/automating),
