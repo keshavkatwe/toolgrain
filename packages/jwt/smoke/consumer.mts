@@ -17,6 +17,9 @@ const server = createServer({
   name: "jwt",
   version: "1",
   tools: { who },
-  auth: jwt({ issuer: "https://auth.example.com" }),
+  auth: jwt({
+    issuer: "https://auth.example.com",
+    scopesSupported: ["tools:read"] as const,
+  }),
 });
 await server.close();

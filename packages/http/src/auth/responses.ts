@@ -20,16 +20,20 @@ export function authResponse(resource: string, failure?: unknown): Response {
   const status =
     code === "invalid_request"
       ? 400
-      : code === "access_denied"
+      : code === "access_denied" || code === "insufficient_scope"
         ? 403
         : code === "temporarily_unavailable"
           ? 503
           : 401;
   const headers = new Headers({ "Cache-Control": "no-store" });
-  if (status === 401 || status === 400) {
+  if (status === 401 || status === 400 || code === "insufficient_scope") {
+    const scope =
+      code === "insufficient_scope" && isAuthError(failure)
+        ? failure.requiredScopes?.join(" ")
+        : undefined;
     headers.set(
       "WWW-Authenticate",
-      `Bearer resource_metadata=${JSON.stringify(resourceMetadataUrl(resource))}${code ? `, error=${JSON.stringify(code)}` : ""}${challengeDescription ? `, error_description="${challengeDescription}"` : ""}`,
+      `Bearer resource_metadata=${JSON.stringify(resourceMetadataUrl(resource))}${code ? `, error=${JSON.stringify(code)}` : ""}${challengeDescription ? `, error_description="${challengeDescription}"` : ""}${scope ? `, scope="${scope}"` : ""}`,
     );
   }
   return Response.json(

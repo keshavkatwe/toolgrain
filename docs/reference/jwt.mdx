@@ -14,6 +14,7 @@ jwt(options: JwtOptions): AuthProvider<JwtAuth>
 | `issuer: string` | Required trusted exact issuer URL |
 | `jwksUrl?: string` | Explicit signing-key endpoint; otherwise discover from issuer |
 | `resource?: string` | Explicit expected audience/resource; otherwise use validated HTTP resource |
+| `scopesSupported?: readonly string[]` | Validated, copied resource scope catalog for discovery; omission is unspecified, `[]` declares none; does not enforce required scopes |
 | `algorithms?: readonly string[]` | Defaults to RS256 and ES256; nonempty asymmetric allowlist |
 
 Supported asymmetric algorithms are RS256/384/512, PS256/384/512, ES256/384/512, EdDSA, and Ed25519. Availability still depends on the supported runtime/crypto implementation. Token signatures, issuer, required expiration, optional not-before, audience, and standard claim shapes are checked. Key discovery/rotation caches are internal, not a public key-management API.

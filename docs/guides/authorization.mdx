@@ -98,6 +98,7 @@ export const server = createServer({
   auth: clerk({
     publishableKey: process.env.CLERK_PUBLISHABLE_KEY!,
     secretKey: process.env.CLERK_SECRET_KEY!,
+    scopesSupported: ["openid", "profile", "email", "offline_access"],
   }),
   tools: { whoAmI },
 });
@@ -269,6 +270,7 @@ Calling another integration's `useAuth` or using a context without auth throws.
 | Missing or invalid/expired access token | 401, with a resource metadata challenge |
 | Malformed bearer credentials or a query token | 400 |
 | Provider access denial | 403 |
+| Verified token lacks an application-required scope | 403, `insufficient_scope` challenge |
 | Provider/network failure or closed server | 503 |
 
 These HTTP statuses are the same in both protocol eras. JWT and Clerk audience
@@ -295,7 +297,7 @@ Unexpected verification failures, including provider
 `AuthError("temporarily_unavailable")` outages, reach the server's `onError(error)`
 callback once with the original thrown value and its private cause, if present.
 No tool/request details or credentials are added. Expected auth rejections
-(`invalid_request`, `invalid_token`, and `access_denied`), closed-server rejections,
+(`invalid_request`, `invalid_token`, `access_denied`, and `insufficient_scope`), closed-server rejections,
 and failures after cancellation do not reach the callback. Callback throws and
 asynchronous rejections cannot disrupt the response or cleanup.
 
@@ -312,12 +314,91 @@ An auth-configured server accepts request transports such as `http()` and reject
 message transports such as `stdio()` before startup. This authorization API is
 HTTP-only; stdio servers use their process/environment trust model.
 
+## Resource scopes
+
+Set `scopesSupported` on `clerk()`, `jwt()`, or a custom `AuthProvider` to declare
+this resource's intended scope catalog. The HTTP handlers include the exact list
+as `scopes_supported` in canonical public protected-resource discovery, for
+example `/.well-known/oauth-protected-resource/mcp`. No response wrapper is needed.
+Resource scopes let clients choose from this catalog instead of falling back to
+the authorization server's potentially broader list. Client scope selection is
+owned by the client; Toolgrain does not run the authorization request.
+
+Omission leaves the field absent, preserving existing behavior. An explicit `[]`
+declares no supported scopes. Arrays preserve order and case, are copied, and
+must contain unique, nonempty RFC 6749 scope tokens: ASCII without whitespace,
+double quotes, or backslashes. Invalid configuration throws `TypeError` at
+integration or server construction. Host validation, public GET/HEAD discovery,
+token verification, and audience checks still apply.
+
+Supported scopes are separate from required scopes. Applications own scope
+policy. For a server-wide policy, verify the token first, then check its granted
+scopes in a provider wrapper:
+
+```ts
+import { clerk } from "@toolgrain/clerk";
+import { AuthError } from "@toolgrain/mcp";
+
+const provider = clerk({
+  publishableKey: process.env.CLERK_PUBLISHABLE_KEY!,
+  secretKey: process.env.CLERK_SECRET_KEY!,
+  scopesSupported: ["openid", "profile", "email", "offline_access"],
+});
+const auth: typeof provider = {
+  ...provider,
+  async verify(token, options) {
+    const identity = await provider.verify(token, options);
+    if (!identity.scopes.includes("profile")) {
+      throw new AuthError("insufficient_scope", {
+        requiredScopes: ["profile"],
+        description: "Reauthorize this connection with the profile scope.",
+      });
+    }
+    return identity;
+  },
+};
+// Pass auth to createServer({ auth, ... }).
+```
+
+A verifier's genuine scope denial becomes HTTP 403 with a Bearer challenge:
+
+```http
+WWW-Authenticate: Bearer resource_metadata="https://api.example.com/.well-known/oauth-protected-resource/mcp", error="insufficient_scope", error_description="Reauthorize this connection with the profile scope.", scope="profile"
+```
+
+`requiredScopes` is an optional copied, frozen list. Omission or `[]` omits `scope`
+from the challenge. The response body contains the error code and an explicitly
+supplied public description; private causes stay private. A generic provider 403
+remains `access_denied`; it is not evidence of insufficient scope. This mapping
+applies to authorization before body parsing. Per-tool permissions remain
+application policy, and throwing from a tool follows the existing tool error
+contract rather than creating an HTTP auth challenge.
+
+### Troubleshoot scope failures
+
+| Observation | Check and action |
+| --- | --- |
+| Resource metadata has no `scopes_supported` | Declare `scopesSupported`; inspect the canonical metadata URL using the public host. A client may otherwise use the authorization server's full scope catalog. |
+| Authorization redirect reports `invalid_scope` | Compare the scope names requested by the client with both the resource catalog and the authorization server's allowed scopes. Correct the configuration and authorize again. This redirect happens at the authorization server, outside Toolgrain's HTTP handler. |
+| Resource returns `403 insufficient_scope` | Token verification succeeded but application policy requires additional scopes. Check the challenge's optional `scope`, ensure the provider allows them, and reauthorize. A refresh alone may not expand the grant. |
+
+Scope names and failure categories are useful diagnostics. Do not log bearer or
+refresh tokens, secrets, raw provider responses, or profile data. Declare only
+the scopes the resource needs; do not copy the provider's entire scope catalog.
+
+For live acceptance, connect a client that chooses scopes from discovery while
+the authorization server advertises additional scopes. Check the authorization
+request and consent screen, then verify tool access. Repeat fresh authorization
+with CIMD and DCR clients and verify refresh/retry. These client/provider flows
+require your configuration and credentials; local metadata and offline token
+tests do not establish live OAuth interoperability.
+
 ## Custom providers and direct invocation
 
 Integrations implement `AuthProvider<T>` from `@toolgrain/mcp`, with a registered
 provider `type` symbol, optional canonical `resource`, nonempty
-`authorizationServers`, and `verify(token, { resource, signal })`. Return plain
-identity data and throw `AuthError` with `invalid_token`, `access_denied`, or
+`authorizationServers`, optional `scopesSupported`, and `verify(token, { resource, signal })`. Return plain
+identity data and throw `AuthError` with `invalid_token`, `access_denied`, `insufficient_scope`, or
 `temporarily_unavailable` as appropriate. `createAuthAccessor<T>(type)` creates a
 typed accessor returning recursively readonly identity data. Matching compatible
 package copies share provider/context symbols.

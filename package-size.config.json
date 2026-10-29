@@ -22,7 +22,7 @@
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/http": {
-    "packedBytes": 14336,
+    "packedBytes": 15360,
     "unpackedBytes": 49152,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },

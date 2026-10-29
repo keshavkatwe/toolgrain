@@ -10,6 +10,7 @@ import { createInterface } from "node:readline";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { useAuth as useClerkAuth } from "@toolgrain/clerk";
+import { createHttpHandler } from "@toolgrain/http";
 import { jwt, useAuth as useJwtAuth } from "@toolgrain/jwt";
 import { createServer, tool, toolContext } from "@toolgrain/mcp";
 import { createNodeHttpHandler } from "@toolgrain/node";
@@ -82,12 +83,24 @@ test("JWT and Clerk initialize without credentials or external requests", async 
         name: "auth",
         version: "1",
         tools: {},
-        auth: provider(),
+        auth: provider(["openid", "profile"]),
       });
       try {
         assert.deepEqual(protectedServer.getAuthMetadata(), {
           authorizationServers: [issuer],
+          scopesSupported: ["openid", "profile"],
         });
+        const handle = createHttpHandler(protectedServer);
+        const metadata = await handle(
+          new Request(
+            "http://localhost/.well-known/oauth-protected-resource/mcp",
+          ),
+        );
+        assert.equal(metadata.status, 200);
+        assert.deepEqual((await metadata.json()).scopes_supported, [
+          "openid",
+          "profile",
+        ]);
         assert.throws(() => useAuth(toolContext()), /no identity/);
         await assert.rejects(
           protectedServer.handle({}),

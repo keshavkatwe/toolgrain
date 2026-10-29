@@ -9,10 +9,12 @@ const server = createServer({
   auth: clerk({
     publishableKey: "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
     secretKey: "sk_test_example",
+    scopesSupported: ["openid", "profile"],
   }),
 });
 assert.deepEqual(server.getAuthMetadata(), {
   authorizationServers: ["https://example.clerk.accounts.dev"],
+  scopesSupported: ["openid", "profile"],
 });
 assert.throws(() => useAuth(toolContext()), /no identity/);
 await assert.rejects(server.handle({}), /Invalid access token/);

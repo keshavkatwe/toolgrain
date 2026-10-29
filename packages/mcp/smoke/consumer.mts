@@ -13,6 +13,7 @@ import {
   type TransportCallbacks,
   tool,
   toolContext,
+  validateAuthScopes,
   validateTokenAudience,
 } from "@toolgrain/mcp";
 import {
@@ -339,3 +340,10 @@ const authFailure = new AuthError("invalid_token", {
 });
 const publicDescription: string | undefined = authFailure.description;
 void publicDescription;
+const scopeFailure = new AuthError("insufficient_scope", {
+  requiredScopes: validateAuthScopes(["tools:read"] as const),
+  description: "Reauthorize with tools:read.",
+});
+const requiredScopes: readonly string[] | undefined =
+  scopeFailure.requiredScopes;
+void requiredScopes;
