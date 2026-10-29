@@ -11,12 +11,14 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { checkSupportResults } from "../src/ci-gate.mjs";
 import {
   classifyChanges,
   editorialManifest,
   planChecks,
 } from "../src/ci-plan.mjs";
+import { checkRelease } from "../src/release.mjs";
 
 test("CI scopes only explicitly editorial changes; mixed and unknown changes retain full checks", () => {
   for (const path of [
@@ -202,6 +204,74 @@ test("the support gate rejects missing, cancelled and skipped required jobs with
   assert.doesNotThrow(() => checkSupportResults(full, true));
 });
 
+test("the actual publication step records valid source/artifact JSON and rejects a changed source SHA", (t) => {
+  const root = fileURLToPath(new URL("../../../", import.meta.url));
+  const workflow = Bun.YAML.parse(
+    readFileSync(join(root, ".github/workflows/publish.yml"), "utf8"),
+  );
+  const step = workflow.jobs.publish.steps.find(({ run }) =>
+    run?.includes("validatePublishPlan"),
+  );
+  const script = step.run.match(/<<'JS'\n([\s\S]*?)\nJS\s*$/)?.[1];
+  assert(script, "Expected the actual publication guard script");
+  const directory = mkdtempSync(
+    join(tmpdir(), "toolgrain-publication-manifest-"),
+  );
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const target = join(directory, "toolgrain-publish-guard");
+  mkdirSync(target);
+  const { version, packages } = checkRelease(root);
+  const tag = packages[0].publishConfig.tag;
+  const entry = {
+    kind: "publish",
+    name: packages[0].name,
+    version,
+    tag,
+    tarball: {
+      path: "packages/reviewed.tgz",
+      integrity: "sha256-reviewed-artifact",
+    },
+  };
+  writeFileSync(
+    join(target, "publish-plan.json"),
+    JSON.stringify({ version: 1, plan: [[entry]] }),
+  );
+  const env = {
+    ...process.env,
+    RUNNER_TEMP: directory,
+    RELEASE_VERSION: version,
+    RELEASE_TAG: tag,
+    STABLE_VERSION: "0.1.3",
+    GITHUB_SHA: "1".repeat(40),
+    RELEASE_SOURCE_SHA: "1".repeat(40),
+    GITHUB_SERVER_URL: "https://github.com",
+    GITHUB_REPOSITORY: "owner/repo",
+    GITHUB_RUN_ID: "42",
+  };
+  execFileSync("node", ["--input-type=module", "--eval", script], {
+    cwd: root,
+    env,
+  });
+  const receipt = JSON.parse(
+    readFileSync(join(target, "release-manifest.json")),
+  );
+  assert.equal(receipt.version, version);
+  assert.equal(receipt.tag, tag);
+  assert.equal(receipt.sourceSha, env.GITHUB_SHA);
+  assert.equal(
+    receipt.workflowRun,
+    "https://github.com/owner/repo/actions/runs/42",
+  );
+  assert.deepEqual(receipt.packages, [entry]);
+  assert.throws(() =>
+    execFileSync("node", ["--input-type=module", "--eval", script], {
+      cwd: root,
+      env: { ...env, GITHUB_SHA: "2".repeat(40) },
+      stdio: "pipe",
+    }),
+  );
+});
+
 test("workflow wiring preserves release gates, skips duplicate main runs and keeps previews off releases", () => {
   const root = new URL("../../../", import.meta.url);
   const load = (name) =>
@@ -222,17 +292,40 @@ test("workflow wiring preserves release gates, skips duplicate main runs and kee
   for (const name of ["main-checks", "main-support"])
     assert.equal(
       publish.jobs[name].if,
-      "needs.select-mode.outputs.mode != 'publish'",
+      "needs.select-mode.outputs.mode != 'publish' && github.ref == 'refs/heads/main'",
     );
   assert.equal(
     publish.jobs.verify.if,
     "needs.select-mode.outputs.mode == 'publish'",
   );
   assert.deepEqual(publish.jobs.pack.needs, ["select-mode", "verify"]);
-  assert.equal(publish.jobs.publish.needs, "pack");
+  assert.deepEqual(publish.jobs.publish.needs, ["select-mode", "pack"]);
   assert.equal(publish.jobs.publish.environment, "npm");
   assert.equal(publish.jobs.publish.permissions["id-token"], "write");
-  assert.deepEqual(publish.jobs.registry.needs, ["pack", "publish"]);
+  assert.deepEqual(publish.jobs.registry.needs, [
+    "select-mode",
+    "pack",
+    "publish",
+  ]);
+  assert.match(publish.jobs["select-mode"].if, /workflow_dispatch/);
+  assert.match(publish.jobs["select-mode"].if, /refs\/heads\/prerelease\//);
+  for (const name of ["version", "expected_sha"])
+    assert.equal(publish.on.workflow_dispatch.inputs[name].type, "string");
+  assert(
+    publish.jobs.publish.steps.some(({ run }) =>
+      run?.includes("validatePublishPlan"),
+    ),
+  );
+  assert(
+    publish.jobs.registry.steps.some(({ run }) =>
+      run?.includes("--preserve-latest"),
+    ),
+  );
+  assert(
+    publish.jobs.publish.steps.some(
+      ({ with: inputs }) => inputs?.name === "publication-manifest",
+    ),
+  );
   assert.equal(publish.jobs.consumers.needs, "registry");
   assert.equal(support.jobs.required.name, "Support checks");
   assert.match(support.jobs.required.if, /^\$\{\{ always\(\) \}\}$/);
