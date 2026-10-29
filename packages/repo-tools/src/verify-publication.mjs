@@ -15,13 +15,7 @@ const digest = (bytes, algorithm) =>
 export async function verifyPublishedPackage(
   { name, version },
   archive,
-  {
-    fetchImpl = fetch,
-    attempts = 12,
-    delay = () => setTimeout(10000),
-    tag = "latest",
-    expectedLatest,
-  } = {},
+  { fetchImpl = fetch, attempts = 12, delay = () => setTimeout(10000) } = {},
 ) {
   const endpoint = `https://registry.npmjs.org/${encodeURIComponent(name)}`;
   let metadata;
@@ -40,21 +34,14 @@ export async function verifyPublishedPackage(
           )
             return undefined;
           assert(response.ok, `npm metadata failed: ${response.status}`);
-          const metadata = await response.json();
-          if (expectedLatest !== undefined)
-            assert.equal(
-              metadata["dist-tags"]?.latest,
-              expectedLatest,
-              `${name}: stable latest changed during RC verification`,
-            );
-          return metadata;
+          return response.json();
         },
       ),
     );
     if (
       responses.every(
         (body) =>
-          body?.["dist-tags"]?.[tag] === version && body.versions?.[version],
+          body?.["dist-tags"]?.latest === version && body.versions?.[version],
       )
     ) {
       metadata = responses[0].versions[version];
@@ -64,7 +51,7 @@ export async function verifyPublishedPackage(
   }
   assert(
     metadata,
-    `${name}@${version} is not available under ${tag} in both npm metadata formats`,
+    `${name}@${version} is not available under latest in both npm metadata formats`,
   );
   assert.equal(metadata.name, name);
   assert.equal(metadata.version, version);
@@ -94,7 +81,7 @@ export async function verifyPublishedPackage(
   return {
     name,
     version,
-    tag,
+    tag: "latest",
     integrity: metadata.dist.integrity,
     matchedArtifact: !!archive,
   };
@@ -103,17 +90,9 @@ export async function verifyPublishedPackage(
 export async function main(args = []) {
   const { values } = parseArgs({
     args,
-    options: {
-      "pack-dir": { type: "string" },
-      tag: { type: "string", default: "latest" },
-      "preserve-latest": { type: "string" },
-    },
+    options: { "pack-dir": { type: "string" } },
   });
   assert(values["pack-dir"], "--pack-dir is required");
-  assert(
-    values.tag === "latest" || values.tag === "rc",
-    "Unsupported publication tag",
-  );
   const directory = values["pack-dir"];
   const { plan } = JSON.parse(
     readFileSync(join(directory, "publish-plan.json")),
@@ -128,15 +107,8 @@ export async function main(args = []) {
         bytes: readFileSync(join(directory, entry.tarball.path)),
         integrity: entry.tarball.integrity,
       };
-      console.log(
-        `Verify npm ${values.tag} and archive: ${pkg.name}@${pkg.version}`,
-      );
-      results.push(
-        await verifyPublishedPackage(pkg, archive, {
-          tag: values.tag,
-          expectedLatest: values["preserve-latest"] || undefined,
-        }),
-      );
+      console.log(`Verify npm latest and archive: ${pkg.name}@${pkg.version}`);
+      results.push(await verifyPublishedPackage(pkg, archive));
     }
   } catch (error) {
     failure = error;
