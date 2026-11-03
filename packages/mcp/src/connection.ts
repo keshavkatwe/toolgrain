@@ -1,6 +1,7 @@
 import {
   INVALID_REQUEST,
   PARSE_ERROR,
+  type ProgressNotification,
   type ProtocolResponse,
 } from "@toolgrain/protocol";
 import { type ErrorHandler, reportError } from "./diagnostics.js";
@@ -134,7 +135,7 @@ class Connection implements ConnectionLifecycle {
   }
 
   private send(
-    message: ProtocolResponse,
+    message: ProtocolResponse | ProgressNotification,
     isActive: () => boolean = () => this.isOpen(),
   ): Promise<void> {
     const write = this.writes.then(async () => {
@@ -193,7 +194,11 @@ class Connection implements ConnectionLifecycle {
       const response = await executeRequest(
         this.dispatch,
         request,
-        { signal: pending.signal, client: this.legacy.client() },
+        {
+          signal: pending.signal,
+          client: this.legacy.client(),
+          notify: (message) => this.send(message, pending.isActive),
+        },
         (error) => this.report(error),
         prepared.protocolVersion,
       );

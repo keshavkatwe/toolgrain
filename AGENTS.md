@@ -41,9 +41,11 @@ execution and transport lifecycle through explicit internal contracts.
 ## Contracts to preserve
 
 - Support only MCP `2026-07-28` and initialization-based `2025-06-18`, over stdio
-  and independent HTTP POSTs with JSON responses. Legacy initialization can
-  negotiate down to the supported legacy revision. Keep sessions, SSE, progress,
-  resources, prompts, elicitation, and subscriptions outside the current scope.
+  and independent HTTP POSTs with JSON responses or request-scoped SSE progress.
+  Legacy initialization can negotiate down to the supported legacy revision.
+  Keep sessions, resources, prompts, elicitation, and subscriptions outside the
+  current scope. Progress requires a client token; preserve ordering, backpressure,
+  cancellation, and the ordinary final tool result.
 - Registration keys define exposed tool names. Register frozen definitions made
   with `tool()`. Preserve schema inference, typed variants, readonly authoring
   inputs, and interoperability across compatible duplicate package copies.

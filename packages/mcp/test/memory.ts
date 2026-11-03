@@ -1,15 +1,20 @@
-import type { ProtocolResponse } from "@toolgrain/protocol";
+import type {
+  ProgressNotification,
+  ProtocolResponse,
+} from "@toolgrain/protocol";
 import type { Transport, TransportCallbacks } from "../src/index.js";
 
 export class MemoryTransport implements Transport {
   callbacks: TransportCallbacks | undefined;
   messages: ProtocolResponse[] = [];
+  notifications: ProgressNotification[] = [];
   closes = 0;
   async start(callbacks: TransportCallbacks) {
     this.callbacks = callbacks;
   }
-  async send(message: ProtocolResponse) {
-    this.messages.push(message);
+  async send(message: ProtocolResponse | ProgressNotification) {
+    if ("method" in message) this.notifications.push(message);
+    else this.messages.push(message);
   }
   async close() {
     this.closes++;

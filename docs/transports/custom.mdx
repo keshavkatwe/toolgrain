@@ -7,7 +7,7 @@ Most applications should use the supplied adapters. Custom integrations can impl
 
 ## Message transport
 
-`Transport` has `start(callbacks)`, `send(response)`, and `close()` methods; optional `mode` is `"message"`. On startup, retain callbacks for messages, parse failures, unexpected errors, and connection closure. Callbacks are synchronous; message processing runs independently.
+`Transport` has `start(callbacks)`, `send(message)`, and `close()` methods; optional `mode` is `"message"`. `send()` accepts `ProtocolResponse | ProgressNotification`, imported from protocol. Preserve notification/response write order and resolve only after write/backpressure handling. On startup, retain callbacks for messages, parse failures, unexpected errors, and connection closure. Callbacks are synchronous; message processing runs independently.
 
 Own UTF-8 framing, JSON decoding, write ordering/backpressure, and stream cleanup. Do not call the MCP dispatcher yourself. Message transports are unsuitable for servers with HTTP authorization configured.
 
@@ -34,5 +34,11 @@ const response = await server.handle({
 ```
 
 `handle()` returns a protocol response or `undefined` for notifications/cancelled work. It does not perform HTTP method, host, Origin, content-type, or body-size checks. Implement those boundaries before direct handling, or reuse an HTTP adapter.
+
+To deliver client-requested progress, pass an optional `onNotification(message)`
+callback in the handle options. It receives `ProgressNotification` wire envelopes
+for that invocation and may return a promise to apply backpressure. Omit it for
+one-response integrations. Abort the request signal when the delivery channel
+closes, and await the final `handle()` response after the preceding notifications.
 
 For protected calls, obtain a server-bound scope with `authorize()`, pass it as `{ auth }`, and dispose it in `finally`. Scopes are single-use. The [detailed authorization guide](/guides/authorization#custom-providers-and-direct-invocation) shows that lifecycle.

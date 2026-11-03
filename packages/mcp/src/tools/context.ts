@@ -18,6 +18,7 @@ import {
 } from "../context/registry.js";
 import { createContextScope } from "../context/scope.js";
 import type { DeepReadonly } from "./json-value.js";
+import type { ToolProgress } from "./progress.js";
 
 /** What the client reported about itself; unverified, so not a basis for security decisions. */
 export interface ToolClient {
@@ -47,6 +48,14 @@ export interface ToolContext {
   readonly signal: AbortSignal;
   /** Frozen request metadata; contains no verified authorization identity. */
   readonly request: ToolRequest;
+  /**
+   * Report request-scoped progress; safe to pass to helpers without binding.
+   * Await delivery/backpressure. Resolves without sending when no progress token
+   * or delivery channel exists, or after cancellation/completion. Active updates
+   * require finite values and strictly increasing progress; invalid updates reject.
+   * Delivery failure cancels the request and reaches transport diagnostics.
+   */
+  readonly reportProgress: (update: ToolProgress) => Promise<void>;
 }
 
 /** Optional metadata, cancellation, and provider bindings for a direct-call context. */
@@ -94,10 +103,12 @@ export function createToolContext(
   { client, ...request }: ToolRequest,
   auth?: AuthIdentity,
   providers: ContextRegistry = createContextRegistry(),
+  reportProgress: ToolContext["reportProgress"] = () => Promise.resolve(),
 ): ToolContext {
   const ctx = attachAuth(
     {
       signal,
+      reportProgress,
       request: Object.freeze({
         ...request,
         ...(client === undefined

@@ -22,7 +22,7 @@ export interface HttpTransport extends RequestTransport {
 }
 
 /**
- * Create a managed Node HTTP transport for independent MCP POSTs with JSON responses.
+ * Create a managed Node HTTP transport for independent MCP POSTs with JSON or progress SSE responses.
  * `server.listen()` starts its listener and public auth metadata routes when configured.
  * Default accepted hosts are loopback authorities on the actual listening port;
  * `hostname` controls binding separately from the `allowedHosts` request policy.

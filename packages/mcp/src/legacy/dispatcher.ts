@@ -61,6 +61,7 @@ export function createLegacyDispatcher(
             },
             scope.auth,
             providers,
+            scope.reportProgress,
           ),
         );
         break;

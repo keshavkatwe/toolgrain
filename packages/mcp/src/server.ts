@@ -1,8 +1,10 @@
 import type {
+  ProgressNotification,
   ProtocolResponse,
   Tool as ProtocolTool,
   SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import { abortable } from "./abort.js";
 import { createAuthorization } from "./auth/authorization.js";
 import { AuthError, isAuthError } from "./auth/errors.js";
 import type { AuthMetadata, AuthProvider, AuthScope } from "./auth/types.js";
@@ -54,6 +56,13 @@ export interface HandleOptions {
   protocolVersion?: SupportedProtocolVersion;
   /** Single-use scope issued by this server's `authorize()`; dispose it in `finally`. */
   auth?: AuthScope;
+  /**
+   * Deliver progress notifications for this request, honoring asynchronous
+   * backpressure. Omit for a one-response caller; progress then becomes a no-op.
+   * The caller owns framing and must abort `signal` when its response channel closes.
+   * Callback failure cancels this invocation and reaches `onError(error)` without tool details.
+   */
+  onNotification?: (message: ProgressNotification) => void | Promise<void>;
 }
 
 /** An MCP dispatcher with one optional transport attachment and terminal shutdown. */
@@ -147,6 +156,9 @@ export function createServer<const Tools extends ToolMap>(
     running.add(controller);
     return {
       signal: controller.signal,
+      abort(reason: unknown) {
+        controller.abort(reason);
+      },
       finish() {
         signal?.removeEventListener("abort", abort);
         running.delete(controller);
@@ -187,7 +199,7 @@ export function createServer<const Tools extends ToolMap>(
     },
     async handle(
       message,
-      { signal, protocolVersion, auth }: HandleOptions = {},
+      { signal, protocolVersion, auth, onNotification }: HandleOptions = {},
     ) {
       if (closed) throw new Error("Server is closed");
       const identity = authorization.consume(auth);
@@ -204,13 +216,39 @@ export function createServer<const Tools extends ToolMap>(
         ? AbortSignal.any([pending.signal, auth.signal])
         : pending.signal;
       try {
-        return await executeRequest(
-          dispatch,
-          incoming.request,
-          { signal: combined, ...(identity ? { auth: identity } : {}) },
-          options.onError,
-          protocolVersion,
+        return await abortable(
+          executeRequest(
+            dispatch,
+            incoming.request,
+            {
+              signal: combined,
+              ...(identity ? { auth: identity } : {}),
+              ...(onNotification
+                ? {
+                    notify: async (message: ProgressNotification) => {
+                      try {
+                        await onNotification(message);
+                      } catch (error) {
+                        if (combined.aborted) return;
+                        reportError(options.onError, error);
+                        pending.abort(
+                          new DOMException(
+                            "Progress delivery failed",
+                            "AbortError",
+                          ),
+                        );
+                      }
+                    },
+                  }
+                : {}),
+            },
+            options.onError,
+            protocolVersion,
+          ),
+          combined,
         );
+      } catch (error) {
+        if (!combined.aborted) throw error;
       } finally {
         pending.finish();
       }
