@@ -1,5 +1,13 @@
 # @toolgrain/clerk
 
+## 0.3.0-alpha.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @toolgrain/mcp@0.3.0-alpha.0
+  - @toolgrain/jwt@0.3.0-alpha.0
+
 ## 0.2.0
 
 ### Minor Changes

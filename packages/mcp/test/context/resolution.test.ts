@@ -102,7 +102,11 @@ it("rejects missing dependencies only on access and rejects unsupported hand-bui
   await expect(database.use(toolContext())).rejects.toThrow(
     '"database" is not registered',
   );
-  const handBuilt = { signal: ctx.signal, request: ctx.request };
+  const handBuilt = {
+    signal: ctx.signal,
+    request: ctx.request,
+    reportProgress: ctx.reportProgress,
+  };
   await expect(database.use(handBuilt)).rejects.toThrow(
     "Toolgrain-created context",
   );

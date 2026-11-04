@@ -9,6 +9,7 @@ import {
   mcpResult,
   type ToolContext,
   type ToolErrorDetails,
+  type ToolProgress,
   type Transport,
   type TransportCallbacks,
   tool,
@@ -224,6 +225,49 @@ const mutableClient = {
 const direct: ToolContext = toolContext({
   request: { id: "smoke", client: mutableClient },
 });
+const readonlyProgress = {
+  progress: 1,
+  total: 2,
+  message: "Processing",
+} as const satisfies ToolProgress;
+const detachedReporter: (value: ToolProgress) => Promise<void> =
+  direct.reportProgress;
+await detachedReporter(readonlyProgress);
+const progressServer = createServer({
+  name: "progress",
+  version: "1",
+  tools: {
+    work: tool({
+      input: z.object({}),
+      async execute(_input, ctx) {
+        await ctx.reportProgress(readonlyProgress);
+        return "done";
+      },
+    }),
+  },
+});
+await progressServer.handle(
+  {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "tools/call",
+    params: {
+      name: "work",
+      _meta: {
+        "io.modelcontextprotocol/protocolVersion": PROTOCOL_VERSION,
+        "io.modelcontextprotocol/clientCapabilities": {},
+        progressToken: "job",
+      },
+    },
+  },
+  {
+    onNotification(message) {
+      const token: string | number = message.params.progressToken;
+      void token;
+    },
+  },
+);
+await progressServer.close();
 toolContext({ request: direct.request });
 const directVersion: "2026-07-28" | "2025-06-18" =
   direct.request.protocolVersion;

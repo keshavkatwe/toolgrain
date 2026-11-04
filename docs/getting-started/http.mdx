@@ -58,4 +58,4 @@ See [HTTP behavior](/transports/http) and [framework recipes](/transports/framew
 
 ## Before exposing the endpoint
 
-Configure exact public `allowedHosts`, handle trusted proxy normalization in the application, and add authorization when the tools require it. `allowedOrigins` is a separate browser-origin check and does not emit CORS response headers. Applications own CORS, TLS, listener limits, and public URL normalization. The current HTTP implementation uses independent POST requests and JSON responses; it does not provide sessions, SSE streams, or resumability.
+Configure exact public `allowedHosts`, handle trusted proxy normalization in the application, and add authorization when the tools require it. `allowedOrigins` is a separate browser-origin check and does not emit CORS response headers. Applications own CORS, TLS, listener limits, and public URL normalization. HTTP uses independent POST requests with JSON responses or request-scoped SSE progress. Sessions, subscriptions, and resumability remain outside the current scope.
