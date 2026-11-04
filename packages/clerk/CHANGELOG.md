@@ -1,5 +1,21 @@
 # @toolgrain/clerk
 
+## 0.2.0
+
+### Minor Changes
+
+- 2931553: Declare resource OAuth scopes with `scopesSupported` on auth providers, including direct Clerk and JWT configuration. Validate and copy scope catalogs and emit them as `scopes_supported` in protected-resource discovery without imposing a required-scope policy.
+  
+  Export Clerk's built-in OAuth scope catalog and named scope types, preserving editor completion and support for instance-defined custom scopes.
+  
+  Add `AuthError("insufficient_scope", { requiredScopes, description })` for verified-token scope denials. HTTP adapters return a 403 Bearer challenge with optional required scopes and explicit public guidance, preserving private causes and existing authentication behavior.
+
+### Patch Changes
+
+- Updated dependencies [2931553]
+  - @toolgrain/mcp@0.2.0
+  - @toolgrain/jwt@0.2.0
+
 ## 0.1.3
 
 ### Patch Changes

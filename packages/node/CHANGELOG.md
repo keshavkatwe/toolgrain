@@ -1,5 +1,14 @@
 # @toolgrain/node
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [2931553]
+  - @toolgrain/mcp@0.2.0
+  - @toolgrain/http@0.2.0
+  - @toolgrain/protocol@0.2.0
+
 ## 0.1.3
 
 ### Patch Changes
