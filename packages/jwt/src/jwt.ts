@@ -5,6 +5,7 @@ import {
   createAuthAccessor,
   isAuthError,
   type ToolContext,
+  validateAuthScopes,
   validateAuthUrl,
   validateTokenAudience,
 } from "@toolgrain/mcp";
@@ -45,6 +46,8 @@ export interface JwtOptions {
   jwksUrl?: string;
   /** Canonical public MCP resource and required audience; otherwise inferred by the HTTP adapter. */
   resource?: string;
+  /** Resource scopes advertised in discovery; copied and validated, without enforcing required scopes. */
+  scopesSupported?: readonly string[];
   /** Supported asymmetric signature algorithms; defaults to `RS256` and `ES256`. The array is copied. */
   algorithms?: readonly string[];
 }
@@ -96,6 +99,10 @@ export const useAuth: (ctx: ToolContext) => AuthReadonly<JwtAuth> =
  * `AuthError("temporarily_unavailable")` with the original private cause.
  */
 export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
+  const scopesSupported =
+    options.scopesSupported === undefined
+      ? undefined
+      : validateAuthScopes(options.scopesSupported);
   const issuer = validateAuthUrl(options.issuer);
   const explicit =
     options.jwksUrl === undefined
@@ -134,6 +141,7 @@ export function jwt(options: JwtOptions): AuthProvider<JwtAuth> {
   };
   return Object.freeze({
     type,
+    ...(scopesSupported === undefined ? {} : { scopesSupported }),
     ...(resource === undefined ? {} : { resource }),
     authorizationServers: Object.freeze([issuer]),
     async verify(token, { signal, resource: requested }) {

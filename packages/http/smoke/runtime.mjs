@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHttpHandler } from "@toolgrain/http";
-import { createServer } from "@toolgrain/mcp";
+import { AuthError, createServer } from "@toolgrain/mcp";
 import { PROTOCOL_VERSION } from "@toolgrain/protocol";
 
 const server = createServer({ name: "smoke", version: "1", tools: {} });
@@ -33,3 +33,45 @@ const response = await handler(
 assert.equal(response.status, 200);
 assert.deepEqual((await response.json()).result.tools, []);
 await server.close();
+
+const protectedServer = createServer({
+  name: "scope-smoke",
+  version: "1",
+  tools: {},
+  auth: {
+    type: Symbol.for("http-smoke/auth"),
+    authorizationServers: ["https://auth.example.com"],
+    scopesSupported: ["tools:read"],
+    async verify() {
+      throw new AuthError("insufficient_scope", {
+        requiredScopes: ["tools:read"],
+      });
+    },
+  },
+});
+try {
+  const handle = createHttpHandler(protectedServer);
+  const metadata = await handle(
+    new Request("http://localhost/.well-known/oauth-protected-resource/mcp"),
+  );
+  assert.deepEqual((await metadata.json()).scopes_supported, ["tools:read"]);
+  const denied = await handle(
+    new Request("http://localhost/mcp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        Authorization: "Bearer limited",
+      },
+      body: "{",
+    }),
+  );
+  assert.equal(denied.status, 403);
+  assert.match(
+    denied.headers.get("WWW-Authenticate"),
+    /error="insufficient_scope".*scope="tools:read"/,
+  );
+  assert.deepEqual(await denied.json(), { error: "insufficient_scope" });
+} finally {
+  await protectedServer.close();
+}

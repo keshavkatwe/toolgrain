@@ -2,6 +2,7 @@ export { validateTokenAudience } from "./auth/audience.js";
 export { createAuthAccessor } from "./auth/context.js";
 export type { AuthErrorCode } from "./auth/errors.js";
 export { AuthError, isAuthError } from "./auth/errors.js";
+export { validateAuthScopes } from "./auth/scopes.js";
 export type {
   AuthMetadata,
   AuthProvider,

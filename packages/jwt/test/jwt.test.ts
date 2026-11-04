@@ -55,6 +55,21 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+it("snapshots resource scopes without enforcing the discovery catalog", async () => {
+  mockFetch();
+  const scopesSupported = ["tools:read", "tools:write"];
+  const provider = jwt({ issuer, scopesSupported });
+  scopesSupported.push("changed");
+  expect(provider.scopesSupported).toEqual(["tools:read", "tools:write"]);
+  expect(Object.isFrozen(provider.scopesSupported)).toBe(true);
+  await expect(
+    provider.verify(await sign(), verifyOptions()),
+  ).resolves.toHaveProperty("claims.sub", "alice");
+  expect(() => jwt({ issuer, scopesSupported: ["bad scope"] })).toThrow(
+    "OAuth scopes",
+  );
+});
+
 it("discovers keys, validates the audience, and infers auth from a standalone tool", async () => {
   const fetcher = mockFetch();
   const provider = jwt({ issuer });

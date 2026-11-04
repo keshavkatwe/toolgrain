@@ -6,10 +6,14 @@ const server = createServer({
   name: "jwt",
   version: "1",
   tools: {},
-  auth: jwt({ issuer: "https://auth.example.com" }),
+  auth: jwt({
+    issuer: "https://auth.example.com",
+    scopesSupported: ["tools:read"],
+  }),
 });
 assert.deepEqual(server.getAuthMetadata(), {
   authorizationServers: ["https://auth.example.com"],
+  scopesSupported: ["tools:read"],
 });
 assert.throws(() => useAuth(toolContext()), /no identity/);
 await assert.rejects(server.handle({}), /Invalid access token/);

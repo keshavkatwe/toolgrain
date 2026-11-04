@@ -1,6 +1,7 @@
 import { abortable } from "./abort.js";
 import { identitySnapshot } from "./context.js";
 import { AuthError } from "./errors.js";
+import { validateAuthScopes } from "./scopes.js";
 import type {
   AuthIdentity,
   AuthMetadata,
@@ -25,6 +26,9 @@ export function createAuthorization(provider?: AuthProvider) {
       authUrl(issuer);
       return issuer;
     }),
+    ...(provider.scopesSupported === undefined
+      ? {}
+      : { scopesSupported: validateAuthScopes(provider.scopesSupported) }),
   };
   if (
     provider &&

@@ -131,6 +131,7 @@ it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
       expect(await metadata.json()).toMatchObject({
         resource: endpoint,
         authorization_servers: [issuer],
+        scopes_supported: ["openid", "profile", "email", "offline_access"],
       });
       for (const name of ["greet", "whoAmI"]) {
         const missing = await app.handle(request(revision, undefined, name));

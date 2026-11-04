@@ -24,12 +24,17 @@ const whoAmI = tool({
 });
 const server = createServer({
   name: "clerk-example", version: "1.0.0", tools: { whoAmI },
-  auth: clerk({ publishableKey, secretKey }),
+  auth: clerk({
+    publishableKey, secretKey,
+    scopesSupported: ["openid", "profile", "email", "offline_access"],
+  }),
 });
 await server.listen(http({ port: 3000 }));
 ```
 
 Keep secret keys in server-side configuration. The provider derives its issuer from the publishable key. The frozen accessor result exposes `userId`, `clientId`, and readonly `scopes`, not the token or SDK client.
+
+Declare only scopes this resource intends clients to request, and ensure Clerk allows them. This catalog appears in canonical protected-resource discovery, including the direct Clerk + Elysia example. It does not require every token to contain every listed scope. See [scope configuration and troubleshooting](/guides/authorization#resource-scopes).
 
 ## Configure a client
 

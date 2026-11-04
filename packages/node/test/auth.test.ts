@@ -24,7 +24,13 @@ it("preserves the actual endpoint for authentication and public metadata over re
     auth: {
       type,
       authorizationServers: ["https://auth.example.com"],
+      scopesSupported: ["profile", "tools:read"],
       async verify(token, { resource }) {
+        if (token === "limited")
+          throw new AuthError("insufficient_scope", {
+            requiredScopes: ["tools:read"],
+            description: "Reauthorize with tools:read.",
+          });
         if (token === "missing-aud") validateTokenAudience(undefined, resource);
         if (token !== "valid" || resource !== expectedResource)
           throw new AuthError("invalid_token");
@@ -52,7 +58,10 @@ it("preserves the actual endpoint for authentication and public metadata over re
       `${origin}/.well-known/oauth-protected-resource/public/mcp`,
     );
     expect(info.status).toBe(200);
-    expect(await info.json()).toHaveProperty("resource", expectedResource);
+    expect(await info.json()).toMatchObject({
+      resource: expectedResource,
+      scopes_supported: ["profile", "tools:read"],
+    });
     const headers = {
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
@@ -101,6 +110,22 @@ it("preserves the actual endpoint for authentication and public metadata over re
     expect(missingAudience.headers.get("WWW-Authenticate")).toContain(
       `error_description="${failure.error_description}"`,
     );
+    const insufficient = await fetch(expectedResource, {
+      method: "POST",
+      headers: { ...headers, Authorization: "Bearer limited" },
+      body,
+    });
+    expect(insufficient.status).toBe(403);
+    expect(insufficient.headers.get("WWW-Authenticate")).toContain(
+      'error="insufficient_scope"',
+    );
+    expect(insufficient.headers.get("WWW-Authenticate")).toContain(
+      'scope="tools:read"',
+    );
+    expect(await insufficient.json()).toEqual({
+      error: "insufficient_scope",
+      error_description: "Reauthorize with tools:read.",
+    });
     const invalidHost = await new Promise<number | undefined>(
       (resolve, reject) => {
         const req = sendHttp(

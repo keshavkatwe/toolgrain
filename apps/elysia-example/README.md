@@ -162,6 +162,11 @@ for the client and callback settings.
 
 The public protected-resource metadata is at
 `http://127.0.0.1:3007/.well-known/oauth-protected-resource/mcp`.
+The example declares `openid profile email offline_access` through Clerk's
+`scopesSupported` option, so clients using automatic scope selection receive the
+resource's catalog. Allow these scopes in Clerk when testing that flow; the
+manual Inspector setup above deliberately requests only `openid profile`.
+Supported scopes are discovery metadata, not a requirement to grant every scope.
 Requests without valid authorization receive 401; public metadata remains
 available before login. This example binds to loopback. For deployment/proxy
 configuration, see the [authorization guide](https://toolgrain.mintlify.site/guides/authorization).

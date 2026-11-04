@@ -44,6 +44,7 @@ export const server = createServer({
   auth: clerk({
     publishableKey,
     secretKey,
+    scopesSupported: ["openid", "profile", "email", "offline_access"],
     ...(process.env.MCP_RESOURCE ? { resource: process.env.MCP_RESOURCE } : {}),
   }),
   tools: { greet, whoAmI },

@@ -57,6 +57,9 @@ export function createProtectedResourceMetadataHandler(
             resource,
             authorization_servers: metadata.authorizationServers,
             bearer_methods_supported: ["header"],
+            ...(metadata.scopesSupported === undefined
+              ? {}
+              : { scopes_supported: metadata.scopesSupported }),
           }),
       {
         headers: {
