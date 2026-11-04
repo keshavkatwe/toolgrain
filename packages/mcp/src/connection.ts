@@ -1,4 +1,5 @@
 import {
+  INVALID_PARAMS,
   INVALID_REQUEST,
   PARSE_ERROR,
   type ProgressNotification,
@@ -13,6 +14,7 @@ import { decode } from "./protocol/decode.js";
 import type { Request } from "./protocol/messages.js";
 import { protocolError } from "./protocol/responses.js";
 import type { Server } from "./server.js";
+import { isProgressToken } from "./tools/progress.js";
 import type {
   RequestTransport,
   Transport,
@@ -184,6 +186,19 @@ class Connection implements ConnectionLifecycle {
         protocolError(
           INVALID_REQUEST,
           "Request ID is already in use",
+          request.id,
+        ),
+      );
+      return;
+    }
+    const token = (request.params?._meta as Record<string, unknown> | undefined)
+      ?.progressToken;
+    if (isProgressToken(token) && !pending.claimProgress(token)) {
+      pending.finish();
+      await this.send(
+        protocolError(
+          INVALID_PARAMS,
+          "Progress token is already in use",
           request.id,
         ),
       );

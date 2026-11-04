@@ -70,9 +70,13 @@ Handlers can accept `execute(input, ctx)` to use request information and
 `ctx.signal` for cooperative cancellation. Report client-requested progress with
 `await ctx.reportProgress({ progress: 1, total: 10, message: "Processing" })`.
 The bound method is safe to pass to helpers and becomes a no-op without a
-progress token or delivery channel. Use `toolContext()` for direct handler
-calls, which bypass server validation and result conversion. Unexpected server
-execution failures return generic errors and reach the optional `onError`
+progress token or delivery channel. The first update sends immediately; later
+updates are spaced at least 100 ms apart per invocation, preserving order and
+backpressure. Await each report. Duplicate active progress tokens are rejected
+on shared message connections; independent HTTP response streams remain isolated.
+Use `toolContext()` for direct handler calls, which bypass server validation and
+result conversion. Unexpected server execution failures return generic errors
+and reach the optional `onError`
 callback. Request-cached dependencies use `createContext()` and inferred
 accessors; see the
 [context guide](https://toolgrain.mintlify.site/guides/context).

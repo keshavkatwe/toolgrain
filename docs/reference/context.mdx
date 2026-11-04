@@ -48,6 +48,17 @@ failure aborts the invocation with `AbortError` reason `Progress delivery failed
 and reaches `onError(error)` without tool details. In-flight reports can reject on
 cancellation; new reports after cancellation resolve without sending.
 Await reports during the invocation, and choose a reasonable reporting frequency.
+The first update sends immediately; subsequent updates are spaced at least
+100 ms apart per invocation. Awaiting a report includes this pacing delay and
+delivery backpressure. Accepted updates are delivered in order before the final
+response; cancellation clears pending delays and suppresses queued updates.
+
+The client supplies a string or integer progress token unique among its active
+requests. Toolgrain rejects duplicate active tokens on a shared message
+connection with `-32602`, before executing the tool. Integer and string tokens
+are distinct. Tokens become reusable on completion or cancellation, and tokens
+on independent HTTP response streams remain isolated.
+
 See [handler context](/guides/request-context#report-progress) and [HTTP behavior](/transports/overview).
 
 ## toolContext
