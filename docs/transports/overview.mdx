@@ -135,7 +135,8 @@ After SSE starts, later tool errors arrive in its final JSON-RPC response.
 Await progress reports to respect backpressure. A consumer must read the response
 body or cancel it; cancellation/disconnection aborts that invocation and suppresses
 late events. Authorization stays active through execution and final delivery, then
-is disposed. Progress uses the originating POST response and does not open a
+is disposed. Closing the server also interrupts a final SSE write blocked by
+backpressure. Progress uses the originating POST response and does not open a
 subscription or GET event stream. No SSE resumption or event IDs are implemented.
 
 Every modern POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,

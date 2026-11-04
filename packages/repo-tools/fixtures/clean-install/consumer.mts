@@ -26,6 +26,8 @@ export const greet = tool({
   output: z.object({ message: z.string() }),
   async execute({ name }, ctx) {
     const { prefix } = await greeting.use(ctx);
+    await ctx.reportProgress({ progress: 0.5, total: 1, message: "Working" });
+    await ctx.reportProgress({ progress: 1, total: 1, message: "Done" });
     return mcpResult({
       content: [],
       structuredContent: { message: `${prefix}, ${name}!` },
@@ -91,6 +93,7 @@ if (process.argv[2] === "stdio-cancellation") {
       wait: tool({
         input: z.object({}),
         async execute(_input, ctx) {
+          await ctx.reportProgress({ progress: 0.5, message: "Waiting" });
           process.stderr.write("started\n");
           await new Promise<void>((resolve) => {
             ctx.signal.addEventListener(

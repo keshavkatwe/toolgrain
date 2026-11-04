@@ -7,6 +7,9 @@ import type { HttpProtocol } from "./http-protocol.js";
 import type { ObjectValue } from "./object.js";
 import { protocolResponse, unavailableResponse } from "./responses.js";
 
+// Internal MCP contract: retain request cancellation through final delivery.
+const responseDelivery = Symbol.for("@toolgrain/mcp/response-delivery/v1");
+
 /** Open SSE on the first progress message; otherwise preserve the ordinary JSON response. */
 export function executeStreamingRequest(
   server: Server,
@@ -57,14 +60,25 @@ export function executeStreamingRequest(
     }
     await writer.write(encode(value));
   };
+  let delivered = false;
+  const deliver = async (response: ProtocolResponse) => {
+    if (!writer) return;
+    await writer.write(encode(response));
+    // Release auth before EOF, while MCP still tracks the delivery itself.
+    auth?.dispose();
+    await writer.close();
+    delivered = true;
+  };
   const execute = async () => {
     try {
-      const response = await server.handle(message, {
+      const options = {
         signal,
         protocolVersion: protocol.protocolVersion,
         onNotification: notify,
+        [responseDelivery]: deliver,
         ...(auth ? { auth } : {}),
-      });
+      };
+      const response = await server.handle(message, options);
       signal.throwIfAborted();
       if (writer) {
         if (!response) {
@@ -73,10 +87,8 @@ export function executeStreamingRequest(
           );
           return;
         }
-        await writer.write(encode(response));
-        // The final response has been handed to the reader; release auth before EOF.
-        auth?.dispose();
-        await writer.close();
+        // Structural Server implementations may not implement the internal hook.
+        if (!delivered) await deliver(response);
       } else {
         resolve(
           response

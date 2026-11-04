@@ -353,6 +353,97 @@ it("disposes authorization when the streamed final result completes", async () =
   expect(authorized?.signal.aborted).toBe(false);
 });
 
+it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
+  "aborts a blocked final SSE write on server shutdown in %s",
+  async (revision) => {
+    const completed = deferred();
+    const onError = vi.fn();
+    let context!: ToolContext;
+    const actual = createServer({
+      name: "progress",
+      version: "1",
+      onError,
+      tools: {
+        work: tool({
+          input: z.object({}),
+          async execute(_input, ctx) {
+            context = ctx;
+            await ctx.reportProgress({ progress: 1 });
+            return "done";
+          },
+        }),
+      },
+    });
+    const server: Server = {
+      ...actual,
+      async handle(...args) {
+        const result = await actual.handle(...args);
+        completed.resolve();
+        return result;
+      },
+    };
+    const response = await createHttpHandler(server)(
+      request(revision, { token: "job" }),
+    );
+    if (!response.body) throw new Error("Expected an SSE body");
+    const reader = response.body.getReader();
+    try {
+      expect(
+        events(new TextDecoder().decode((await reader.read()).value))[0],
+      ).toHaveProperty("method", "notifications/progress");
+      // A task boundary lets execution reach the blocked final write without
+      // consuming it. The handler itself has already returned its result.
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(context.signal.aborted).toBe(false);
+      await actual.close();
+      await expect(reader.read()).rejects.toMatchObject({ name: "AbortError" });
+      expect(context.signal.aborted).toBe(true);
+      await completed.promise;
+      expect(onError).not.toHaveBeenCalled();
+    } finally {
+      await reader.cancel().catch(() => {});
+      await actual.close();
+    }
+  },
+);
+
+it("delivers the final result when a structural server forwards only public options", async () => {
+  const actual = createServer({
+    name: "progress",
+    version: "1",
+    tools: {
+      work: tool({
+        input: z.object({}),
+        async execute(_input, ctx) {
+          await ctx.reportProgress({ progress: 1 });
+          return "done";
+        },
+      }),
+    },
+  });
+  const server: Server = {
+    ...actual,
+    handle(message, { signal, protocolVersion, auth, onNotification } = {}) {
+      return actual.handle(message, {
+        ...(signal ? { signal } : {}),
+        ...(protocolVersion ? { protocolVersion } : {}),
+        ...(auth ? { auth } : {}),
+        ...(onNotification ? { onNotification } : {}),
+      });
+    },
+  };
+  try {
+    const response = await createHttpHandler(server)(
+      request(PROTOCOL_VERSION, { token: "job" }),
+    );
+    const messages = events(await response.text());
+    expect(messages).toHaveLength(2);
+    expect(messages[1]).toHaveProperty("result.content.0.text", "done");
+  } finally {
+    await actual.close();
+  }
+});
+
 it("isolates simultaneous streams with the same JSON-RPC id and progress token", async () => {
   let index = 0;
   const server = createServer({

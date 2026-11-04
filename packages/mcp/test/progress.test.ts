@@ -339,6 +339,65 @@ it("skips delivery when cancellation wins before the queued callback starts", as
   expect(send).not.toHaveBeenCalled();
 });
 
+it.each(["complete", "failure", "shutdown"] as const)(
+  "keeps internal response delivery active through %s",
+  async (action) => {
+    const started = deferred();
+    const delivery = deferred();
+    const onError = vi.fn();
+    const failure = new Error("private response delivery failure");
+    let context!: ToolContext;
+    const server = createServer({
+      name: "delivery",
+      version: "1",
+      onError,
+      tools: {
+        work: tool({
+          input: z.object({}),
+          execute(_input, ctx) {
+            context = ctx;
+            return "done";
+          },
+        }),
+      },
+    });
+    const options = {
+      protocolVersion: PROTOCOL_VERSION,
+      [Symbol.for("@toolgrain/mcp/response-delivery/v1")]: async (
+        response: unknown,
+      ) => {
+        expect(response).toHaveProperty("result.content.0.text", "done");
+        started.resolve();
+        await delivery.promise;
+      },
+    } as const;
+    const pending = server.handle(call(PROTOCOL_VERSION), options);
+    await started.promise;
+    try {
+      if (action === "shutdown") await server.close();
+      else if (action === "failure") delivery.reject(failure);
+      else delivery.resolve();
+      const response = await pending;
+      if (action === "complete") {
+        expect(response).toHaveProperty("result");
+        await server.close();
+        expect(context.signal.aborted).toBe(false);
+      } else {
+        expect(response).toBeUndefined();
+        expect(context.signal.aborted).toBe(true);
+      }
+      if (action === "failure") {
+        expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
+        expect(context.signal.reason.message).toBe("Response delivery failed");
+      } else expect(onError).not.toHaveBeenCalled();
+    } finally {
+      // Shutdown must not wait for a delivery integration that ignores abort.
+      delivery.reject(failure);
+      await server.close();
+    }
+  },
+);
+
 it("keeps a cancelled stdio request id reserved until the handler settles", async () => {
   const gate = deferred();
   const started = deferred();

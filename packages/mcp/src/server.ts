@@ -23,6 +23,13 @@ import {
   type Transport,
 } from "./transport.js";
 
+// Internal adapter contract: final delivery remains part of the active request.
+// A global symbol preserves the hook across compatible package copies.
+const responseDelivery = Symbol.for("@toolgrain/mcp/response-delivery/v1");
+interface ResponseDeliveryOptions {
+  [responseDelivery]?: (response: ProtocolResponse) => void | Promise<void>;
+}
+
 /** Tool registrations, identity, and shared configuration for an MCP server. */
 export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   /** Server implementation name advertised to clients. */
@@ -197,10 +204,8 @@ export function createServer<const Tools extends ToolMap>(
         throw error;
       }
     },
-    async handle(
-      message,
-      { signal, protocolVersion, auth, onNotification }: HandleOptions = {},
-    ) {
+    async handle(message, handleOptions: HandleOptions = {}) {
+      const { signal, protocolVersion, auth, onNotification } = handleOptions;
       if (closed) throw new Error("Server is closed");
       const identity = authorization.consume(auth);
       if (auth?.signal.aborted) return;
@@ -216,7 +221,7 @@ export function createServer<const Tools extends ToolMap>(
         ? AbortSignal.any([pending.signal, auth.signal])
         : pending.signal;
       try {
-        return await abortable(
+        const response = await abortable(
           executeRequest(
             dispatch,
             incoming.request,
@@ -247,6 +252,29 @@ export function createServer<const Tools extends ToolMap>(
           ),
           combined,
         );
+        const deliver = (handleOptions as ResponseDeliveryOptions)[
+          responseDelivery
+        ];
+        if (response && deliver) {
+          try {
+            await abortable(
+              Promise.resolve().then(() => {
+                combined.throwIfAborted();
+                return deliver(response);
+              }),
+              combined,
+            );
+          } catch (error) {
+            if (!combined.aborted) {
+              reportError(options.onError, error);
+              pending.abort(
+                new DOMException("Response delivery failed", "AbortError"),
+              );
+            }
+            return;
+          }
+        }
+        return response;
       } catch (error) {
         if (!combined.aborted) throw error;
       } finally {

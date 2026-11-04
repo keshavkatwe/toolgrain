@@ -168,6 +168,10 @@ over stdio, Web HTTP, Node HTTP, and the managed HTTP transport, including input
 validation, rich results, and a context provider. JWT and Clerk initialize with
 test configuration; signed-token and opaque-token verification uses offline
 responses. Both eras also exercise stdio cancellation and HTTP disconnects.
+Client-requested progress is checked over stdio and Web/Node HTTP, including
+ordered fractional updates, final responses, SSE cancellation, and shutdown
+while a final SSE write is blocked. These flows run in the supported Node/Bun
+matrix and post-publication consumers.
 No live credentials or external authorization calls are used.
 
 The default check uses npm and Node and retains all verification. Internal
