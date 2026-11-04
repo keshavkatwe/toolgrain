@@ -11,6 +11,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import {
+  publicationPolicy,
+  validatePublishPlan,
+} from "../src/publication-policy.mjs";
 import { checkRelease, syncLockfile } from "../src/release.mjs";
 
 function fixture(t, version = "0.1.0") {
@@ -194,17 +198,20 @@ test("the initial RC series stays in its fixed group and promotes to 0.1.0", (t)
   );
 });
 
-test("native Changesets plans, Bun-packs, publishes artifacts and reports package tags", (t) => {
-  const { directory, write } = fixture(t);
-  write(
-    ".changeset/fix.md",
-    '---\n"@toolgrain/mcp": patch\n---\nFix the consumer flow.\n',
-  );
-  const log = join(directory, "npm-calls.jsonl");
-  const fakeNpm = join(directory, "npm-cli.cjs");
-  writeFileSync(
-    fakeNpm,
-    `
+for (const prerelease of [false, true])
+  test(`native Changesets plans, packs and publishes ${prerelease ? "RC" : "stable"} artifacts and package tags`, (t) => {
+    const expectedVersion = prerelease ? "0.1.1-rc.0" : "0.1.1";
+    const expectedTag = prerelease ? "rc" : "latest";
+    const { directory, write } = fixture(t);
+    write(
+      ".changeset/fix.md",
+      '---\n"@toolgrain/mcp": patch\n---\nFix the consumer flow.\n',
+    );
+    const log = join(directory, "npm-calls.jsonl");
+    const fakeNpm = join(directory, "npm-cli.cjs");
+    writeFileSync(
+      fakeNpm,
+      `
     const fs = require('node:fs');
     const [command, ...args] = process.argv.slice(2);
     fs.appendFileSync(process.env.TOOLGRAIN_TEST_LOG, JSON.stringify({ command, args, cwd: process.cwd() }) + '\\n');
@@ -215,117 +222,224 @@ test("native Changesets plans, Bun-packs, publishes artifacts and reports packag
       console.log('{}');
     } else process.exit(3);
   `,
-  );
-  const shim = new URL("../bin/changesets/", import.meta.url).pathname;
-  const env = {
-    ...process.env,
-    PATH: `${shim}:${process.env.PATH}`,
-    TOOLGRAIN_NPM_CLI: fakeNpm,
-    TOOLGRAIN_TEST_LOG: log,
-  };
-  const run = (...args) =>
-    execFileSync("node", [cli, ...args], {
-      cwd: directory,
-      env,
-      timeout: 30000,
-    });
-  execFileSync("git", ["init", "-q"], { cwd: directory });
-  execFileSync("git", ["add", "."], { cwd: directory });
-  execFileSync(
-    "git",
-    [
-      "-c",
-      "user.name=Fixture",
-      "-c",
-      "user.email=fixture@example.invalid",
-      "commit",
-      "-qm",
-      "fixture",
-    ],
-    { cwd: directory },
-  );
-  env.GIT_COMMITTER_NAME = "Fixture";
-  env.GIT_COMMITTER_EMAIL = "fixture@example.invalid";
-  run("version");
-  syncLockfile(directory);
-  assert.equal(checkRelease(directory).version, "0.1.1");
-  run("publish-plan", "--output", join(directory, "plan.json"));
-  const plan = JSON.parse(
-    readFileSync(join(directory, "plan.json")),
-  ).plan.flat();
-  assert.equal(plan.length, 2);
-  assert(
-    plan.every(
-      ({ kind, version, tag }) =>
-        kind === "publish" && version === "0.1.1" && tag === "latest",
-    ),
-  );
-  const packedDirectory = join(directory, "packed");
-  run(
-    "pack",
-    "--from-publish-plan",
-    join(directory, "plan.json"),
-    "--out-dir",
-    packedDirectory,
-  );
-  const packed = JSON.parse(
-    readFileSync(join(packedDirectory, "publish-plan.json")),
-  ).plan.flat();
-  for (const entry of packed) {
-    assert.match(entry.tarball.integrity, /^sha256-/);
-    const manifest = JSON.parse(
+    );
+    const shim = new URL("../bin/changesets/", import.meta.url).pathname;
+    const env = {
+      ...process.env,
+      PATH: `${shim}:${process.env.PATH}`,
+      TOOLGRAIN_NPM_CLI: fakeNpm,
+      TOOLGRAIN_TEST_LOG: log,
+    };
+    const run = (...args) =>
+      execFileSync("node", [cli, ...args], {
+        cwd: directory,
+        env,
+        timeout: 30000,
+      });
+    execFileSync("git", ["init", "-q"], { cwd: directory });
+    execFileSync("git", ["add", "."], { cwd: directory });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "commit",
+        "-qm",
+        "fixture",
+      ],
+      { cwd: directory },
+    );
+    env.GIT_COMMITTER_NAME = "Fixture";
+    env.GIT_COMMITTER_EMAIL = "fixture@example.invalid";
+    const commitCandidate = () => {
+      execFileSync("git", ["add", ".changeset", "packages", "bun.lock"], {
+        cwd: directory,
+      });
       execFileSync(
-        "tar",
+        "git",
         [
-          "-xOf",
-          join(packedDirectory, entry.tarball.path),
-          "package/package.json",
+          "-c",
+          "user.name=Fixture",
+          "-c",
+          "user.email=fixture@example.invalid",
+          "commit",
+          "-qm",
+          "Prepare candidate",
         ],
-        { encoding: "utf8" },
+        { cwd: directory },
+      );
+      return execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: directory,
+        encoding: "utf8",
+      }).trim();
+    };
+    if (prerelease) run("pre", "enter", "rc");
+    run("version");
+    syncLockfile(directory);
+    assert.equal(checkRelease(directory).version, expectedVersion);
+    let policy;
+    if (prerelease) {
+      for (const pkg of checkRelease(directory).packages) {
+        const path = `packages/${pkg.short}/package.json`;
+        const manifest = JSON.parse(readFileSync(join(directory, path)));
+        manifest.publishConfig.tag = "rc";
+        write(path, manifest);
+      }
+      const preparedSha = commitCandidate();
+      policy = publicationPolicy(checkRelease(directory), {
+        ref: "refs/heads/prerelease/0.1",
+        eventName: "workflow_dispatch",
+        preState: JSON.parse(
+          readFileSync(join(directory, ".changeset/pre.json")),
+        ),
+        stableVersion: "0.1.0",
+        requestedVersion: expectedVersion,
+        expectedSha: preparedSha,
+        sourceSha: preparedSha,
+      });
+    }
+    run("publish-plan", "--output", join(directory, "plan.json"));
+    const plan = JSON.parse(
+      readFileSync(join(directory, "plan.json")),
+    ).plan.flat();
+    assert.equal(plan.length, 2);
+    assert(
+      plan.every(
+        ({ kind, version, tag }) =>
+          kind === "publish" &&
+          version === expectedVersion &&
+          tag === expectedTag,
       ),
     );
-    assert.equal(manifest.version, "0.1.1");
-    if (entry.name === "@toolgrain/mcp")
-      assert.equal(manifest.dependencies["@toolgrain/protocol"], "0.1.1");
-  }
-  // A failed publish must fail the native command and create no success tags.
-  env.TOOLGRAIN_TEST_FAIL = "true";
-  assert.throws(() => run("publish", "--from-pack-dir", packedDirectory));
-  assert.equal(
-    execFileSync("git", ["tag"], { cwd: directory, encoding: "utf8" }).trim(),
-    "",
-  );
-  delete env.TOOLGRAIN_TEST_FAIL;
-  env.CHANGESETS_OUTPUT = join(directory, "output.jsonl");
-  run("publish", "--from-pack-dir", packedDirectory);
-  const tags = execFileSync("git", ["tag"], {
-    cwd: directory,
-    encoding: "utf8",
-  })
-    .trim()
-    .split("\n");
-  assert.deepEqual(tags.sort(), [
-    "@toolgrain/mcp@0.1.1",
-    "@toolgrain/protocol@0.1.1",
-  ]);
-  const events = readFileSync(env.CHANGESETS_OUTPUT, "utf8")
-    .trim()
-    .split("\n")
-    .map(JSON.parse);
-  assert.equal(events.filter(({ type }) => type === "git-tag").length, 2);
-  const calls = readFileSync(log, "utf8").trim().split("\n").map(JSON.parse);
-  assert(
-    calls.every(
-      ({ cwd }) =>
-        cwd !== directory && !cwd.startsWith(`${directory}/packages/`),
-    ),
-  );
-  assert(
-    calls
-      .filter(({ command }) => command === "publish")
-      .every(
-        ({ args }) =>
-          args.includes("--ignore-scripts") && args.includes("latest"),
+    const packedDirectory = join(directory, "packed");
+    run(
+      "pack",
+      "--from-publish-plan",
+      join(directory, "plan.json"),
+      "--out-dir",
+      packedDirectory,
+    );
+    const packed = JSON.parse(
+      readFileSync(join(packedDirectory, "publish-plan.json")),
+    ).plan.flat();
+    if (policy)
+      validatePublishPlan(
+        { version: 1, plan: [packed] },
+        checkRelease(directory).packages,
+        policy,
+      );
+    for (const entry of packed) {
+      assert.match(entry.tarball.integrity, /^sha256-/);
+      const manifest = JSON.parse(
+        execFileSync(
+          "tar",
+          [
+            "-xOf",
+            join(packedDirectory, entry.tarball.path),
+            "package/package.json",
+          ],
+          { encoding: "utf8" },
+        ),
+      );
+      assert.equal(manifest.version, expectedVersion);
+      if (entry.name === "@toolgrain/mcp")
+        assert.equal(
+          manifest.dependencies["@toolgrain/protocol"],
+          expectedVersion,
+        );
+    }
+    // A failed publish must fail the native command and create no success tags.
+    env.TOOLGRAIN_TEST_FAIL = "true";
+    assert.throws(() => run("publish", "--from-pack-dir", packedDirectory));
+    assert.equal(
+      execFileSync("git", ["tag"], { cwd: directory, encoding: "utf8" }).trim(),
+      "",
+    );
+    delete env.TOOLGRAIN_TEST_FAIL;
+    env.CHANGESETS_OUTPUT = join(directory, "output.jsonl");
+    run("publish", "--from-pack-dir", packedDirectory);
+    const tags = execFileSync("git", ["tag"], {
+      cwd: directory,
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n");
+    assert.deepEqual(tags.sort(), [
+      `@toolgrain/mcp@${expectedVersion}`,
+      `@toolgrain/protocol@${expectedVersion}`,
+    ]);
+    const events = readFileSync(env.CHANGESETS_OUTPUT, "utf8")
+      .trim()
+      .split("\n")
+      .map(JSON.parse);
+    assert.equal(events.filter(({ type }) => type === "git-tag").length, 2);
+    if (prerelease) {
+      const oldTag = `@toolgrain/mcp@${expectedVersion}^{commit}`;
+      const oldTarget = execFileSync("git", ["rev-parse", oldTag], {
+        cwd: directory,
+        encoding: "utf8",
+      }).trim();
+      write(
+        ".changeset/acceptance-fix.md",
+        '---\n"@toolgrain/mcp": patch\n---\nFix the failed candidate requirement.\n',
+      );
+      run("version");
+      syncLockfile(directory);
+      const nextVersion = "0.1.1-rc.1";
+      assert.equal(checkRelease(directory).version, nextVersion);
+      const preparedSha = commitCandidate();
+      const nextPolicy = publicationPolicy(checkRelease(directory), {
+        ref: "refs/heads/prerelease/0.1",
+        eventName: "workflow_dispatch",
+        preState: JSON.parse(
+          readFileSync(join(directory, ".changeset/pre.json")),
+        ),
+        stableVersion: "0.1.0",
+        requestedVersion: nextVersion,
+        expectedSha: preparedSha,
+        sourceSha: preparedSha,
+      });
+      const nextPlan = join(directory, "next-plan.json");
+      const nextPacked = join(directory, "next-packed");
+      run("publish-plan", "--output", nextPlan);
+      run("pack", "--from-publish-plan", nextPlan, "--out-dir", nextPacked);
+      validatePublishPlan(
+        JSON.parse(readFileSync(join(nextPacked, "publish-plan.json"))),
+        checkRelease(directory).packages,
+        nextPolicy,
+      );
+      run("publish", "--from-pack-dir", nextPacked);
+      assert.equal(
+        execFileSync("git", ["rev-parse", oldTag], {
+          cwd: directory,
+          encoding: "utf8",
+        }).trim(),
+        oldTarget,
+      );
+      assert.equal(
+        execFileSync(
+          "git",
+          ["rev-parse", `@toolgrain/mcp@${nextVersion}^{commit}`],
+          { cwd: directory, encoding: "utf8" },
+        ).trim(),
+        preparedSha,
+      );
+    }
+    const calls = readFileSync(log, "utf8").trim().split("\n").map(JSON.parse);
+    assert(
+      calls.every(
+        ({ cwd }) =>
+          cwd !== directory && !cwd.startsWith(`${directory}/packages/`),
       ),
-  );
-});
+    );
+    assert(
+      calls
+        .filter(({ command }) => command === "publish")
+        .every(
+          ({ args }) =>
+            args.includes("--ignore-scripts") && args.includes(expectedTag),
+        ),
+    );
+  });

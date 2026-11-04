@@ -69,3 +69,45 @@ test("registry verification rejects missing releases, mismatched archives and in
     /integrity mismatch/,
   );
 });
+
+test("RC verification checks rc in both metadata formats and preserves stable latest", async () => {
+  const candidate = { ...pkg, version: "0.2.0-rc.0" };
+  const metadata = {
+    "dist-tags": { latest: pkg.version, rc: candidate.version },
+    versions: {
+      [candidate.version]: { ...body.versions[pkg.version], ...candidate },
+    },
+  };
+  const accepts = [];
+  const fetchImpl = async (url, options) => {
+    if (String(url).endsWith(".tgz")) return new Response(bytes);
+    accepts.push(options.headers.accept);
+    return Response.json(metadata);
+  };
+  const result = await verifyPublishedPackage(candidate, archive, {
+    fetchImpl,
+    tag: "rc",
+    expectedLatest: pkg.version,
+  });
+  assert.equal(result.tag, "rc");
+  assert.deepEqual(accepts.sort(), [
+    "application/json",
+    "application/vnd.npm.install-v1+json",
+  ]);
+  await assert.rejects(
+    verifyPublishedPackage(candidate, archive, {
+      fetchImpl,
+      tag: "rc",
+      expectedLatest: "0.2.0",
+    }),
+    /stable latest changed/,
+  );
+  await assert.rejects(
+    verifyPublishedPackage(candidate, archive, {
+      fetchImpl,
+      attempts: 1,
+      tag: "latest",
+    }),
+    /not available under latest/,
+  );
+});

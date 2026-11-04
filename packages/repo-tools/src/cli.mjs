@@ -33,7 +33,7 @@ const commands = {
   ],
   "verify-publication": [
     "./verify-publication.mjs",
-    "Verify npm latest tags, registry integrity and Changesets archive bytes",
+    "Verify npm publication tags, registry integrity and Changesets archive bytes",
   ],
   "support-matrix": [
     "./support-matrix.mjs",
