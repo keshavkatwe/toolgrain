@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 
 const stable = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
 const candidate =
-  /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-rc\.(0|[1-9][0-9]*)$/;
+  /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-(alpha|beta|rc)\.(0|[1-9][0-9]*)$/;
 
-/** Stable automation stays on main; RC publication is an explicit dispatch of a prepared branch. */
+export const prereleaseTags = Object.freeze(["alpha", "beta", "rc"]);
+
+/** Stable automation stays on main; prereleases require an explicit dispatch of a prepared branch. */
 export function publicationPolicy(
   { version, packages },
   {
@@ -20,7 +22,7 @@ export function publicationPolicy(
   if (ref === "refs/heads/main") {
     assert(
       !requestedVersion && !expectedSha,
-      "RC inputs cannot select stable publication on main",
+      "Prerelease inputs cannot select stable publication on main",
     );
     assert(!preState, "Stable publication refuses Changesets prerelease state");
     assert(stable.test(version), "Main must contain a stable version");
@@ -30,52 +32,57 @@ export function publicationPolicy(
   assert.equal(
     eventName,
     "workflow_dispatch",
-    "RC publication requires manual dispatch",
+    "Prerelease publication requires manual dispatch",
   );
   const release = candidate.exec(version);
   assert(
     release && release[0] === version,
-    "RC publication requires X.Y.Z-rc.N",
+    "Prerelease publication requires X.Y.Z-alpha.N, X.Y.Z-beta.N, or X.Y.Z-rc.N",
   );
+  const tag = release[4];
   assert.equal(
     ref,
     `refs/heads/prerelease/${release[1]}.${release[2]}`,
-    "RC branch must match the prepared major/minor release series",
+    "Prerelease branch must match the prepared major/minor release series",
   );
   assert.equal(
     requestedVersion,
     version,
-    "Manually confirm the exact prepared RC version",
+    "Manually confirm the exact prepared prerelease version",
   );
   assert(
     typeof expectedSha === "string" &&
       expectedSha.length === 40 &&
       /^[a-f0-9]{40}$/.test(expectedSha),
-    "RC publication requires a full expected commit SHA",
+    "Prerelease publication requires a full expected commit SHA",
   );
   assert.equal(
     sourceSha,
     expectedSha,
-    "The workflow commit differs from the approved RC commit",
+    "The workflow commit differs from the approved prerelease commit",
   );
   assert.equal(
     preState?.mode,
     "pre",
-    "RC publication requires active prerelease state",
+    "Prerelease publication requires active prerelease state",
   );
-  assert.equal(preState.tag, "rc", "RC publication uses only the rc npm tag");
+  assert.equal(
+    preState.tag,
+    tag,
+    "Prerelease state must match the version channel",
+  );
   for (const pkg of packages) {
     assert.equal(
       pkg.publishConfig.tag,
-      "rc",
-      "RC manifests must use the rc npm tag",
+      tag,
+      "Prerelease manifests must use the version's npm tag",
     );
   }
   assert(
     typeof stableVersion === "string" && stable.test(stableVersion),
-    "RC publication requires a stable registry baseline",
+    "Prerelease publication requires a stable registry baseline",
   );
-  return { version, tag: "rc", stableVersion };
+  return { version, tag, stableVersion };
 }
 
 /** Changesets 3 pre-state has only mode/tag; capture the actual shared npm latest separately. */
@@ -93,14 +100,14 @@ export async function stablePublicationBaseline(packages, fetchImpl = fetch) {
       const version = (await response.json())["dist-tags"]?.latest;
       assert(
         typeof version === "string" && stable.test(version),
-        `${name}: stable latest must already exist before RC publication`,
+        `${name}: stable latest must already exist before prerelease publication`,
       );
       return version;
     }),
   );
   assert(
     versions.length && versions.every((version) => version === versions[0]),
-    "RC packages require one shared stable registry baseline",
+    "Prerelease packages require one shared stable registry baseline",
   );
   return versions[0];
 }

@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'RC only: exact prepared version, for example 0.2.0-rc.0 (leave blank for main)'
+        description: 'Prerelease only: exact prepared version, for example 0.3.0-alpha.0 (leave blank for main)'
         required: false
         type: string
       expected_sha:
-        description: 'RC only: full candidate commit SHA to approve (leave blank for main)'
+        description: 'Prerelease only: full prepared commit SHA to approve (leave blank for main)'
         required: false
         type: string
 
@@ -65,8 +65,8 @@ jobs:
             expectedSha: process.env.EXPECTED_SHA,
             sourceSha: process.env.GITHUB_SHA,
           });
-          if (policy.tag === 'rc') {
-            assert(readdirSync('.changeset').every(name => name === 'README.md' || !name.endsWith('.md')), 'Version all pending changesets before dispatching an RC');
+          if (policy.tag !== 'latest') {
+            assert(readdirSync('.changeset').every(name => name === 'README.md' || !name.endsWith('.md')), 'Version all pending changesets before dispatching a prerelease');
           }
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${policy.version}\ntag=${policy.tag}\nstable-version=${policy.stableVersion}\nsource-sha=${process.env.GITHUB_SHA}\n`);
           JS
@@ -223,7 +223,7 @@ jobs:
           artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
           path: ${{ runner.temp }}/toolgrain-published
           merge-multiple: true
-      - name: Verify the selected npm tag, archive integrity, and stable RC baseline
+      - name: Verify the selected npm tag, archive integrity, and stable baseline
         env:
           RELEASE_TAG: ${{ needs.select-mode.outputs.tag }}
           STABLE_VERSION: ${{ needs.select-mode.outputs.stable-version }}
