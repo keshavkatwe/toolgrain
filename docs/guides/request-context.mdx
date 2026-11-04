@@ -77,11 +77,24 @@ delivery channel, reports resolve without sending. `toolContext()` uses that
 no-op behavior for direct calls. Tool results retain their normal validation and
 conversion.
 
+Clients must choose unique tokens for active requests. On a shared message
+connection, Toolgrain rejects a duplicate active token with `-32602` before
+invoking the handler. String and integer tokens are distinct. Completion or
+cancellation releases the token for reuse; independent HTTP response streams
+keep their tokens isolated.
+
 Progress values must be finite and strictly increase. `total` and `message` are
 optional; values may be fractional. Await reports to respect backpressure and
 use `ctx.signal` to stop application work on cancellation. Reports after completion
 or cancellation send nothing. The bound method can be passed as
 `reportProgress: ctx.reportProgress` to application helpers alongside `ctx.signal`.
+
+The first update is sent immediately. Later updates are spaced at least 100 ms
+apart per invocation, also respecting delivery backpressure. Accepted updates
+retain their order and finish before the final response; they are not dropped.
+Await each report to avoid building up a queue. Cancellation and shutdown clear
+pending pacing timers and suppress queued updates. This is a per-request limit,
+not a server-wide connection or request limit.
 
 Stdio uses its existing message channel. HTTP opens a POST SSE response on the first
 progress update, sends the final response on the same stream, and ends it. Calls

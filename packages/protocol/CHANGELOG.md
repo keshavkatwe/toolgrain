@@ -1,5 +1,9 @@
 # @toolgrain/protocol
 
+## 0.3.0-alpha.1
+
+No changes in this release.
+
 ## 0.3.0-alpha.0
 
 No changes in this release.

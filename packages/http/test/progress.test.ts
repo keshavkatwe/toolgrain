@@ -444,37 +444,40 @@ it("delivers the final result when a structural server forwards only public opti
   }
 });
 
-it("isolates simultaneous streams with the same JSON-RPC id and progress token", async () => {
-  let index = 0;
-  const server = createServer({
-    name: "progress",
-    version: "1",
-    tools: {
-      work: tool({
-        input: z.object({}),
-        async execute(_input, ctx) {
-          const current = ++index;
-          await ctx.reportProgress({ progress: 1, message: String(current) });
-          return current;
-        },
-      }),
-    },
-  });
-  const handle = createHttpHandler(server);
-  const responses = await Promise.all([
-    handle(request(PROTOCOL_VERSION, { token: "same" })),
-    handle(request(PROTOCOL_VERSION, { token: "same" })),
-  ]);
-  const streams = await Promise.all(
-    responses.map(async (response) => events(await response.text())),
-  );
-  expect(streams.map((stream) => stream[0].params.message).sort()).toEqual([
-    "1",
-    "2",
-  ]);
-  for (const stream of streams)
-    expect(stream.at(-1).result.structuredContent).toBe(
-      Number(stream[0].params.message),
+it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
+  "isolates simultaneous streams with the same JSON-RPC id and progress token in %s",
+  async (revision) => {
+    let index = 0;
+    const server = createServer({
+      name: "progress",
+      version: "1",
+      tools: {
+        work: tool({
+          input: z.object({}),
+          async execute(_input, ctx) {
+            const current = ++index;
+            await ctx.reportProgress({ progress: 1, message: String(current) });
+            return current;
+          },
+        }),
+      },
+    });
+    const handle = createHttpHandler(server);
+    const responses = await Promise.all([
+      handle(request(revision, { token: "same" })),
+      handle(request(revision, { token: "same" })),
+    ]);
+    const streams = await Promise.all(
+      responses.map(async (response) => events(await response.text())),
     );
-  await server.close();
-});
+    expect(streams.map((stream) => stream[0].params.message).sort()).toEqual([
+      "1",
+      "2",
+    ]);
+    for (const stream of streams)
+      expect(stream.at(-1).result.content[0].text).toBe(
+        stream[0].params.message,
+      );
+    await server.close();
+  },
+);

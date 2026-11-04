@@ -50,8 +50,9 @@ export interface ToolContext {
   readonly request: ToolRequest;
   /**
    * Report request-scoped progress; safe to pass to helpers without binding.
-   * Await delivery/backpressure. Resolves without sending when no progress token
-   * or delivery channel exists, or after cancellation/completion. Active updates
+   * Await delivery/backpressure; updates are spaced at least 100 ms per invocation.
+   * Resolves without sending when no progress token or delivery channel exists,
+   * or after cancellation/completion. Active updates
    * require finite values and strictly increasing progress; invalid updates reject.
    * Delivery failure cancels the request and reaches transport diagnostics.
    */

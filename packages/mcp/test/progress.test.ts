@@ -43,6 +43,252 @@ function call(
   };
 }
 
+async function initialize(
+  transport: MemoryTransport,
+  revision: SupportedProtocolVersion,
+) {
+  if (revision !== LEGACY_PROTOCOL_VERSION) return;
+  transport.receive({
+    jsonrpc: "2.0",
+    id: 0,
+    method: "initialize",
+    params: {
+      protocolVersion: revision,
+      capabilities: {},
+      clientInfo: { name: "test", version: "1" },
+    },
+  });
+  await vi.waitFor(() => expect(transport.messages).toHaveLength(1));
+  transport.receive({
+    jsonrpc: "2.0",
+    method: "notifications/initialized",
+  });
+  transport.messages.length = 0;
+}
+
+it("paces progress at 100 ms intervals and drains every accepted update before completion", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+  const sent: { progress: number; time: number }[] = [];
+  const reporter = createProgressReporter(
+    new AbortController().signal,
+    0,
+    (message) => {
+      sent.push({ progress: message.params.progress, time: performance.now() });
+    },
+  );
+  try {
+    await reporter.report({ progress: 0 });
+    const second = reporter.report({ progress: 0.5 });
+    const third = reporter.report({ progress: 1 });
+    let complete = false;
+    const finished = reporter.finish().then(() => {
+      complete = true;
+    });
+    await reporter.report({ progress: 2 });
+    await vi.advanceTimersByTimeAsync(99);
+    expect(sent).toEqual([{ progress: 0, time: 0 }]);
+    expect(complete).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sent).toEqual([
+      { progress: 0, time: 0 },
+      { progress: 0.5, time: 100 },
+    ]);
+    expect(complete).toBe(false);
+    await vi.advanceTimersByTimeAsync(100);
+    await Promise.all([second, third, finished]);
+    expect(sent).toEqual([
+      { progress: 0, time: 0 },
+      { progress: 0.5, time: 100 },
+      { progress: 1, time: 200 },
+    ]);
+    expect(complete).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    reporter.close();
+    vi.useRealTimers();
+  }
+});
+
+it("lets delivery backpressure satisfy the progress interval", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+  const blocked = deferred();
+  const sent: number[] = [];
+  const reporter = createProgressReporter(
+    new AbortController().signal,
+    "job",
+    async () => {
+      sent.push(performance.now());
+      if (sent.length === 1) await blocked.promise;
+    },
+  );
+  try {
+    const first = reporter.report({ progress: 1 });
+    const second = reporter.report({ progress: 2 });
+    await vi.advanceTimersByTimeAsync(150);
+    expect(sent).toEqual([0]);
+    blocked.resolve();
+    await Promise.all([first, second, reporter.finish()]);
+    expect(sent).toEqual([0, 150]);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    blocked.resolve();
+    reporter.close();
+    vi.useRealTimers();
+  }
+});
+
+it.each(["cancel", "close"] as const)(
+  "releases a pacing timer and suppresses queued reports on %s",
+  async (action) => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    const controller = new AbortController();
+    const send = vi.fn();
+    const reporter = createProgressReporter(controller.signal, "job", send);
+    try {
+      await reporter.report({ progress: 1 });
+      const pending = reporter.report({ progress: 2 });
+      const rejected = expect(pending).rejects.toMatchObject({
+        name: "AbortError",
+      });
+      const queued = reporter.report({ progress: 3 });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(vi.getTimerCount()).toBe(1);
+      if (action === "cancel") controller.abort();
+      else reporter.close();
+      await rejected;
+      await queued;
+      await reporter.finish();
+      await reporter.report({ progress: 4 });
+      expect(vi.getTimerCount()).toBe(0);
+      expect(send).toHaveBeenCalledOnce();
+    } finally {
+      reporter.close();
+      vi.useRealTimers();
+    }
+  },
+);
+
+it.each(revisions)(
+  "rejects duplicate active tokens and permits reuse after completion in %s",
+  async (revision) => {
+    const gate = deferred();
+    const transport = new MemoryTransport();
+    const execute = vi.fn(async (_input, ctx: ToolContext) => {
+      await ctx.reportProgress({ progress: 1 });
+      await gate.promise;
+      return "done";
+    });
+    const server = createServer({
+      name: "tokens",
+      version: "1",
+      tools: { work: tool({ input: z.object({}), execute }) },
+    });
+    await server.listen(transport);
+    try {
+      await initialize(transport, revision);
+      transport.receive(call(revision, 0, 1));
+      await vi.waitFor(() => expect(transport.notifications).toHaveLength(1));
+      transport.receive(call(revision, 0, 2));
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(1));
+      expect(transport.messages[0]).toMatchObject({
+        id: 2,
+        error: { code: -32602, message: "Progress token is already in use" },
+      });
+      expect(execute).toHaveBeenCalledOnce();
+      // String and integer tokens with the same spelling are distinct.
+      transport.receive(call(revision, "0", 3));
+      await vi.waitFor(() => expect(transport.notifications).toHaveLength(2));
+      transport.receive(call(revision, "0", 4));
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(2));
+      expect(transport.messages[1]).toHaveProperty("error.code", -32602);
+      gate.resolve();
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(4));
+      transport.receive(call(revision, 0, 5));
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(5));
+      expect(transport.messages[4]).toHaveProperty("result");
+      expect(execute).toHaveBeenCalledTimes(3);
+    } finally {
+      gate.resolve();
+      await server.close();
+    }
+  },
+);
+
+it("releases a cancelled token without letting the old handler release a newer claim", async () => {
+  const first = deferred();
+  const second = deferred();
+  const transport = new MemoryTransport();
+  const execute = vi.fn(async (_input, ctx: ToolContext) => {
+    await ctx.reportProgress({ progress: 1 });
+    await (ctx.request.id === 1 ? first : second).promise;
+    await ctx.reportProgress({ progress: 2 });
+    return "done";
+  });
+  const server = createServer({
+    name: "tokens",
+    version: "1",
+    tools: { work: tool({ input: z.object({}), execute }) },
+  });
+  await server.listen(transport);
+  try {
+    transport.receive(call(PROTOCOL_VERSION, "job", 1));
+    await vi.waitFor(() => expect(transport.notifications).toHaveLength(1));
+    transport.receive({
+      jsonrpc: "2.0",
+      method: "notifications/cancelled",
+      params: { requestId: 1 },
+    });
+    transport.receive(call(PROTOCOL_VERSION, "job", 2));
+    await vi.waitFor(() => expect(transport.notifications).toHaveLength(2));
+    first.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    transport.receive(call(PROTOCOL_VERSION, "job", 3));
+    await vi.waitFor(() => expect(transport.messages).toHaveLength(1));
+    expect(transport.messages[0]).toHaveProperty("error.code", -32602);
+    expect(execute).toHaveBeenCalledTimes(2);
+    second.resolve();
+    await vi.waitFor(() => expect(transport.messages).toHaveLength(2));
+    expect(transport.messages[1]).toHaveProperty("id", 2);
+    expect(
+      transport.notifications.map((value) => value.params.progress),
+    ).toEqual([1, 1, 2]);
+  } finally {
+    first.resolve();
+    second.resolve();
+    await server.close();
+  }
+});
+
+it.each(revisions)(
+  "releases tokens when request validation fails in %s",
+  async (revision) => {
+    const transport = new MemoryTransport();
+    const execute = vi.fn(() => "done");
+    const server = createServer({
+      name: "tokens",
+      version: "1",
+      tools: { work: tool({ input: z.object({}), execute }) },
+    });
+    await server.listen(transport);
+    try {
+      await initialize(transport, revision);
+      const invalid = call(revision);
+      transport.receive({
+        ...invalid,
+        params: { ...invalid.params, name: 42 },
+      });
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(1));
+      expect(transport.messages[0]).toHaveProperty("error.code", -32602);
+      transport.receive(call(revision, "job", 2));
+      await vi.waitFor(() => expect(transport.messages).toHaveLength(2));
+      expect(transport.messages[1]).toHaveProperty("result");
+      expect(execute).toHaveBeenCalledOnce();
+    } finally {
+      await server.close();
+    }
+  },
+);
+
 it.each(revisions)(
   "reports ordered fractional progress through a detached method and provider in %s",
   async (revision) => {
@@ -452,23 +698,7 @@ it.each(revisions)(
       },
     });
     await server.listen(transport);
-    if (revision === LEGACY_PROTOCOL_VERSION) {
-      transport.receive({
-        jsonrpc: "2.0",
-        id: 0,
-        method: "initialize",
-        params: {
-          protocolVersion: revision,
-          capabilities: {},
-          clientInfo: { name: "test", version: "1" },
-        },
-      });
-      await vi.waitFor(() => expect(transport.messages).toHaveLength(1));
-      transport.receive({
-        jsonrpc: "2.0",
-        method: "notifications/initialized",
-      });
-    }
+    await initialize(transport, revision);
     transport.receive(call(revision, "job"));
     await vi.waitFor(() =>
       expect(transport.messages.at(-1)).toHaveProperty("id", 1),

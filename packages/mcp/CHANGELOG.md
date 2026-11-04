@@ -1,5 +1,12 @@
 # @toolgrain/mcp
 
+## 0.3.0-alpha.1
+
+### Patch Changes
+
+- Pace request-scoped progress notifications at 100 ms intervals while preserving ordered delivery, backpressure, and prompt cancellation. Reject duplicate active progress tokens on shared message connections, release tokens on completion or cancellation, and preserve isolation between independent HTTP response streams.
+- @toolgrain/protocol@0.3.0-alpha.1
+
 ## 0.3.0-alpha.0
 
 ### Minor Changes
