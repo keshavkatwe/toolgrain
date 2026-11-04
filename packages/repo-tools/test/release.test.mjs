@@ -198,10 +198,128 @@ test("the initial RC series stays in its fixed group and promotes to 0.1.0", (t)
   );
 });
 
-for (const prerelease of [false, true])
-  test(`native Changesets plans, packs and publishes ${prerelease ? "RC" : "stable"} artifacts and package tags`, (t) => {
-    const expectedVersion = prerelease ? "0.1.1-rc.0" : "0.1.1";
-    const expectedTag = prerelease ? "rc" : "latest";
+test("Changesets advances one feature series through alpha, beta, RC, and stable", (t) => {
+  const { directory, write } = fixture(t, "0.2.0");
+  const run = (...args) =>
+    execFileSync("node", [cli, ...args], { cwd: directory, timeout: 30000 });
+  write(
+    ".changeset/feature.md",
+    '---\n"@toolgrain/mcp": minor\n---\nNew feature.\n',
+  );
+  run("pre", "enter", "alpha");
+  run("version");
+  syncLockfile(directory);
+  assert.equal(checkRelease(directory).version, "0.3.0-alpha.0");
+  write(
+    ".changeset/fix.md",
+    '---\n"@toolgrain/mcp": patch\n---\nFix alpha feedback.\n',
+  );
+  run("version");
+  syncLockfile(directory);
+  assert.equal(checkRelease(directory).version, "0.3.0-alpha.1");
+  for (const [tag, counter] of [
+    ["beta", 2],
+    ["rc", 3],
+  ]) {
+    const preState = JSON.parse(
+      readFileSync(join(directory, ".changeset/pre.json")),
+    );
+    write(".changeset/pre.json", { ...preState, tag });
+    write(
+      `.changeset/stage-${tag}.md`,
+      `---\n"@toolgrain/mcp": patch\n---\nAdvance prerelease testing to ${tag}.\n`,
+    );
+    run("version");
+    syncLockfile(directory);
+    const source = checkRelease(directory);
+    assert.equal(source.version, `0.3.0-${tag}.${counter}`);
+    for (const pkg of source.packages) {
+      const path = `packages/${pkg.short}/package.json`;
+      const manifest = JSON.parse(readFileSync(join(directory, path)));
+      write(path, {
+        ...manifest,
+        publishConfig: { ...manifest.publishConfig, tag },
+      });
+    }
+    const policy = publicationPolicy(checkRelease(directory), {
+      ref: "refs/heads/prerelease/0.3",
+      eventName: "workflow_dispatch",
+      preState: { ...preState, tag },
+      stableVersion: "0.2.0",
+      requestedVersion: source.version,
+      expectedSha: "1".repeat(40),
+      sourceSha: "1".repeat(40),
+    });
+    assert.equal(policy.tag, tag);
+    assert.equal(policy.stableVersion, "0.2.0");
+  }
+  run("pre", "exit");
+  run("version");
+  syncLockfile(directory);
+  assert.equal(checkRelease(directory).version, "0.3.0");
+  assert(!existsSync(join(directory, ".changeset/pre.json")));
+});
+
+test("the actual workflow selection script rejects unversioned records in every prerelease stage", (t) => {
+  const workflow = Bun.YAML.parse(
+    readFileSync(
+      new URL("../../../.github/workflows/publish.yml", import.meta.url),
+      "utf8",
+    ),
+  );
+  const step = workflow.jobs["select-mode"].steps.find(
+    ({ id }) => id === "release",
+  );
+  const script = step.run.match(/<<'JS'\n([\s\S]*?)\nJS\s*$/)?.[1];
+  assert(script, "Expected the actual workflow selection script");
+  const probe = `globalThis.fetch = async () => Response.json({ 'dist-tags': { latest: '0.2.0' } });\n${script.replaceAll("./packages/repo-tools/src/", new URL("../src/", import.meta.url).href)}`;
+  for (const tag of ["alpha", "beta", "rc"]) {
+    const version = `0.3.0-${tag}.0`;
+    const { directory, write } = fixture(t, version);
+    write(".changeset/pre.json", { mode: "pre", tag });
+    for (const pkg of checkRelease(directory).packages) {
+      const path = `packages/${pkg.short}/package.json`;
+      const manifest = JSON.parse(readFileSync(join(directory, path)));
+      write(path, {
+        ...manifest,
+        publishConfig: { ...manifest.publishConfig, tag },
+      });
+    }
+    const env = {
+      ...process.env,
+      GITHUB_REF: "refs/heads/prerelease/0.3",
+      GITHUB_EVENT_NAME: "workflow_dispatch",
+      GITHUB_SHA: "1".repeat(40),
+      EXPECTED_SHA: "1".repeat(40),
+      REQUESTED_VERSION: version,
+      GITHUB_OUTPUT: join(directory, "output.txt"),
+    };
+    const run = () =>
+      execFileSync("node", ["--input-type=module", "--eval", probe], {
+        cwd: directory,
+        env,
+        stdio: "pipe",
+        timeout: 10000,
+      });
+    run();
+    assert.match(
+      readFileSync(env.GITHUB_OUTPUT, "utf8"),
+      new RegExp(`tag=${tag}\\n`),
+    );
+    write(
+      ".changeset/pending.md",
+      '---\n"@toolgrain/mcp": minor\n---\nUnversioned feature.\n',
+    );
+    assert.throws(run, (error) =>
+      /Version all pending changesets/.test(String(error.stderr)),
+    );
+  }
+});
+
+for (const expectedTag of ["latest", "alpha", "beta", "rc"])
+  test(`native Changesets plans, packs and publishes ${expectedTag} artifacts and package tags`, (t) => {
+    const prerelease = expectedTag !== "latest";
+    const expectedVersion = prerelease ? `0.1.1-${expectedTag}.0` : "0.1.1";
     const { directory, write } = fixture(t);
     write(
       ".changeset/fix.md",
@@ -275,7 +393,7 @@ for (const prerelease of [false, true])
         encoding: "utf8",
       }).trim();
     };
-    if (prerelease) run("pre", "enter", "rc");
+    if (prerelease) run("pre", "enter", expectedTag);
     run("version");
     syncLockfile(directory);
     assert.equal(checkRelease(directory).version, expectedVersion);
@@ -284,7 +402,7 @@ for (const prerelease of [false, true])
       for (const pkg of checkRelease(directory).packages) {
         const path = `packages/${pkg.short}/package.json`;
         const manifest = JSON.parse(readFileSync(join(directory, path)));
-        manifest.publishConfig.tag = "rc";
+        manifest.publishConfig.tag = expectedTag;
         write(path, manifest);
       }
       const preparedSha = commitCandidate();
@@ -387,7 +505,7 @@ for (const prerelease of [false, true])
       );
       run("version");
       syncLockfile(directory);
-      const nextVersion = "0.1.1-rc.1";
+      const nextVersion = `0.1.1-${expectedTag}.1`;
       assert.equal(checkRelease(directory).version, nextVersion);
       const preparedSha = commitCandidate();
       const nextPolicy = publicationPolicy(checkRelease(directory), {

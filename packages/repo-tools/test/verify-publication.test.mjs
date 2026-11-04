@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { verifyPublishedPackage } from "../src/verify-publication.mjs";
+import { main, verifyPublishedPackage } from "../src/verify-publication.mjs";
 
 const pkg = { name: "@toolgrain/mcp", version: "0.1.1" };
 const bytes = Buffer.from("reviewed archive");
@@ -70,44 +70,57 @@ test("registry verification rejects missing releases, mismatched archives and in
   );
 });
 
-test("RC verification checks rc in both metadata formats and preserves stable latest", async () => {
-  const candidate = { ...pkg, version: "0.2.0-rc.0" };
-  const metadata = {
-    "dist-tags": { latest: pkg.version, rc: candidate.version },
-    versions: {
-      [candidate.version]: { ...body.versions[pkg.version], ...candidate },
-    },
-  };
-  const accepts = [];
-  const fetchImpl = async (url, options) => {
-    if (String(url).endsWith(".tgz")) return new Response(bytes);
-    accepts.push(options.headers.accept);
-    return Response.json(metadata);
-  };
-  const result = await verifyPublishedPackage(candidate, archive, {
-    fetchImpl,
-    tag: "rc",
-    expectedLatest: pkg.version,
+for (const tag of ["alpha", "beta", "rc"])
+  test(`${tag} verification checks both metadata formats and preserves stable latest`, async () => {
+    const candidate = { ...pkg, version: `0.2.0-${tag}.0` };
+    const metadata = {
+      "dist-tags": { latest: pkg.version, [tag]: candidate.version },
+      versions: {
+        [candidate.version]: { ...body.versions[pkg.version], ...candidate },
+      },
+    };
+    const accepts = [];
+    const fetchImpl = async (url, options) => {
+      if (String(url).endsWith(".tgz")) return new Response(bytes);
+      accepts.push(options.headers.accept);
+      return Response.json(metadata);
+    };
+    const result = await verifyPublishedPackage(candidate, archive, {
+      fetchImpl,
+      tag,
+      expectedLatest: pkg.version,
+    });
+    assert.equal(result.tag, tag);
+    assert.deepEqual(accepts.sort(), [
+      "application/json",
+      "application/vnd.npm.install-v1+json",
+    ]);
+    await assert.rejects(
+      verifyPublishedPackage(candidate, archive, {
+        fetchImpl,
+        tag,
+        expectedLatest: "0.2.0",
+      }),
+      /stable latest changed/,
+    );
+    await assert.rejects(
+      verifyPublishedPackage(candidate, archive, {
+        fetchImpl,
+        attempts: 1,
+        tag: "latest",
+      }),
+      /not available under latest/,
+    );
   });
-  assert.equal(result.tag, "rc");
-  assert.deepEqual(accepts.sort(), [
-    "application/json",
-    "application/vnd.npm.install-v1+json",
-  ]);
+
+test("the verification CLI requires a stable baseline for every prerelease channel", async () => {
+  for (const tag of ["alpha", "beta", "rc"])
+    await assert.rejects(
+      main(["--pack-dir", "unused", "--tag", tag]),
+      /requires --preserve-latest/,
+    );
   await assert.rejects(
-    verifyPublishedPackage(candidate, archive, {
-      fetchImpl,
-      tag: "rc",
-      expectedLatest: "0.2.0",
-    }),
-    /stable latest changed/,
-  );
-  await assert.rejects(
-    verifyPublishedPackage(candidate, archive, {
-      fetchImpl,
-      attempts: 1,
-      tag: "latest",
-    }),
-    /not available under latest/,
+    main(["--pack-dir", "unused", "--tag", "next"]),
+    /Unsupported publication tag/,
   );
 });
