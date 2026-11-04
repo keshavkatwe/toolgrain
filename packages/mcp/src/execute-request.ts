@@ -7,6 +7,7 @@ import { type ErrorHandler, reportError } from "./diagnostics.js";
 import type { Dispatcher, RequestScope } from "./dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { ProtocolError, protocolError } from "./protocol/responses.js";
+import { createProgressReporter } from "./tools/progress.js";
 
 /** Shared dispatch boundary for connection-scoped and independent requests. */
 export async function executeRequest(
@@ -17,8 +18,20 @@ export async function executeRequest(
   protocolVersion?: SupportedProtocolVersion,
 ): Promise<ProtocolResponse | undefined> {
   const isActive = () => !scope.signal.aborted;
+  let progress: ReturnType<typeof createProgressReporter> | undefined;
   try {
-    const response = await dispatch(request, scope, protocolVersion);
+    progress = createProgressReporter(
+      scope.signal,
+      (request.params?._meta as Record<string, unknown> | undefined)
+        ?.progressToken,
+      scope.notify,
+    );
+    const response = await dispatch(
+      request,
+      { ...scope, reportProgress: progress.report },
+      protocolVersion,
+    );
+    await progress.finish();
     return isActive() ? response : undefined;
   } catch (error) {
     if (!isActive()) return;
@@ -31,5 +44,7 @@ export async function executeRequest(
       request.id,
       undefined,
     );
+  } finally {
+    progress?.close();
   }
 }

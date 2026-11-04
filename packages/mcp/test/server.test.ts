@@ -506,7 +506,8 @@ it("suppresses a cancelled response queued behind a pending write", async () => 
       first = false;
       await gate.promise;
     }
-    transport.messages.push(message);
+    if ("method" in message) transport.notifications.push(message);
+    else transport.messages.push(message);
   };
   const server = createServer({ name: "test", version: "1", tools: {} });
   await server.listen(transport);

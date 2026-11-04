@@ -120,7 +120,7 @@ async function exercise(request, notify) {
   let id = 0;
   for (const version of SUPPORTED_PROTOCOL_VERSIONS) {
     const modern = version === PROTOCOL_VERSION;
-    const send = async (method, params = {}) => {
+    const send = async (method, params = {}, onProgress) => {
       const message = {
         jsonrpc: "2.0",
         id: ++id,
@@ -130,6 +130,7 @@ async function exercise(request, notify) {
           ...(modern
             ? {
                 _meta: {
+                  ...params._meta,
                   "io.modelcontextprotocol/protocolVersion": version,
                   "io.modelcontextprotocol/clientCapabilities": {},
                 },
@@ -137,7 +138,7 @@ async function exercise(request, notify) {
             : {}),
         },
       };
-      const response = await request(message, version);
+      const response = await request(message, version, onProgress);
       assert.equal(response.id, message.id);
       assert.equal(response.error, undefined, JSON.stringify(response));
       assert.equal(response.result.resultType, modern ? "complete" : undefined);
@@ -175,6 +176,30 @@ async function exercise(request, notify) {
     assert.deepEqual(result.content, [
       { type: "text", text: JSON.stringify(result.structuredContent) },
     ]);
+    const updates = [];
+    const progressed = await send(
+      "tools/call",
+      {
+        name: "greet",
+        arguments: { name: "Progress" },
+        _meta: { progressToken: 0 },
+      },
+      (notification) => updates.push(notification),
+    );
+    assert.deepEqual(
+      updates,
+      [
+        { progress: 0.5, total: 1, message: "Working" },
+        { progress: 1, total: 1, message: "Done" },
+      ].map((update) => ({
+        jsonrpc: "2.0",
+        method: "notifications/progress",
+        params: { ...update, progressToken: 0 },
+      })),
+    );
+    assert.deepEqual(progressed.structuredContent, {
+      message: "Hello, Progress!",
+    });
     assert.equal(
       (await send("tools/call", { name: "greet", arguments: { name: "" } }))
         .isError,
@@ -203,18 +228,63 @@ function httpClient(fetchResponse) {
       body: JSON.stringify(message),
       signal: AbortSignal.timeout(5000),
     });
-    assert.equal(
-      response.status,
-      "id" in message ? 200 : 202,
-      await response.clone().text(),
-    );
+    if (response.status !== ("id" in message ? 200 : 202))
+      assert.fail(`HTTP ${response.status}: ${await response.text()}`);
     return response;
   };
   return [
-    async (message, version) => (await post(message, version)).json(),
+    async (message, version, onProgress) => {
+      const response = await post(message, version);
+      if (
+        !response.headers.get("Content-Type")?.startsWith("text/event-stream")
+      )
+        return response.json();
+      let result;
+      for await (const event of sseMessages(response)) {
+        assert.equal(
+          result,
+          undefined,
+          "No events may follow the final result",
+        );
+        if (event.method === "notifications/progress") {
+          assert.equal(typeof onProgress, "function");
+          onProgress(event);
+        } else result = event;
+      }
+      assert(result, "SSE must end with a final response");
+      return result;
+    },
     async (message, version) =>
       assert.equal(await (await post(message, version)).text(), ""),
   ];
+}
+
+async function* sseMessages(response) {
+  assert(response.headers.get("Content-Type")?.startsWith("text/event-stream"));
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      buffered += decoder.decode(value, { stream: !done });
+      for (;;) {
+        const end = buffered.indexOf("\n\n");
+        if (end === -1) break;
+        const event = buffered.slice(0, end);
+        buffered = buffered.slice(end + 2);
+        assert(event.startsWith("event: message\ndata: "));
+        yield JSON.parse(event.slice("event: message\ndata: ".length));
+      }
+      if (done) {
+        assert.equal(buffered, "", "SSE must not end inside an event");
+        return;
+      }
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
 }
 
 test("Web HTTP handler serves both revisions", { timeout: 15000 }, async () => {
@@ -295,11 +365,16 @@ test("compiled consumer serves both revisions over real stdin/stdout", {
   };
   try {
     await exercise(
-      async (message) => {
+      async (message, _version, onProgress) => {
         send(message);
-        const line = await iterator.next();
-        assert.equal(line.done, false, stderr);
-        return JSON.parse(line.value);
+        for (;;) {
+          const line = await iterator.next();
+          assert.equal(line.done, false, stderr);
+          const event = JSON.parse(line.value);
+          if (event.method !== "notifications/progress") return event;
+          assert.equal(typeof onProgress, "function");
+          onProgress(event);
+        }
       },
       async (message) => send(message),
     );
@@ -442,6 +517,7 @@ function request(version, id, method, params = {}) {
       ...(version === PROTOCOL_VERSION
         ? {
             _meta: {
+              ...params._meta,
               "io.modelcontextprotocol/protocolVersion": version,
               "io.modelcontextprotocol/clientCapabilities": {},
             },
@@ -464,72 +540,154 @@ function deadline(promise) {
   ]).finally(() => clearTimeout(timer));
 }
 
-test("HTTP disconnect aborts handlers in both protocol eras", {
+test("server shutdown aborts a final SSE write blocked after execution in both eras", {
   timeout: 15000,
 }, async () => {
   for (const version of SUPPORTED_PROTOCOL_VERSIONS) {
-    let started, aborted;
-    const ready = new Promise((resolve) => {
-      started = resolve;
-    });
-    const stopped = new Promise((resolve) => {
-      aborted = resolve;
+    let context;
+    let finished;
+    const executed = new Promise((resolve) => {
+      finished = resolve;
     });
     const hosted = createServer({
-      name: "disconnect",
+      name: "stream-shutdown",
       version: "1",
       tools: {
-        wait: tool({
+        work: tool({
           input: z.object({}),
           async execute(_input, ctx) {
-            started();
-            await new Promise((resolve) =>
-              ctx.signal.addEventListener(
-                "abort",
-                () => {
-                  aborted(ctx.signal.reason);
-                  resolve();
-                },
-                { once: true },
-              ),
-            );
-            return "late";
+            context = ctx;
+            await ctx.reportProgress({ progress: 1 });
+            finished();
+            return "done";
           },
         }),
       },
     });
-    const handler = createNodeHttpHandler(hosted);
-    const http = createHttpServer((incoming, outgoing) => {
-      void handler(incoming, outgoing);
-    });
-    const abort = new AbortController();
-    try {
-      http.listen(0, "127.0.0.1");
-      await once(http, "listening");
-      const response = fetch(`http://127.0.0.1:${http.address().port}/mcp`, {
+    const response = await createHttpHandler(hosted)(
+      new Request("http://localhost/mcp", {
         method: "POST",
-        signal: abort.signal,
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json, text/event-stream",
           "MCP-Protocol-Version": version,
           "Mcp-Method": "tools/call",
-          "Mcp-Name": "wait",
+          "Mcp-Name": "work",
         },
         body: JSON.stringify(
-          request(version, 1, "tools/call", { name: "wait" }),
+          request(version, 1, "tools/call", {
+            name: "work",
+            _meta: { progressToken: 0 },
+          }),
         ),
-      });
-      const rejected = assert.rejects(response, { name: "AbortError" });
-      await deadline(ready);
-      abort.abort();
-      await rejected;
-      assert.equal((await deadline(stopped)).name, "AbortError");
-    } finally {
-      abort.abort();
+      }),
+    );
+    const events = sseMessages(response);
+    try {
+      assert.equal(
+        (await deadline(events.next())).value.method,
+        "notifications/progress",
+      );
+      await deadline(executed);
+      await new Promise((resolve) => setImmediate(resolve));
       await hosted.close();
-      http.closeAllConnections();
-      await new Promise((resolve) => http.close(resolve));
+      await assert.rejects(deadline(events.next()), { name: "AbortError" });
+      assert.equal(context.signal.aborted, true);
+    } finally {
+      await events.return();
+      await hosted.close();
+    }
+  }
+});
+
+test("HTTP cancellation before headers and after SSE progress aborts handlers in both eras", {
+  timeout: 15000,
+}, async () => {
+  for (const progress of [false, true]) {
+    for (const version of SUPPORTED_PROTOCOL_VERSIONS) {
+      let started, aborted;
+      const ready = new Promise((resolve) => {
+        started = resolve;
+      });
+      const stopped = new Promise((resolve) => {
+        aborted = resolve;
+      });
+      const hosted = createServer({
+        name: "disconnect",
+        version: "1",
+        tools: {
+          wait: tool({
+            input: z.object({}),
+            async execute(_input, ctx) {
+              const cancelled = new Promise((resolve) =>
+                ctx.signal.addEventListener(
+                  "abort",
+                  () => {
+                    aborted(ctx.signal.reason);
+                    resolve();
+                  },
+                  { once: true },
+                ),
+              );
+              started();
+              await ctx.reportProgress({ progress: 0.5, message: "Waiting" });
+              await cancelled;
+              return "late";
+            },
+          }),
+        },
+      });
+      const handler = createNodeHttpHandler(hosted);
+      const http = createHttpServer((incoming, outgoing) => {
+        void handler(incoming, outgoing);
+      });
+      const abort = new AbortController();
+      try {
+        http.listen(0, "127.0.0.1");
+        await once(http, "listening");
+        const response = fetch(`http://127.0.0.1:${http.address().port}/mcp`, {
+          method: "POST",
+          signal: abort.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+            "MCP-Protocol-Version": version,
+            "Mcp-Method": "tools/call",
+            "Mcp-Name": "wait",
+          },
+          body: JSON.stringify(
+            request(version, 1, "tools/call", {
+              name: "wait",
+              ...(progress ? { _meta: { progressToken: 0 } } : {}),
+            }),
+          ),
+        });
+        if (progress) {
+          const streamed = await deadline(response);
+          const events = sseMessages(streamed);
+          try {
+            const first = await deadline(events.next());
+            assert.deepEqual(first.value, {
+              jsonrpc: "2.0",
+              method: "notifications/progress",
+              params: { progressToken: 0, progress: 0.5, message: "Waiting" },
+            });
+          } finally {
+            await events.return();
+          }
+        } else {
+          const rejected = assert.rejects(response, { name: "AbortError" });
+          await deadline(ready);
+          abort.abort();
+          await rejected;
+        }
+        assert.equal((await deadline(stopped)).name, "AbortError");
+      } finally {
+        abort.abort();
+        await hosted.close();
+        http.closeAllConnections();
+        await new Promise((resolve) => http.close(resolve));
+      }
     }
   }
 });
@@ -537,56 +695,70 @@ test("HTTP disconnect aborts handlers in both protocol eras", {
 test("stdio cancellation aborts handlers and permits later requests", {
   timeout: 15000,
 }, async () => {
-  for (const version of SUPPORTED_PROTOCOL_VERSIONS) {
-    const child = spawn(
-      process.execPath,
-      ["dist/consumer.mjs", "stdio-cancellation"],
-      {
-        stdio: "pipe",
-        timeout: 10000,
-        killSignal: "SIGKILL",
-      },
-    );
-    const closed = once(child, "close");
-    const output = createInterface({ input: child.stdout });
-    const diagnostics = createInterface({ input: child.stderr });
-    const messages = output[Symbol.asyncIterator]();
-    const signals = diagnostics[Symbol.asyncIterator]();
-    const send = (message) => child.stdin.write(`${JSON.stringify(message)}\n`);
-    const read = async () => {
-      const line = await deadline(messages.next());
-      assert.equal(line.done, false);
-      return JSON.parse(line.value);
-    };
-    try {
-      if (version === LEGACY_PROTOCOL_VERSION) {
+  for (const progress of [false, true]) {
+    for (const version of SUPPORTED_PROTOCOL_VERSIONS) {
+      const child = spawn(
+        process.execPath,
+        ["dist/consumer.mjs", "stdio-cancellation"],
+        {
+          stdio: "pipe",
+          timeout: 10000,
+          killSignal: "SIGKILL",
+        },
+      );
+      const closed = once(child, "close");
+      const output = createInterface({ input: child.stdout });
+      const diagnostics = createInterface({ input: child.stderr });
+      const messages = output[Symbol.asyncIterator]();
+      const signals = diagnostics[Symbol.asyncIterator]();
+      const send = (message) =>
+        child.stdin.write(`${JSON.stringify(message)}\n`);
+      const read = async () => {
+        const line = await deadline(messages.next());
+        assert.equal(line.done, false);
+        return JSON.parse(line.value);
+      };
+      try {
+        if (version === LEGACY_PROTOCOL_VERSION) {
+          send(
+            request(version, 1, "initialize", {
+              protocolVersion: version,
+              capabilities: {},
+              clientInfo: { name: "support", version: "1" },
+            }),
+          );
+          assert.equal((await read()).result.protocolVersion, version);
+          send({ jsonrpc: "2.0", method: "notifications/initialized" });
+        }
         send(
-          request(version, 1, "initialize", {
-            protocolVersion: version,
-            capabilities: {},
-            clientInfo: { name: "support", version: "1" },
+          request(version, 2, "tools/call", {
+            name: "wait",
+            ...(progress ? { _meta: { progressToken: 0 } } : {}),
           }),
         );
-        assert.equal((await read()).result.protocolVersion, version);
-        send({ jsonrpc: "2.0", method: "notifications/initialized" });
+        if (progress)
+          assert.deepEqual(await read(), {
+            jsonrpc: "2.0",
+            method: "notifications/progress",
+            params: { progressToken: 0, progress: 0.5, message: "Waiting" },
+          });
+        assert.equal((await deadline(signals.next())).value, "started");
+        send({
+          jsonrpc: "2.0",
+          method: "notifications/cancelled",
+          params: { requestId: 2 },
+        });
+        assert.equal((await deadline(signals.next())).value, "aborted");
+        send(request(version, 3, "tools/list"));
+        assert.equal((await read()).id, 3); // The cancelled call must not deliver a result.
+        child.stdin.end();
+        assert.deepEqual(await closed, [0, null]);
+      } finally {
+        output.close();
+        diagnostics.close();
+        child.kill("SIGKILL");
+        await closed;
       }
-      send(request(version, 2, "tools/call", { name: "wait" }));
-      assert.equal((await deadline(signals.next())).value, "started");
-      send({
-        jsonrpc: "2.0",
-        method: "notifications/cancelled",
-        params: { requestId: 2 },
-      });
-      assert.equal((await deadline(signals.next())).value, "aborted");
-      send(request(version, 3, "tools/list"));
-      assert.equal((await read()).id, 3); // The cancelled call must not deliver a result.
-      child.stdin.end();
-      assert.deepEqual(await closed, [0, null]);
-    } finally {
-      output.close();
-      diagnostics.close();
-      child.kill("SIGKILL");
-      await closed;
     }
   }
 });

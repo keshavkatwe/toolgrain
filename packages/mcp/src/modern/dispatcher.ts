@@ -66,6 +66,7 @@ export function createModernDispatcher(
             },
             scope.auth,
             providers,
+            scope.reportProgress,
           ),
         );
         break;

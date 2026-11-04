@@ -54,6 +54,65 @@ it("rejects malformed results in both revisions", () => {
     expect(validate(malformed)).toBe(false);
 });
 
+it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
+  "emits progress conforming to the pinned %s schema",
+  async (revision) => {
+    const validate =
+      revision === PROTOCOL_VERSION
+        ? definition(modern, "modern#/$defs/ProgressNotification")
+        : definition(legacy, "legacy#/definitions/ProgressNotification");
+    const progressServer = createServer({
+      name: "progress",
+      version: "1",
+      tools: {
+        work: tool({
+          input: z.object({}),
+          async execute(_input, ctx) {
+            await ctx.reportProgress({
+              progress: 0.5,
+              total: 1,
+              message: "Working",
+            });
+            return "done";
+          },
+        }),
+      },
+    });
+    let count = 0;
+    try {
+      await progressServer.handle(
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: "work",
+            _meta: {
+              progressToken: "job",
+              ...(revision === PROTOCOL_VERSION
+                ? {
+                    "io.modelcontextprotocol/protocolVersion": revision,
+                    "io.modelcontextprotocol/clientCapabilities": {},
+                  }
+                : {}),
+            },
+          },
+        },
+        {
+          protocolVersion: revision,
+          onNotification(message) {
+            count++;
+            expectValid(validate, message);
+          },
+        },
+      );
+      expect(count).toBe(1);
+    } finally {
+      await progressServer.close();
+    }
+  },
+);
+
 const icon = {
   src: "https://example.com/icon.png",
   mimeType: "image/png",

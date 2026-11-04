@@ -28,6 +28,8 @@ For real applications, validate any caller-controlled paths and constrain the de
 - HTTP caller/disconnect signals propagate through `handle()` and the adapters.
 - Transport close, stdin EOF, and server close abort active work.
 - A `handle()` caller may pass its own `AbortSignal`.
+- A direct handler's progress-delivery callback failure cancels that invocation
+  with `AbortError` reason `Progress delivery failed` and one-argument transport diagnostics.
 
 Signals use `AbortError` reasons for Toolgrain-owned cancellation: client cancellation, connection close, or server close. A caller's own `handle()` abort reason is otherwise preserved. Inspect `ctx.signal.reason` if your application needs the distinction.
 
