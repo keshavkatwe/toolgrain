@@ -12,6 +12,7 @@ packages; npm's `latest` tag selects the current stable release.
 | --- | --- |
 | [Tool authoring](https://toolgrain.mintlify.site/tools/overview) | Reusable definitions, Zod schemas, variants, rich results, errors, and handler context |
 | [Transports](https://toolgrain.mintlify.site/transports/overview) | Stdio, managed HTTP, Web/Node handlers, lifecycle, headers, and host configuration |
+| [Resources](https://toolgrain.mintlify.site/guides/resources) | Fixed-URI definitions, text/binary reads, metadata, and request context |
 | [Context providers](https://toolgrain.mintlify.site/guides/context) | Lazy dependencies, inferred accessors, request caching, and test overrides |
 | [Authorization](https://toolgrain.mintlify.site/guides/authorization) | JWT and Clerk access tokens, verified identities, metadata, and public URLs |
 | [Runnable examples](https://toolgrain.mintlify.site/examples) | Stdio, Node HTTP, Express, Hono, Elysia, Next.js, and protected endpoints |
@@ -76,7 +77,9 @@ mark. Both come from `brand/`. See
 
 Current support covers tools over MCP `2026-07-28` and `2025-06-18`, using stdio
 or independent HTTP POSTs with JSON responses or request-scoped SSE progress.
-Resources, prompts, elicitation, sessions, and subscriptions are outside the current implementation.
+Fixed resources support listing and text/binary reads; native React widgets use
+MCP Apps. Resource templates, prompts, elicitation, sessions, resumability, and
+subscriptions are outside the current implementation.
 
 ## Contribute and maintain
 

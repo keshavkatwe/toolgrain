@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/protocol",
-  "version": "0.3.0-alpha.1",
+  "version": "0.3.0-alpha.2",
   "description": "Pinned MCP wire types, protocol versions, and upstream provenance for Toolgrain.",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
@@ -33,6 +33,10 @@
     "./2025-06-18": {
       "types": "./dist/legacy.d.ts",
       "import": "./dist/legacy.js"
+    },
+    "./apps": {
+      "types": "./dist/apps.d.ts",
+      "import": "./dist/apps.js"
     }
   },
   "files": [

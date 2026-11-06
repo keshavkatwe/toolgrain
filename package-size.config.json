@@ -12,12 +12,13 @@
       "README.md",
       "LICENSE",
       "NOTICE",
-      "CHANGELOG.md"
+      "CHANGELOG.md",
+      "dist/apps-provenance.json"
     ]
   },
   "@toolgrain/mcp": {
-    "packedBytes": 105472,
-    "unpackedBytes": 393216,
+    "packedBytes": 112640,
+    "unpackedBytes": 450560,
     "sourceMaps": true,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
@@ -40,5 +41,10 @@
     "packedBytes": 8192,
     "unpackedBytes": 24576,
     "requiredFiles": ["README.md", "LICENSE", "NOTICE", "CHANGELOG.md"]
+  },
+  "@toolgrain/react": {
+    "packedBytes": 13312,
+    "unpackedBytes": 49152,
+    "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   }
 }

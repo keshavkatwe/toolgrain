@@ -52,6 +52,10 @@
             ]
           },
           {
+            "group": "Resources",
+            "pages": ["guides/resources"]
+          },
+          {
             "group": "Context and services",
             "pages": [
               "guides/request-context",
@@ -99,11 +103,45 @@
         ]
       },
       {
+        "tab": "MCP Apps",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["mcp-apps/overview", "mcp-apps/quickstart"]
+          },
+          {
+            "group": "React widgets",
+            "pages": [
+              "mcp-apps/react",
+              "mcp-apps/shared-entries",
+              "mcp-apps/build"
+            ]
+          },
+          {
+            "group": "Server integration",
+            "pages": [
+              "mcp-apps/server",
+              "mcp-apps/security",
+              "mcp-apps/capabilities"
+            ]
+          },
+          {
+            "group": "Reference and verification",
+            "pages": ["mcp-apps/reference", "mcp-apps/compatibility"]
+          }
+        ]
+      },
+      {
         "tab": "API reference",
         "groups": [
           {
             "group": "Authoring",
-            "pages": ["reference/mcp", "reference/context", "reference/auth"]
+            "pages": [
+              "reference/mcp",
+              "reference/resources",
+              "reference/context",
+              "reference/auth"
+            ]
           },
           {
             "group": "Adapters",

@@ -1,5 +1,17 @@
 # @toolgrain/mcp
 
+## 0.3.0-alpha.2
+
+### Minor Changes
+
+- Add reusable fixed-URI resources with text and binary reads, request context, and endpoint authorization across both MCP revisions.
+- Add native MCP Apps protocol contracts and typed React widgets with shared-entry routing.
+
+### Patch Changes
+
+- Updated dependencies
+  - @toolgrain/protocol@0.3.0-alpha.2
+
 ## 0.3.0-alpha.1
 
 ### Patch Changes

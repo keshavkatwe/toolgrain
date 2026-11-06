@@ -7,7 +7,8 @@
       "@toolgrain/http",
       "@toolgrain/node",
       "@toolgrain/jwt",
-      "@toolgrain/clerk"
+      "@toolgrain/clerk",
+      "@toolgrain/react"
     ]
   ],
   "linked": [],
@@ -27,6 +28,7 @@
     "@toolgrain/http-example",
     "@toolgrain/jwt-example",
     "@toolgrain/nextjs-example",
-    "@toolgrain/stdio-example"
+    "@toolgrain/stdio-example",
+    "@toolgrain/react-apps-example"
   ]
 }

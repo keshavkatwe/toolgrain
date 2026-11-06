@@ -300,6 +300,25 @@ test("workflow wiring preserves release gates, skips duplicate main runs and kee
   );
   assert.deepEqual(publish.jobs.pack.needs, ["select-mode", "verify"]);
   assert.deepEqual(publish.jobs.publish.needs, ["select-mode", "pack"]);
+  assert.deepEqual(release.jobs["initial-archives"].needs, [
+    "validate",
+    "baseline",
+    "support",
+  ]);
+  assert.deepEqual(release.jobs["initial-archives"].permissions, {
+    contents: "read",
+  });
+  assert.equal(release.jobs["initial-archives"].environment, undefined);
+  assert(
+    release.jobs["initial-archives"].steps.some(({ run }) =>
+      run?.includes("release:pack-initial"),
+    ),
+  );
+  assert(
+    publish.jobs.pack.steps.some(({ run }) =>
+      run?.includes("release:pack-initial"),
+    ),
+  );
   assert.equal(publish.jobs.publish.environment, "npm");
   assert.equal(publish.jobs.publish.permissions["id-token"], "write");
   assert.deepEqual(publish.jobs.registry.needs, [

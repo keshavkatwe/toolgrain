@@ -30,6 +30,7 @@ against the pinned protocol directly, without `@modelcontextprotocol/sdk`.
 | `@toolgrain/http` | Shared HTTP behavior and Web `Request`/`Response` handlers |
 | `@toolgrain/jwt` | JWT authorization and its synchronous `useAuth(ctx)` accessor |
 | `@toolgrain/clerk` | Clerk OAuth authorization and its synchronous `useAuth(ctx)` accessor |
+| `@toolgrain/react` | Native MCP Apps browser lifecycle, React provider/hooks, and typed widget contracts |
 | `@toolgrain/repo-tools` | Unpublished repository verification, reporting, and release tooling |
 
 There is no separate core package. Tool definitions and execution live in
@@ -43,9 +44,13 @@ execution and transport lifecycle through explicit internal contracts.
 - Support only MCP `2026-07-28` and initialization-based `2025-06-18`, over stdio
   and independent HTTP POSTs with JSON responses or request-scoped SSE progress.
   Legacy initialization can negotiate down to the supported legacy revision.
-  Keep sessions, resources, prompts, elicitation, and subscriptions outside the
-  current scope. Progress requires a client token; preserve ordering, backpressure,
-  cancellation, and the ordinary final tool result.
+  Keep sessions, resource templates, prompts, elicitation, and subscriptions outside
+  the current scope. Progress requires a client token; preserve ordering,
+  backpressure, cancellation, and the ordinary final result.
+- Fixed resources use frozen `resource()` definitions with definition-owned URIs.
+  Register a readonly array; listing is static and readers return explicit text/blob
+  contents. Reuse `ToolContext`, auth, providers, and cancellation. Preserve metadata,
+  exact URI matching, generic internal failures, and one-argument resource diagnostics.
 - Registration keys define exposed tool names. Register frozen definitions made
   with `tool()`. Preserve schema inference, typed variants, readonly authoring
   inputs, and interoperability across compatible duplicate package copies.
@@ -109,7 +114,7 @@ Run checks appropriate to the change. Root commands own workspace orchestration;
 keep per-package verification behind `bun run test:package`. It includes packed
 consumer imports, strict declarations, minimum/current TypeScript/Zod, and runtime
 flows. Preserve all existing release gates and the 95% coverage floors for MCP,
-Node, HTTP, JWT, and Clerk. Protocol uses integrity/conformance checks. Report
+Node, HTTP, JWT, Clerk, and React. Protocol uses integrity/conformance checks. Report
 outputs stay ignored under `reports/`.
 
 - Public exports resolve to compiled ESM/declarations in `dist`. MCP also packages
@@ -126,7 +131,7 @@ outputs stay ignored under `reports/`.
 
 ## Releases and legal material
 
-All six libraries share a stable version under npm `latest`; `next` retains
+All libraries share a stable version under npm `latest`; `next` retains
 `0.1.0-rc.0`. See the [release guide](docs/releases.md) and
 [roadmap](ROADMAP.md) for current process and remaining verification.
 

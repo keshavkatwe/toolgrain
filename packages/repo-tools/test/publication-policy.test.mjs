@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  publicationBaselines,
   publicationPolicy,
   stablePublicationBaseline,
+  validateLatestBaselines,
   validatePublishPlan,
 } from "../src/publication-policy.mjs";
 
@@ -236,6 +238,98 @@ test("RC baseline is read from npm rather than older Changesets pre-state fields
           latest: String(url).endsWith("mcp") ? "0.1.2" : "0.1.3",
         },
       }),
+    ),
+    /one shared/,
+  );
+});
+
+test("first-publication exceptions preserve every established latest and an explicit absence", async () => {
+  const group = [...rc.packages, { name: "@toolgrain/react" }];
+  const fetchImpl = async (url) =>
+    String(url).endsWith("react")
+      ? new Response(null, { status: 404 })
+      : Response.json({ "dist-tags": { latest: "0.2.0" } });
+  const baseline = await publicationBaselines(
+    group,
+    ["@toolgrain/react"],
+    fetchImpl,
+  );
+  assert.equal(baseline.stableVersion, "0.2.0");
+  assert.equal(baseline.latest["@toolgrain/react"], null);
+  assert.deepEqual(baseline.unpublished, ["@toolgrain/react"]);
+  assert.equal(
+    validateLatestBaselines(group, baseline.latest, "0.2.0", [
+      "@toolgrain/react",
+    ]),
+    baseline.latest,
+  );
+  await assert.rejects(
+    publicationBaselines(group, [], fetchImpl),
+    /cannot read/,
+  );
+  assert.throws(
+    () => validateLatestBaselines(group, baseline.latest, "0.2.0"),
+    /invalid latest/,
+  );
+  assert.throws(() => validateLatestBaselines(group, {}, "0.2.0"), /exactly/);
+  await assert.rejects(
+    publicationBaselines(group, ["other"], fetchImpl),
+    /Unknown/,
+  );
+  await assert.rejects(
+    publicationBaselines(
+      group,
+      ["@toolgrain/react", "@toolgrain/react"],
+      fetchImpl,
+    ),
+    /Duplicate/,
+  );
+});
+
+test("a first alpha can already exist without latest, but a prior stable release cannot be hidden", async () => {
+  const group = [{ name: "@toolgrain/mcp" }, { name: "@toolgrain/react" }];
+  const metadata = {
+    "dist-tags": { alpha: "0.3.0-alpha.2" },
+    versions: { "0.3.0-alpha.2": {} },
+  };
+  const fetchImpl = async (url) =>
+    Response.json(
+      String(url).endsWith("react")
+        ? metadata
+        : { "dist-tags": { latest: "0.2.0" } },
+    );
+  assert.equal(
+    (await publicationBaselines(group, ["@toolgrain/react"], fetchImpl)).latest[
+      "@toolgrain/react"
+    ],
+    null,
+  );
+  metadata.versions["0.1.0"] = {};
+  await assert.rejects(
+    publicationBaselines(group, ["@toolgrain/react"], fetchImpl),
+    /established stable/,
+  );
+  await assert.rejects(
+    publicationBaselines(
+      group,
+      ["@toolgrain/react"],
+      async () => new Response(null, { status: 500 }),
+    ),
+    /cannot read/,
+  );
+  await assert.rejects(
+    publicationBaselines(group, ["@toolgrain/react"], async (_url, options) =>
+      options.headers.accept === "application/json"
+        ? Response.json({ "dist-tags": { latest: "0.2.0" } })
+        : Response.json({ "dist-tags": { latest: "0.1.0" } }),
+    ),
+    /formats disagree/,
+  );
+  await assert.rejects(
+    publicationBaselines(
+      [{ name: "@toolgrain/react" }],
+      ["@toolgrain/react"],
+      async () => new Response(null, { status: 404 }),
     ),
     /one shared/,
   );

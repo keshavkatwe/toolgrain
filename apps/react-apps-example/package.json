@@ -1,0 +1,40 @@
+{
+  "name": "@toolgrain/react-apps-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-widgets.mjs && bun build --target=bun --packages=external --outdir=dist src/index.ts src/stdio.ts",
+    "dev": "bun --watch run src/index.ts",
+    "dev:ui": "vite build --watch --mode shared",
+    "check-types": "tsc --noEmit",
+    "start": "bun run dist/index.js",
+    "start:stdio": "bun run dist/stdio.js",
+    "test": "vitest run",
+    "test:examples": "vitest run"
+  },
+  "dependencies": {
+    "@toolgrain/mcp": "workspace:*",
+    "zod": "4.6.7",
+    "@toolgrain/http": "workspace:*",
+    "elysia": "1.4.30",
+    "@toolgrain/react": "workspace:*",
+    "@toolgrain/node": "workspace:*",
+    "@toolgrain/protocol": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/node": "24.10.0",
+    "vitest": "5.0.4",
+    "@types/bun": "1.3.14",
+    "@toolgrain/repo-tools": "workspace:*",
+    "jose": "6.2.13",
+    "@toolgrain/protocol": "workspace:*",
+    "vite": "8.3.4",
+    "vite-plugin-singlefile": "2.3.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}

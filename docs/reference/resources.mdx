@@ -1,0 +1,73 @@
+---
+title: "Resource API"
+description: "Resource definitions, metadata, readers, and server registration."
+---
+
+These authoring exports live in `@toolgrain/mcp`. Wire types such as
+`TextResourceContents`, `BlobResourceContents`, and protocol `Resource` come
+directly from `@toolgrain/protocol`.
+
+## resource
+
+```ts
+resource<Result extends ResourceReadResult | PromiseLike<ResourceReadResult>>(
+  definition: ResourceDefinition<Result>,
+): Resource<Result>
+```
+
+Returns a frozen branded definition and preserves the reader's inferred return
+type. The reader must be a function. Metadata is validated and copied when the
+definition is registered with a server; construction does not read content.
+
+### ResourceDefinition and ResourceMetadata
+
+`ResourceDefinition<Result>` combines readonly protocol resource metadata with
+`read(uri: string, ctx: ToolContext): Result`.
+
+| Field | Contract |
+| --- | --- |
+| `uri` | Required absolute URI; exact-match registry identity |
+| `name` | Required nonempty resource name |
+| `title`, `description`, `mimeType` | Optional display strings |
+| `annotations` | Optional audience, priority, and modification hints |
+| `size` | Optional nonnegative safe integer raw byte count |
+| `icons` | Optional readonly display icons; omitted in legacy listings |
+| `_meta` | Optional JSON-compatible metadata copied into listing entries |
+| `read` | Required synchronous or asynchronous reader, invoked only on reads |
+
+`ResourceMetadata` is the readonly protocol resource description.
+`Resource<Result>` is a type-only export describing the branded definition;
+construct it with `resource()`. Like tools, compatible duplicate package copies
+recognize each other's definitions. Object spreads must pass through the helper
+again before registration.
+
+## ResourceReadResult
+
+```ts
+interface ResourceReadResult {
+  readonly contents: readonly (
+    | (Readonly<TextResourceContents> & { readonly blob?: never })
+    | (Readonly<BlobResourceContents> & { readonly text?: never })
+  )[];
+  readonly _meta?: Readonly<MetaObject>;
+}
+```
+
+This sketch omits recursive readonly details. Nested authoring arrays and metadata
+also accept readonly inputs. Text/blob entries supply their own absolute URI and
+optional MIME type/metadata. Toolgrain does not fill these fields from listing
+metadata or automatically encode binary data. Return base64 strings for `blob`.
+Empty contents are valid for an existing resource. Results and metadata are
+validated and copied at server conversion; direct `read()` calls bypass this work.
+
+## Server registration
+
+`ServerOptions.resources?: readonly Resource[]` registers the static resource list.
+The optional array enables the capability even when empty. Duplicate URIs,
+invalid metadata, or unbranded definitions fail construction. `tools` remains
+required; resource-only applications pass `tools: {}`.
+
+The same reader and metadata serve both supported revisions and every authorized
+caller. Context uses existing auth accessors, lazy providers, and cooperative
+cancellation. See [resource behavior](/guides/resources#protocol-behavior-and-limits)
+for response fields, error codes, and deferred features.

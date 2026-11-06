@@ -19,7 +19,7 @@ The repository uses Bun 1.3.14 as a development package manager. Supported Bun a
 | [http-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/http-example) | Plain Node HTTP | 3000 |
 | [express-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/express-example) | Node middleware mounted before body parsing | 3001 |
 | [hono-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/hono-example) | Web handlers with Hono's Node server | 3002 |
-| [elysia-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/elysia-example) | Bun/Elysia and a separate protected Clerk variant | 3003 / 3007 |
+| [elysia-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/elysia-example) | Bun/Elysia with a fixed resource, plus a separate protected Clerk variant | 3003 / 3007 |
 | [nextjs-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/nextjs-example) | App Router with Web handlers | 3005 |
 | [jwt-example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/jwt-example) | Protected HTTP with JWT verification | 3006 |
 
@@ -28,3 +28,10 @@ HTTP applications have `inspect` scripts that connect to an already running exam
 The protected Clerk flow is explicit: `bun run --cwd apps/elysia-example dev:clerk`. It requires local keys and OAuth application configuration; ordinary Elysia dev remains credential-free. Its README covers Inspector PKCE configuration.
 
 Use [framework recipes](/transports/frameworks) for the adapter boundaries and the linked source for complete startup/shutdown behavior. Example code is teaching material, not a deployment or credential-management service.
+
+## React MCP Apps
+
+The [React Apps example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/react-apps-example)
+uses Bun/Elysia with separate and shared HTML widgets. Start with the
+[Apps quickstart](/mcp-apps/quickstart). This package is unreleased; host acceptance
+is tracked separately from protocol tests.

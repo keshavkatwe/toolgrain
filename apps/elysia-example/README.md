@@ -33,6 +33,14 @@ The app imports Toolgrain's compiled workspace packages. Root `bun run dev` watc
 those packages and runs every example's own development command; HTTP development
 ports are distinct. Running only this app's `dev` command does not rebuild Toolgrain.
 
+## Read a resource
+
+The regular example registers the reusable definition in `src/guide.ts` alongside
+`greet`. In Inspector, list resources and read `docs://elysia/guide` to receive
+Markdown usage notes. Both supported protocol revisions can list and read it.
+The resource uses `resource()` and `resources: [guide]`; no filesystem access or
+widget renderer is involved. See the [resource guide](https://toolgrain.mintlify.site/guides/resources).
+
 ## Testing
 
 ```sh
@@ -41,7 +49,7 @@ bun run test
 ```
 
 The smoke test starts this app's actual `start` command on an available loopback
-port, checks discovery, tool listing and greet execution, and stops the process.
+port, checks discovery, tool listing, greet execution, and resource listing/reading, and stops the process.
 There is no code coverage instrumentation or coverage floor for example apps.
 Root `bun run test:examples` builds and tests all examples. CI runs that separately
 from library coverage and retains each workspace's test report.
@@ -50,9 +58,8 @@ The MCP revision is `2026-07-28`, with JSON responses. Clients must send the
 protocol metadata and mirrored headers. A present browser Origin requires an
 explicit `allowedOrigins` setting; configure CORS and authentication in the app.
 SSE remains separate work. Optional JWT/Clerk authorization and automatic public
-metadata are described in [authorization](https://toolgrain.mintlify.site/guides/authorization). Toolgrain
-packages are private workspace packages, so this example currently runs from this
-repository.
+metadata are described in [authorization](https://toolgrain.mintlify.site/guides/authorization).
+This example runs from this repository and imports the compiled workspace packages.
 
 ## MCP Inspector
 

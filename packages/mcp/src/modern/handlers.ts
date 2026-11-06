@@ -14,6 +14,7 @@ import { toolResult } from "./results.js";
 export function discover(
   params: unknown,
   instructions?: string,
+  resources = false,
 ): DiscoverResult {
   if (!commonParams.safeParse(params).success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid discovery parameters");
@@ -22,7 +23,7 @@ export function discover(
     ttlMs: 0,
     cacheScope: "private",
     supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
-    capabilities: { tools: {} },
+    capabilities: { tools: {}, ...(resources ? { resources: {} } : {}) },
     ...(instructions === undefined ? {} : { instructions }),
   };
 }

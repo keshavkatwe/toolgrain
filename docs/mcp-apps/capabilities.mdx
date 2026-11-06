@@ -1,0 +1,20 @@
+---
+title: "Capabilities and fallbacks"
+description: "Detect advertised Apps support without changing authorization or registration."
+---
+
+`getAppSupport(ctx)` from `@toolgrain/mcp` returns:
+
+| Value | Meaning |
+| --- | --- |
+| `supported` | The current client advertises the Apps extension and required HTML MIME type |
+| `not-advertised` | Client capabilities are available but do not advertise that support |
+| `unknown` | This invocation has no client-capability context |
+
+The extension key is `io.modelcontextprotocol/ui`; its `mimeTypes` must include `text/html;profile=mcp-app`.
+
+Modern MCP requests carry their own capabilities. Legacy stdio retains claims from initialization. Independent legacy HTTP does not retain initialization state, so later calls return `unknown`. Toolgrain adds no session or transport-wide capability cache.
+
+Registration stays static. Every UI-enabled tool must provide meaningful text/JSON fallback content even when UI support is advertised. Capabilities can guide optional presentation work, but they must not decide whether an operation is authorized.
+
+The React iframe handshake negotiates host capabilities separately. `useToolCall` rejects when the host does not advertise server tool calls. Host themes and optional fields should have application fallbacks.

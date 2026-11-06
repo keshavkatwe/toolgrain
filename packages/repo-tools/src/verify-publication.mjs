@@ -5,7 +5,14 @@ import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { prereleaseTags } from "./publication-policy.mjs";
+import {
+  initialPublicationArchive,
+  readInitialPublications,
+} from "./initial-publications.mjs";
+import {
+  prereleaseTags,
+  validateLatestBaselines,
+} from "./publication-policy.mjs";
 import { checkRelease } from "./release.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -44,7 +51,7 @@ export async function verifyPublishedPackage(
           const metadata = await response.json();
           if (expectedLatest !== undefined)
             assert.equal(
-              metadata["dist-tags"]?.latest,
+              metadata["dist-tags"]?.latest ?? null,
               expectedLatest,
               `${name}: stable latest changed during prerelease verification`,
             );
@@ -108,6 +115,9 @@ export async function main(args = []) {
       "pack-dir": { type: "string" },
       tag: { type: "string", default: "latest" },
       "preserve-latest": { type: "string" },
+      "latest-baselines": { type: "string" },
+      "initial-directory": { type: "string" },
+      "source-sha": { type: "string" },
     },
   });
   assert(values["pack-dir"], "--pack-dir is required");
@@ -124,22 +134,58 @@ export async function main(args = []) {
     readFileSync(join(directory, "publish-plan.json")),
   );
   const { packages } = checkRelease(root);
+  if (values["initial-directory"])
+    assert(
+      /^[a-f0-9]{40}$/.test(values["source-sha"]),
+      "Initial publication requires the full source SHA",
+    );
+  const initialPackages = readInitialPublications(root, packages);
+  const latest =
+    values.tag !== "latest" && values["latest-baselines"]
+      ? validateLatestBaselines(
+          packages,
+          JSON.parse(values["latest-baselines"]),
+          values["preserve-latest"],
+          initialPackages,
+        )
+      : undefined;
   const results = [];
   let failure;
   try {
     for (const pkg of packages) {
       const entry = plan.flat().find(({ name }) => name === pkg.name);
-      const archive = entry?.tarball && {
+      const plannedArchive = entry?.tarball && {
         bytes: readFileSync(join(directory, entry.tarball.path)),
         integrity: entry.tarball.integrity,
       };
+      const initialArchive = values["initial-directory"]
+        ? initialPublicationArchive(
+            values["initial-directory"],
+            pkg,
+            values["source-sha"],
+          )
+        : undefined;
+      if (values["initial-directory"] && initialPackages.includes(pkg.name))
+        assert(
+          initialArchive,
+          `${pkg.name}: missing reviewed initial publication archive`,
+        );
+      if (plannedArchive && initialArchive)
+        assert.deepEqual(
+          plannedArchive.bytes,
+          initialArchive.bytes,
+          "Initial archive differs from the Changesets artifact",
+        );
+      const archive = plannedArchive || initialArchive;
       console.log(
         `Verify npm ${values.tag} and archive: ${pkg.name}@${pkg.version}`,
       );
       results.push(
         await verifyPublishedPackage(pkg, archive, {
           tag: values.tag,
-          expectedLatest: values["preserve-latest"] || undefined,
+          expectedLatest: latest
+            ? latest[pkg.name]
+            : values["preserve-latest"] || undefined,
         }),
       );
     }

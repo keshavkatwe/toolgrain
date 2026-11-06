@@ -1,5 +1,15 @@
 # @toolgrain/node
 
+## 0.3.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @toolgrain/mcp@0.3.0-alpha.2
+  - @toolgrain/protocol@0.3.0-alpha.2
+  - @toolgrain/http@0.3.0-alpha.2
+
 ## 0.3.0-alpha.1
 
 ### Patch Changes

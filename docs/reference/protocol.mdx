@@ -39,3 +39,9 @@ Use the revision-specific type rather than coercing one era's envelope into anot
 Both schemas are pinned to upstream commit `271ecc9accafdd9b83a3c869fa67c22953b2af80`. Revision folders retain their checksums, provenance, and upstream license. Corresponding JSON schemas are test-only conformance fixtures, not runtime exports or files copied to `dist`.
 
 MCP runtime validation remains in `@toolgrain/mcp`. Import wire types directly from protocol; MCP does not re-export them. See [licensing](/project/licensing) for mixed-content notices and update boundaries.
+
+## MCP Apps extension
+
+The separate `@toolgrain/protocol/apps` export provides Apps revision constants and
+wire contracts. See [Apps reference](/mcp-apps/reference). It does not change the
+pinned core protocol schemas or supported outer revisions.

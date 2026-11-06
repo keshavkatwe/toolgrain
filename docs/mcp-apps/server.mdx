@@ -1,0 +1,41 @@
+---
+title: "Server integration"
+description: "Link existing Toolgrain tools to fixed HTML resources."
+---
+
+Use the existing frozen `resource()` and `tool()` definitions. There is no second server registration system.
+
+```ts
+import { createServer, mcpResult, resource, tool } from "@toolgrain/mcp";
+import { APPS_MIME_TYPE } from "@toolgrain/protocol/apps";
+import { z } from "zod";
+
+const view = resource({
+  uri: "ui://weather/index.html",
+  name: "weather-widget",
+  mimeType: APPS_MIME_TYPE,
+  read: (uri) => ({ contents: [{ uri, mimeType: APPS_MIME_TYPE,
+    text: builtHtml,
+    _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } } },
+  }] }),
+});
+const weather = tool({
+  input: z.object({ city: z.string() }),
+  _meta: { ui: { resourceUri: view.uri } },
+  execute: ({ city }) => mcpResult({
+    content: [{ type: "text", text: `Demo weather for ${city}.` }],
+    structuredContent: { city, temperature: 29 },
+    _meta: { view: "weather" },
+  }),
+});
+const server = createServer({ name: "weather", version: "1.0.0",
+  tools: { weather }, resources: [view] });
+```
+
+`builtHtml` is the HTML string produced by your application build. Supply the MIME type on both listing metadata and returned content; listing metadata is not copied into read results automatically. The referenced resource must be registered. URIs match exactly.
+
+The same tools, auth accessors, providers, cancellation, and [HTTP/stdio adapters](/transports/overview) continue to work. Resource reads and tool calls use existing endpoint authentication. A widget calls through its host, so it does not need a second browser connection carrying the endpoint's credentials.
+
+Always return useful content for the assistant. Toolgrain preserves the rich result envelope and also appends serialized structured output to text content. Additional widget-specific data can live in result `_meta`.
+
+Use nested `_meta.ui.resourceUri`. Legacy flat aliases are preserved when supplied but not synthesized. See [resources](/guides/resources), [results](/tools/results), and [authorization](/guides/authorization).

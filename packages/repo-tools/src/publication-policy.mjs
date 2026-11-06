@@ -87,29 +87,133 @@ export function publicationPolicy(
 
 /** Changesets 3 pre-state has only mode/tag; capture the actual shared npm latest separately. */
 export async function stablePublicationBaseline(packages, fetchImpl = fetch) {
-  const versions = await Promise.all(
+  return (await publicationBaselines(packages, [], fetchImpl)).stableVersion;
+}
+
+/** Explicit first-publication names never exempt an established package from its stable baseline. */
+export function initialPublicationNames(packages, names) {
+  assert(
+    Array.isArray(names),
+    "Initial publications must be a package-name array",
+  );
+  const known = new Set(packages.map(({ name }) => name));
+  assert.equal(
+    new Set(names).size,
+    names.length,
+    "Duplicate initial publication",
+  );
+  for (const name of names)
+    assert(known.has(name), "Unknown initial publication package");
+  return names;
+}
+
+/** Capture each package's latest tag, including an explicitly approved absence. */
+export async function publicationBaselines(
+  packages,
+  initialPackages = [],
+  fetchImpl = fetch,
+) {
+  initialPublicationNames(packages, initialPackages);
+  const entries = await Promise.all(
     packages.map(async ({ name }) => {
-      const response = await fetchImpl(
-        `https://registry.npmjs.org/${encodeURIComponent(name)}`,
-        {
-          headers: { accept: "application/vnd.npm.install-v1+json" },
-          signal: AbortSignal.timeout(30000),
-        },
+      const readings = await Promise.all(
+        ["application/json", "application/vnd.npm.install-v1+json"].map(
+          async (accept) => {
+            const response = await fetchImpl(
+              `https://registry.npmjs.org/${encodeURIComponent(name)}`,
+              { headers: { accept }, signal: AbortSignal.timeout(30000) },
+            );
+            const initial = initialPackages.includes(name);
+            if (response.status === 404 && initial)
+              return { latest: null, unpublished: true };
+            assert(
+              response.ok,
+              `${name}: cannot read the stable registry baseline`,
+            );
+            const metadata = await response.json();
+            const version = metadata["dist-tags"]?.latest;
+            if (version === undefined && initial) {
+              assert(
+                metadata["dist-tags"] &&
+                  metadata.versions &&
+                  typeof metadata.versions === "object" &&
+                  !Array.isArray(metadata.versions) &&
+                  Object.keys(metadata.versions).every((value) =>
+                    candidate.test(value),
+                  ),
+                `${name}: initial publication must not hide an established stable release`,
+              );
+              return {
+                latest: null,
+                unpublished: Object.keys(metadata.versions).length === 0,
+              };
+            }
+            assert(
+              typeof version === "string" && stable.test(version),
+              `${name}: stable latest must already exist before prerelease publication`,
+            );
+            return { latest: version, unpublished: false };
+          },
+        ),
       );
-      assert(response.ok, `${name}: cannot read the stable registry baseline`);
-      const version = (await response.json())["dist-tags"]?.latest;
-      assert(
-        typeof version === "string" && stable.test(version),
-        `${name}: stable latest must already exist before prerelease publication`,
+      assert.deepEqual(
+        readings[0],
+        readings[1],
+        `${name}: npm metadata formats disagree`,
       );
-      return version;
+      return [name, readings[0].latest, readings[0].unpublished];
     }),
   );
+  const versions = entries
+    .map(([, version]) => version)
+    .filter((value) => value !== null);
   assert(
     versions.length && versions.every((version) => version === versions[0]),
     "Prerelease packages require one shared stable registry baseline",
   );
-  return versions[0];
+  return {
+    stableVersion: versions[0],
+    latest: Object.fromEntries(
+      entries.map(([name, version]) => [name, version]),
+    ),
+    unpublished: entries
+      .filter(([, , unpublished]) => unpublished)
+      .map(([name]) => name),
+  };
+}
+
+/** Reject partial/foreign snapshots and unapproved missing latest tags. */
+export function validateLatestBaselines(
+  packages,
+  latest,
+  stableVersion,
+  initialPackages = [],
+) {
+  assert(
+    typeof stableVersion === "string" && stable.test(stableVersion),
+    "Invalid stable baseline",
+  );
+  initialPublicationNames(packages, initialPackages);
+  assert(
+    latest && typeof latest === "object" && !Array.isArray(latest),
+    "Invalid latest baselines",
+  );
+  assert.deepEqual(
+    Object.keys(latest).sort(),
+    packages.map(({ name }) => name).sort(),
+    "Latest baselines must cover exactly the release group",
+  );
+  for (const { name } of packages)
+    assert(
+      latest[name] === stableVersion ||
+        (latest[name] === null && initialPackages.includes(name)),
+      `${name}: invalid latest baseline`,
+    );
+  assert(
+    Object.values(latest).includes(stableVersion),
+    "Missing established stable baseline",
+  );
+  return latest;
 }
 
 /** Validate the actual native Changesets plan before any archive is published. */

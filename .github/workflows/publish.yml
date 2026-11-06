@@ -37,6 +37,7 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       tag: ${{ steps.release.outputs.tag }}
       stable-version: ${{ steps.release.outputs.stable-version }}
+      latest-baselines: ${{ steps.release.outputs.latest-baselines }}
       source-sha: ${{ steps.release.outputs.source-sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -54,10 +55,13 @@ jobs:
           import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
           import assert from 'node:assert/strict';
           import { checkRelease } from './packages/repo-tools/src/release.mjs';
-          import { publicationPolicy, stablePublicationBaseline } from './packages/repo-tools/src/publication-policy.mjs';
+          import { publicationPolicy, publicationBaselines } from './packages/repo-tools/src/publication-policy.mjs';
           const preState = existsSync('.changeset/pre.json') ? JSON.parse(readFileSync('.changeset/pre.json', 'utf8')) : undefined;
           const source = checkRelease(process.cwd());
-          const stableVersion = process.env.GITHUB_REF === 'refs/heads/main' ? undefined : await stablePublicationBaseline(source.packages);
+          const initialPackages = existsSync('.changeset/initial-publications.json') ? JSON.parse(readFileSync('.changeset/initial-publications.json', 'utf8')) : [];
+          const baseline = process.env.GITHUB_REF === 'refs/heads/main' ? undefined : await publicationBaselines(source.packages, initialPackages);
+          assert(!baseline?.unpublished.length, 'Unpublished initial packages require Release verification and an approved maintainer first publish before normal publication');
+          const stableVersion = baseline?.stableVersion;
           const policy = publicationPolicy(source, {
             ref: process.env.GITHUB_REF, eventName: process.env.GITHUB_EVENT_NAME, preState,
             stableVersion,
@@ -68,7 +72,7 @@ jobs:
           if (policy.tag !== 'latest') {
             assert(readdirSync('.changeset').every(name => name === 'README.md' || !name.endsWith('.md')), 'Version all pending changesets before dispatching a prerelease');
           }
-          appendFileSync(process.env.GITHUB_OUTPUT, `version=${policy.version}\ntag=${policy.tag}\nstable-version=${policy.stableVersion}\nsource-sha=${process.env.GITHUB_SHA}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${policy.version}\ntag=${policy.tag}\nstable-version=${policy.stableVersion}\nlatest-baselines=${JSON.stringify(baseline?.latest ?? {})}\nsource-sha=${process.env.GITHUB_SHA}\n`);
           JS
       # Changesets Action v2.1.2; CLI 3 uses the v2 subactions.
       - id: mode
@@ -131,6 +135,7 @@ jobs:
       contents: read
     outputs:
       pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+      initial-artifact-id: ${{ steps.initial.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -139,6 +144,14 @@ jobs:
       - run: bun run build --filter='./packages/*'
       - run: bun run release:check
       - run: bun run test:size
+      - name: Pack real first-publication candidates from the verified source
+        run: bun run release:pack-initial --directory "$RUNNER_TEMP/toolgrain-initial" --source-sha "$GITHUB_SHA"
+      - id: initial
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: initial-publications
+          path: ${{ runner.temp }}/toolgrain-initial/
+          if-no-files-found: error
       - id: pack
         uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51
         with:
@@ -170,6 +183,7 @@ jobs:
           RELEASE_TAG: ${{ needs.select-mode.outputs.tag }}
           RELEASE_SOURCE_SHA: ${{ needs.select-mode.outputs.source-sha }}
           STABLE_VERSION: ${{ needs.select-mode.outputs.stable-version }}
+          LATEST_BASELINES: ${{ needs.select-mode.outputs.latest-baselines }}
         run: |
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
@@ -182,6 +196,7 @@ jobs:
           const receipt = {
             version: process.env.RELEASE_VERSION, tag: process.env.RELEASE_TAG,
             sourceSha: process.env.RELEASE_SOURCE_SHA, stableVersion: process.env.STABLE_VERSION,
+            latestBaselines: JSON.parse(process.env.LATEST_BASELINES || '{}'),
             workflowRun: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
             packages: plan.plan.flat(),
           };
@@ -204,7 +219,7 @@ jobs:
           push-git-tags: true
 
   registry:
-    name: Verify all six published packages
+    name: Verify all published packages
     needs: [select-mode, pack, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -223,11 +238,17 @@ jobs:
           artifact-ids: ${{ needs.pack.outputs.pack-dir-artifact-id }}
           path: ${{ runner.temp }}/toolgrain-published
           merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          artifact-ids: ${{ needs.pack.outputs.initial-artifact-id }}
+          path: ${{ runner.temp }}/toolgrain-initial
+          merge-multiple: true
       - name: Verify the selected npm tag, archive integrity, and stable baseline
         env:
           RELEASE_TAG: ${{ needs.select-mode.outputs.tag }}
           STABLE_VERSION: ${{ needs.select-mode.outputs.stable-version }}
-        run: node packages/repo-tools/src/cli.mjs verify-publication --pack-dir "$RUNNER_TEMP/toolgrain-published" --tag "$RELEASE_TAG" --preserve-latest "$STABLE_VERSION"
+          LATEST_BASELINES: ${{ needs.select-mode.outputs.latest-baselines }}
+        run: node packages/repo-tools/src/cli.mjs verify-publication --pack-dir "$RUNNER_TEMP/toolgrain-published" --tag "$RELEASE_TAG" --preserve-latest "$STABLE_VERSION" --latest-baselines "$LATEST_BASELINES" --initial-directory "$RUNNER_TEMP/toolgrain-initial" --source-sha "$GITHUB_SHA"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:

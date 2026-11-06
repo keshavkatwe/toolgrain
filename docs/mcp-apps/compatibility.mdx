@@ -1,0 +1,38 @@
+---
+title: "Compatibility and acceptance"
+description: "Verify hosts and diagnose widget connection problems."
+---
+
+MCP Apps compatibility is host-version and transport specific. Protocol tests do not establish real host rendering compatibility.
+
+| Flow | Status |
+| --- | --- |
+| Native browser/React lifecycle | Covered by automated fixtures |
+| Separate/shared HTML resources | Covered by the Bun/Elysia example checks |
+| Core revisions and fallback results | Covered by server/transport tests |
+| Claude Desktop 4.23118.0, macOS 26.5.2, local stdio | Separate/shared Weather and Sales rendering, metadata, refresh calls, and light/dark updates passed on 2026-11-06 |
+| Official Apps SDK 2.0.4 widget against Toolgrain | Passed with a self-authored DOM host fixture and direct MCP 2026-07-28 dispatch; not a live-host rendering claim |
+
+## Claude Desktop acceptance
+
+The recorded local test used Bun 1.4.4 to launch the built example's stdio entry. Claude advertised `io.modelcontextprotocol/ui` with the Apps HTML MIME type and negotiated outer MCP `2025-06-18`; the iframe negotiated Apps `2026-01-26`. Both separate entries and both metadata-routed shared entries displayed their expected data. City and region buttons updated each widget through host-mediated tool calls, and existing widgets followed light/dark host theme changes. The temporary connector and appearance changes were removed after testing.
+
+This verifies only that host version and local stdio configuration. Claude HTTP connections, host-driven cancellation, and host permission/CSP enforcement were not exercised live. Cancellation, errors, malformed traffic, lifecycle cleanup, and fallback envelopes are covered by automated fixtures; these checks do not establish host policy behavior.
+
+Build the example, then configure a local stdio connection launching its `start:stdio` command with a supported Bun runtime. Record the exact Claude Desktop version, OS, negotiated outer revision, Apps capabilities, and connection configuration without credentials or local machine paths.
+
+Call each separate tool and both shared tools. Confirm the expected widget, initial structured and metadata data, city/region buttons, host theme changes, expected errors, cancellation, and normal text fallback. Disconnect and confirm cleanup.
+
+For HTTP testing, configure the application's allowed hosts explicitly. Using a public connector or tunnel is a separate exposure/deployment decision; the example does not open one automatically.
+
+## Interoperability acceptance
+
+Run `bun run test:interop` from the repository root. It builds an independently authored widget with pinned official SDK dependencies in a disposable installation outside the workspace. The fixture checks resource/security metadata, initialization, structured content/result metadata, a host-mediated call, and a theme update. Its report stays ignored under `reports/`.
+
+Use an independently built widget using the official Apps SDK, served by a Toolgrain resource and tool. Verify initial results, host-mediated tool calls, and security metadata. Keep SDK dependencies confined to that external acceptance fixture, outside Toolgrain's runtime packages.
+
+## Troubleshooting
+
+A connection timeout usually means the page was opened without an Apps host, the host does not support Apps, or its iframe handshake did not complete. Verify the resource MIME type and tool URI. A routing error means a shared entry could not select a tool; inspect its application-owned marker. An unsupported tool-call error means the host did not advertise serverTools. Inspect errors and preserve useful assistant content for all cases.
+
+Claude Desktop cached resource HTML for a connector instance during the recorded test. Restarting the temporary connector was needed to test changed HTML; starting a new chat alone did not reload it. Recheck this behavior when testing another host version.

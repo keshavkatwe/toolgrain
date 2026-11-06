@@ -19,10 +19,12 @@
     "test:ci": "bun run --cwd packages/repo-tools test:ci",
     "test:docs": "bun packages/repo-tools/src/cli.mjs docs",
     "release:check": "node packages/repo-tools/src/cli.mjs release check",
+    "release:pack-initial": "node packages/repo-tools/src/initial-publications.mjs",
     "verify:inspector": "node packages/repo-tools/src/cli.mjs verify-inspector",
     "changeset": "changeset",
     "release:status": "changeset status",
-    "release:version": "changeset version && node packages/repo-tools/src/cli.mjs release sync-lock"
+    "release:version": "changeset version && node packages/repo-tools/src/cli.mjs release sync-lock",
+    "test:interop": "bun run build --filter=@toolgrain/react-apps-example && node packages/react/scripts/verify-sdk.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

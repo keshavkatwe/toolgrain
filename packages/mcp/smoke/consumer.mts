@@ -7,6 +7,8 @@ import {
   type McpResultOptions,
   type McpStructuredResult,
   mcpResult,
+  type ResourceReadResult,
+  resource,
   type ToolContext,
   type ToolErrorDetails,
   type ToolProgress,
@@ -391,3 +393,51 @@ const scopeFailure = new AuthError("insufficient_scope", {
 const requiredScopes: readonly string[] | undefined =
   scopeFailure.requiredScopes;
 void requiredScopes;
+
+const resourceResult = {
+  contents: [{ uri: "docs://guide", text: "Guide" }],
+  _meta: { ui: { prefersBorder: true } },
+} as const;
+const sharedResource = resource({
+  uri: "docs://guide",
+  name: "guide",
+  read: (_uri, ctx) => {
+    const requestId: string | number = ctx.request.id;
+    void requestId;
+    return resourceResult;
+  },
+});
+const rawResourceResult: typeof resourceResult = sharedResource.read(
+  "docs://guide",
+  toolContext(),
+);
+const readResult: ResourceReadResult = rawResourceResult;
+createServer({
+  name: "resources",
+  version: "1",
+  tools: {},
+  resources: [sharedResource] as const,
+});
+void readResult;
+function rejectedResources() {
+  // @ts-expect-error A resource needs a URI.
+  resource({ name: "missing", read: () => ({ contents: [] }) });
+  // @ts-expect-error A resource reader must return explicit contents.
+  resource({ uri: "docs://invalid", name: "invalid", read: () => "text" });
+  resource({
+    uri: "docs://invalid",
+    name: "invalid",
+    read: () => ({
+      // @ts-expect-error A content entry needs exactly one text or blob payload.
+      contents: [{ uri: "docs://invalid", text: "a", blob: "YQ==" }],
+    }),
+  });
+  createServer({
+    name: "invalid",
+    version: "1",
+    tools: {},
+    // @ts-expect-error A raw definition lacks the resource brand.
+    resources: [{ ...sharedResource }],
+  });
+}
+void rejectedResources;

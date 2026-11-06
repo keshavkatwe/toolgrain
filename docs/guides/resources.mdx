@@ -1,0 +1,117 @@
+---
+title: "Serve resources"
+description: "Declare reusable fixed-URI resources and read text or binary content through MCP."
+---
+
+Resources expose content that clients can discover and read separately from tool
+calls. Declare a fixed URI with `resource()` and register its definition beside
+your tools. Toolgrain never fetches URLs or maps URIs to local files automatically.
+
+## Declare and register a resource
+
+```ts
+import { createServer, resource } from "@toolgrain/mcp";
+import { stdio } from "@toolgrain/node";
+
+const guide = resource({
+  uri: "docs://getting-started",
+  name: "getting-started",
+  title: "Getting started",
+  mimeType: "text/markdown",
+  read: (uri) => ({
+    contents: [{
+      uri,
+      mimeType: "text/markdown",
+      text: "# Getting started\n\nWelcome to this server.",
+    }],
+  }),
+});
+
+const server = createServer({
+  name: "documentation",
+  version: "1.0.0",
+  tools: {},
+  resources: [guide],
+});
+
+await server.listen(stdio());
+```
+
+The URI belongs to the frozen definition. Reuse it across servers or pass a
+modified spread back through `resource()` to create another definition. Raw
+objects and spreads are not valid registrations. Duplicate URIs fail server
+construction. Readonly registration arrays and content arrays are accepted.
+
+Registration copies display metadata without invoking readers. `resources/list`
+returns this fixed list in registration order. `resources/read` matches URI strings
+exactly and invokes the matching reader. Custom schemes, including `ui://` and
+`urn:`, are accepted when they form valid absolute URIs.
+
+## Return explicit contents
+
+A reader returns `{ contents, _meta? }`, synchronously or asynchronously. Every
+entry supplies its own URI, optional MIME type and `_meta`, and exactly one of
+`text` or base64 `blob`. One read can return several entries. Listing metadata
+is not automatically copied onto content entries.
+
+```ts
+const report = resource({
+  uri: "reports://latest",
+  name: "latest-report",
+  read: (uri) => ({
+    contents: [
+      { uri, mimeType: "text/plain", text: "Report complete." },
+      { uri: "reports://latest/data", mimeType: "application/octet-stream", blob: "YQ==" },
+    ],
+    _meta: { "example.com/report-version": 1 },
+  }),
+});
+```
+
+Toolgrain validates and copies results. Non-JSON values, malformed base64, invalid
+URIs, missing payloads, and entries containing both text and blob fail privately.
+Undefined optional object properties are omitted. An existing resource may return
+`contents: []`; an unknown URI returns a resource-not-found error instead.
+
+## Use context and authorization
+
+`read(uri, ctx)` receives the existing `ToolContext`: frozen request/client
+metadata, `ctx.signal`, auth accessors, and [lazy context providers](/guides/context).
+Providers resolve only on access and cache per read request. Readers own their
+application services and should pass `ctx.signal` to cancellable work.
+
+Configured endpoint authentication runs before resource work. The static list is
+the same for every authorized caller; resource-specific authorization policies
+and dynamic discovery are not provided. Readers can use the verified identity
+through JWT/Clerk's `useAuth(ctx)` when producing content.
+
+For direct calls in tests, use `guide.read(guide.uri, toolContext())` after importing
+`toolContext` from `@toolgrain/mcp`. Direct reads remain raw: they bypass endpoint
+auth and result validation. Context provider overrides work through `toolContext()`.
+
+## Protocol behavior and limits
+
+Both MCP `2026-07-28` and `2025-06-18` support listing and reading over the existing
+transports. Modern HTTP reads require `Mcp-Method: resources/read` and a `Mcp-Name`
+header matching the URI, plus the usual request metadata and version header. See
+[HTTP transport](/transports/http) for header encoding and hosting requirements.
+
+Supplying `resources`, even `[]`, advertises `resources: {}`. Omitting it leaves
+resource methods disabled. Lists are unpaginated and reject every supplied cursor.
+`resources/templates/list` returns an empty list; template declarations,
+subscriptions, and list-change notifications are not supported.
+
+Modern resource results include `resultType: "complete"`, `ttlMs: 0`, and
+`cacheScope: "private"`. Legacy results omit those fields and listing icons.
+Unknown URIs return `Resource not found` with code `-32602` in modern mode or
+`-32002` in legacy mode. Unexpected reader/provider/output failures return
+`-32603` with `Internal error`; `onError(error)` receives the original failure.
+Cancelled requests suppress late results and diagnostics.
+
+Resource and content-item `_meta` are preserved, including UI security metadata.
+Use this resource foundation with the [native MCP Apps integration](/mcp-apps/overview).
+The host renders widgets; Toolgrain serves HTML and links tools through metadata.
+
+See the [resource API reference](/reference/resources), the runnable
+[Elysia example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/elysia-example),
+and the [MCP resource specification](https://modelcontextprotocol.io/specification/2026-07-28/server/resources).

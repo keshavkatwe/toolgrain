@@ -1,0 +1,16 @@
+---
+title: "Security and metadata"
+description: "Declare resource security requirements and preserve endpoint authorization."
+---
+
+Put rendering/security configuration on the resource content item's `_meta.ui`, not on the tool or only on the outer read result.
+
+`AppResourceMeta` from `@toolgrain/protocol/apps` describes CSP domain lists, requested camera/microphone/geolocation/clipboard permissions, sandbox domain, and border preference. These are declarations to the host. Toolgrain does not create the iframe or grant permissions.
+
+Hosts enforce CSP and may restrict requested permissions. A sandbox domain is host-specific; do not assume that one host's domain format works elsewhere. Self-contained HTML avoids external script/style origins but does not bypass host policy.
+
+The native React connection accepts messages only from the embedding parent. `hostOrigin` can restrict it to an exact origin; omit it for hosts using opaque-origin sandbox proxies. Incoming RPC envelopes and known message payloads are validated. Server-supplied application data still needs application-specific validation where required.
+
+Client capability claims, host context, UI visibility, and routing markers are not verified identities. Preserve endpoint authentication for every resource read and tool call. Use [JWT or Clerk authorization](/authentication/overview) and authorize operations using verified identity in server handlers.
+
+Never embed bearer credentials or server services in the HTML. Import registered tool maps using `import type`; the example's browser build checks that server implementations and Node built-ins are absent.

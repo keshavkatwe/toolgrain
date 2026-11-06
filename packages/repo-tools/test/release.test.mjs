@@ -272,7 +272,7 @@ test("the actual workflow selection script rejects unversioned records in every 
   );
   const script = step.run.match(/<<'JS'\n([\s\S]*?)\nJS\s*$/)?.[1];
   assert(script, "Expected the actual workflow selection script");
-  const probe = `globalThis.fetch = async () => Response.json({ 'dist-tags': { latest: '0.2.0' } });\n${script.replaceAll("./packages/repo-tools/src/", new URL("../src/", import.meta.url).href)}`;
+  const probe = `globalThis.fetch = async (url) => process.env.TOOLGRAIN_TEST_INITIAL && String(url).endsWith('protocol') ? process.env.TOOLGRAIN_TEST_INITIAL === 'missing' ? new Response(null, { status: 404 }) : Response.json({ 'dist-tags': { alpha: process.env.REQUESTED_VERSION }, versions: { [process.env.REQUESTED_VERSION]: {} } }) : Response.json({ 'dist-tags': { latest: '0.2.0' } });\n${script.replaceAll("./packages/repo-tools/src/", new URL("../src/", import.meta.url).href)}`;
   for (const tag of ["alpha", "beta", "rc"]) {
     const version = `0.3.0-${tag}.0`;
     const { directory, write } = fixture(t, version);
@@ -306,6 +306,19 @@ test("the actual workflow selection script rejects unversioned records in every 
       readFileSync(env.GITHUB_OUTPUT, "utf8"),
       new RegExp(`tag=${tag}\\n`),
     );
+    write(".changeset/initial-publications.json", ["@toolgrain/protocol"]);
+    env.TOOLGRAIN_TEST_INITIAL = "missing";
+    assert.throws(run, (error) =>
+      /Unpublished initial packages/.test(String(error.stderr)),
+    );
+    env.TOOLGRAIN_TEST_INITIAL = "published";
+    run();
+    assert.match(
+      readFileSync(env.GITHUB_OUTPUT, "utf8"),
+      /"@toolgrain\/protocol":null/,
+    );
+    delete env.TOOLGRAIN_TEST_INITIAL;
+    write(".changeset/initial-publications.json", []);
     write(
       ".changeset/pending.md",
       '---\n"@toolgrain/mcp": minor\n---\nUnversioned feature.\n',

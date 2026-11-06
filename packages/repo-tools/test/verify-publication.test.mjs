@@ -70,6 +70,35 @@ test("registry verification rejects missing releases, mismatched archives and in
   );
 });
 
+test("first publication verifies artifact bytes and requires latest to remain absent", async () => {
+  const initial = { name: "@toolgrain/react", version: "0.3.0-alpha.2" };
+  const metadata = {
+    "dist-tags": { alpha: initial.version },
+    versions: {
+      [initial.version]: { ...body.versions[pkg.version], ...initial },
+    },
+  };
+  const fetchImpl = async (url) =>
+    String(url).endsWith(".tgz")
+      ? new Response(bytes)
+      : Response.json(metadata);
+  const result = await verifyPublishedPackage(initial, archive, {
+    fetchImpl,
+    tag: "alpha",
+    expectedLatest: null,
+  });
+  assert(result.matchedArtifact);
+  metadata["dist-tags"].latest = initial.version;
+  await assert.rejects(
+    verifyPublishedPackage(initial, archive, {
+      fetchImpl,
+      tag: "alpha",
+      expectedLatest: null,
+    }),
+    /stable latest changed/,
+  );
+});
+
 for (const tag of ["alpha", "beta", "rc"])
   test(`${tag} verification checks both metadata formats and preserves stable latest`, async () => {
     const candidate = { ...pkg, version: `0.2.0-${tag}.0` };

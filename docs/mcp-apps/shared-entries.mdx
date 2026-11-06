@@ -1,0 +1,25 @@
+---
+title: "Shared widget entries"
+description: "Render several tool widgets from one HTML application."
+---
+
+A React project may build separate HTML entries or reuse one HTML entry for several tools. Each host-created widget instance has its own connection and state; this does not create one persistent dashboard across the conversation.
+
+For a separate entry, declare `tool="weather"` on its provider. For a shared entry, set `resolveTool(result, hostContext)` instead. The result notification has no required tool name, and host tool information is optional, so shared routing must be explicit.
+
+The example uses application-owned `_meta.view`:
+
+```tsx
+<AppProvider appInfo={{ name: "Demo", version: "1.0.0" }}
+  resolveTool={(result) => {
+    if (result._meta?.view === "weather") return "shared_weather";
+    if (result._meta?.view === "sales") return "shared_sales";
+    return undefined;
+  }}>
+  <View />
+</AppProvider>
+```
+
+The server returns that marker through `mcpResult({ content, structuredContent, _meta: { view: "weather" } })`. Toolgrain preserves it without inventing or overwriting routing fields. A missing marker produces an explicit routing error. Expected text-only errors without a marker may use a resolver fallback or display that error state.
+
+Inside `View`, call `useToolResult()` and switch on `state.toolName` to select a component. Each component can call any app-visible tool through its own `useToolCall` hook; it is not restricted to its initiating tool. Tool visibility is enforced by the host and is not endpoint authorization.
