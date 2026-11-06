@@ -107,13 +107,34 @@ export function initialPublicationNames(packages, names) {
   return names;
 }
 
-/** Capture each package's latest tag, including an explicitly approved absence. */
+/** npm retains latest on a first publication; only explicitly pinned initial candidates are exempt. */
+export function initialLatestBaselines(packages, initialPackages, latest) {
+  initialPublicationNames(packages, initialPackages);
+  assert(
+    latest && typeof latest === "object" && !Array.isArray(latest),
+    "Invalid initial latest baselines",
+  );
+  for (const [name, version] of Object.entries(latest)) {
+    assert(
+      initialPackages.includes(name),
+      "Latest exception requires an initial publication",
+    );
+    assert(
+      typeof version === "string" && candidate.exec(version)?.[0] === version,
+      "Initial latest must pin an exact alpha, beta, or RC version",
+    );
+  }
+  return latest;
+}
+
+/** Capture each package's latest tag, preserving established stable and approved initial baselines. */
 export async function publicationBaselines(
   packages,
   initialPackages = [],
   fetchImpl = fetch,
+  initialLatest = {},
 ) {
-  initialPublicationNames(packages, initialPackages);
+  initialLatestBaselines(packages, initialPackages, initialLatest);
   const entries = await Promise.all(
     packages.map(async ({ name }) => {
       const readings = await Promise.all(
@@ -132,19 +153,35 @@ export async function publicationBaselines(
             );
             const metadata = await response.json();
             const version = metadata["dist-tags"]?.latest;
-            if (version === undefined && initial) {
+            if (
+              initial &&
+              !(typeof version === "string" && stable.test(version))
+            ) {
+              const expected = initialLatest[name] ?? null;
               assert(
                 metadata["dist-tags"] &&
                   metadata.versions &&
                   typeof metadata.versions === "object" &&
                   !Array.isArray(metadata.versions) &&
-                  Object.keys(metadata.versions).every((value) =>
-                    candidate.test(value),
+                  Object.keys(metadata.versions).every(
+                    (value) =>
+                      candidate.exec(value)?.[0] === value ||
+                      (expected !== null && value === "0.0.0-stage"),
                   ),
                 `${name}: initial publication must not hide an established stable release`,
               );
+              assert.equal(
+                version ?? null,
+                expected,
+                `${name}: initial latest differs from its approved baseline`,
+              );
+              if (expected !== null)
+                assert(
+                  Object.hasOwn(metadata.versions, expected),
+                  `${name}: initial latest version is missing`,
+                );
               return {
-                latest: null,
+                latest: expected,
                 unpublished: Object.keys(metadata.versions).length === 0,
               };
             }
@@ -166,7 +203,7 @@ export async function publicationBaselines(
   );
   const versions = entries
     .map(([, version]) => version)
-    .filter((value) => value !== null);
+    .filter((value) => typeof value === "string" && stable.test(value));
   assert(
     versions.length && versions.every((version) => version === versions[0]),
     "Prerelease packages require one shared stable registry baseline",
@@ -182,18 +219,19 @@ export async function publicationBaselines(
   };
 }
 
-/** Reject partial/foreign snapshots and unapproved missing latest tags. */
+/** Reject partial/foreign snapshots and unapproved initial latest exceptions. */
 export function validateLatestBaselines(
   packages,
   latest,
   stableVersion,
   initialPackages = [],
+  initialLatest = {},
 ) {
   assert(
     typeof stableVersion === "string" && stable.test(stableVersion),
     "Invalid stable baseline",
   );
-  initialPublicationNames(packages, initialPackages);
+  initialLatestBaselines(packages, initialPackages, initialLatest);
   assert(
     latest && typeof latest === "object" && !Array.isArray(latest),
     "Invalid latest baselines",
@@ -206,7 +244,8 @@ export function validateLatestBaselines(
   for (const { name } of packages)
     assert(
       latest[name] === stableVersion ||
-        (latest[name] === null && initialPackages.includes(name)),
+        (initialPackages.includes(name) &&
+          latest[name] === (initialLatest[name] ?? null)),
       `${name}: invalid latest baseline`,
     );
   assert(

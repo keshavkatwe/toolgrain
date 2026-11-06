@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import {
   initialPublicationArchive,
+  readInitialLatest,
   readInitialPublications,
 } from "./initial-publications.mjs";
 import {
@@ -147,6 +148,7 @@ export async function main(args = []) {
           JSON.parse(values["latest-baselines"]),
           values["preserve-latest"],
           initialPackages,
+          readInitialLatest(root),
         )
       : undefined;
   const results = [];

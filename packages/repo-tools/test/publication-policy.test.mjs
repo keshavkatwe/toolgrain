@@ -334,3 +334,76 @@ test("a first alpha can already exist without latest, but a prior stable release
     /one shared/,
   );
 });
+
+test("npm's first-release latest is preserved only with an exact initial pin and no stable history", async () => {
+  const group = [{ name: "@toolgrain/mcp" }, { name: "@toolgrain/react" }];
+  const initial = ["@toolgrain/react"];
+  const version = "0.3.0-alpha.2";
+  const pinned = { "@toolgrain/react": version };
+  const metadata = {
+    "dist-tags": { latest: version, alpha: version },
+    versions: { "0.0.0-stage": {}, [version]: {} },
+  };
+  const fetchImpl = async (url) =>
+    Response.json(
+      String(url).endsWith("react")
+        ? metadata
+        : { "dist-tags": { latest: "0.2.0" } },
+    );
+  const baseline = await publicationBaselines(
+    group,
+    initial,
+    fetchImpl,
+    pinned,
+  );
+  assert.equal(baseline.stableVersion, "0.2.0");
+  assert.deepEqual(baseline.unpublished, []);
+  assert.deepEqual(baseline.latest, {
+    "@toolgrain/mcp": "0.2.0",
+    "@toolgrain/react": version,
+  });
+  validateLatestBaselines(group, baseline.latest, "0.2.0", initial, pinned);
+  await assert.rejects(
+    publicationBaselines(group, initial, fetchImpl),
+    /established stable/,
+  );
+  for (const changed of [null, "0.3.0-alpha.3"])
+    assert.throws(
+      () =>
+        validateLatestBaselines(
+          group,
+          { ...baseline.latest, "@toolgrain/react": changed },
+          "0.2.0",
+          initial,
+          pinned,
+        ),
+      /invalid latest/,
+    );
+  for (const invalid of [
+    [],
+    null,
+    { "@toolgrain/mcp": version },
+    { "@toolgrain/react": "0.3.0" },
+    { "@toolgrain/react": `${version}\n` },
+  ])
+    await assert.rejects(
+      publicationBaselines(group, initial, fetchImpl, invalid),
+    );
+  metadata["dist-tags"].latest = "0.3.0-alpha.3";
+  await assert.rejects(
+    publicationBaselines(group, initial, fetchImpl, pinned),
+    /approved baseline/,
+  );
+  metadata["dist-tags"].latest = version;
+  metadata.versions["0.1.0"] = {};
+  await assert.rejects(
+    publicationBaselines(group, initial, fetchImpl, pinned),
+    /established stable/,
+  );
+  delete metadata.versions["0.1.0"];
+  delete metadata.versions[version];
+  await assert.rejects(
+    publicationBaselines(group, initial, fetchImpl, pinned),
+    /version is missing/,
+  );
+});

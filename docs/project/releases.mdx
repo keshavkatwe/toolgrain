@@ -152,10 +152,11 @@ registry, and stable `latest` configuration. The workflow retains filename
 bindings for `keshavkatwe/toolgrain`. No npm token secret or local login is
 required. The environment currently permits only main; it has no required reviewers.
 
-The new `@toolgrain/react` workspace is unreleased and now participates in local
-version alignment and package verification. Its first publication requires its
-own reviewed npm trusted-publisher setup. This implementation does not change
-`publish.yml`, the `npm` environment, or existing publisher bindings.
+The new `@toolgrain/react` workspace participates in version alignment and package
+verification. Its first alpha uses the verified maintainer-publication path
+below; subsequent CI publication requires its own reviewed trusted-publisher
+setup. The workflow filename, `npm` environment, and existing publisher bindings
+remain unchanged.
 The reviewed Release PR is the stable publication gate. A prerelease needs an explicitly
 allowed, exact prerelease branch as described below; do not broaden this to all branches.
 
@@ -270,14 +271,22 @@ The `0.3.0-alpha.2` preparation combines [progress (#56)](https://github.com/kes
 [native MCP Apps/React (#60)](https://github.com/keshavkatwe/toolgrain/pull/60).
 These feature PRs remain open. All seven packages
 use the same candidate version and `alpha` tag. Stable `latest` remains `0.2.0`
-for the six established packages; React has no stable `latest` yet.
+for the six established packages. npm also assigns `latest` on a package's first
+publication, even when `alpha` is requested, and rejects removing it. React's
+initial `latest` therefore points to `0.3.0-alpha.2`; it is a prerelease, not an
+accepted stable release. Install exact candidate versions during acceptance.
 
 List new packages explicitly in `.changeset/initial-publications.json`. The
 prerelease guard captures a per-package latest baseline in both npm metadata
-formats. Only listed packages with no stable history may preserve an absent
-latest tag. Missing established packages, differing stable versions, invalid
-metadata, and registry failures still stop the release. Post-publication checks
-verify that absence as well as existing stable tags.
+formats. For a listed package with no stable history, explicitly pin its first
+candidate in `.changeset/initial-latest.json`. This preserves npm's required
+initial tag without allowing later candidates to move `latest`. The observed
+registry metadata also included a `0.0.0-stage` placeholder; the guard permits
+that entry only alongside an explicit pin. Do not create a placeholder yourself.
+Missing established packages, differing
+stable versions, unapproved initial tags, hidden stable history, invalid metadata,
+and registry failures still stop the release. Post-publication checks verify the
+exact per-package snapshot as well as archive bytes.
 
 Run **Release verification** on the prepared series branch with its exact version.
 After the complete release checks, its `verified-initial-publications` artifact
@@ -298,6 +307,15 @@ For the next legitimate React candidate, configure its trusted publisher for
 publisher bindings and environment rules stay unchanged. Time the binding for
 that candidate's first OIDC publish within npm's documented expiry window;
 do not invent another release just to validate a binding.
+
+The first React publication confirmed npm's `latest` behavior in both registry
+metadata formats. Authenticated `npm dist-tag rm @toolgrain/react latest` returned
+HTTP 400; the [npm CLI report](https://github.com/npm/cli/issues/8490) describes the
+same first-publication behavior. The original absent-latest guard correctly
+stopped the remaining packages. Recovery requires a reviewed tooling correction
+and approval of its new source SHA. Keep the original first-publication archive,
+source SHA, and hash; do not republish React or change library contents under the
+same version.
 
 Dispatch normal publication on the same source SHA only after this setup is
 complete and approved. Changesets skips the already published React version;

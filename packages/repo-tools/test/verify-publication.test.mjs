@@ -70,7 +70,7 @@ test("registry verification rejects missing releases, mismatched archives and in
   );
 });
 
-test("first publication verifies artifact bytes and requires latest to remain absent", async () => {
+test("first publication verifies artifact bytes and preserves its approved latest baseline", async () => {
   const initial = { name: "@toolgrain/react", version: "0.3.0-alpha.2" };
   const metadata = {
     "dist-tags": { alpha: initial.version },
@@ -94,6 +94,24 @@ test("first publication verifies artifact bytes and requires latest to remain ab
       fetchImpl,
       tag: "alpha",
       expectedLatest: null,
+    }),
+    /stable latest changed/,
+  );
+  assert(
+    (
+      await verifyPublishedPackage(initial, archive, {
+        fetchImpl,
+        tag: "alpha",
+        expectedLatest: initial.version,
+      })
+    ).matchedArtifact,
+  );
+  metadata["dist-tags"].latest = "0.3.0-alpha.3";
+  await assert.rejects(
+    verifyPublishedPackage(initial, archive, {
+      fetchImpl,
+      tag: "alpha",
+      expectedLatest: initial.version,
     }),
     /stable latest changed/,
   );

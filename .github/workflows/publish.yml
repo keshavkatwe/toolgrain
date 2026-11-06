@@ -56,10 +56,11 @@ jobs:
           import assert from 'node:assert/strict';
           import { checkRelease } from './packages/repo-tools/src/release.mjs';
           import { publicationPolicy, publicationBaselines } from './packages/repo-tools/src/publication-policy.mjs';
+          import { readInitialLatest } from './packages/repo-tools/src/initial-publications.mjs';
           const preState = existsSync('.changeset/pre.json') ? JSON.parse(readFileSync('.changeset/pre.json', 'utf8')) : undefined;
           const source = checkRelease(process.cwd());
           const initialPackages = existsSync('.changeset/initial-publications.json') ? JSON.parse(readFileSync('.changeset/initial-publications.json', 'utf8')) : [];
-          const baseline = process.env.GITHUB_REF === 'refs/heads/main' ? undefined : await publicationBaselines(source.packages, initialPackages);
+          const baseline = process.env.GITHUB_REF === 'refs/heads/main' ? undefined : await publicationBaselines(source.packages, initialPackages, fetch, readInitialLatest(process.cwd()));
           assert(!baseline?.unpublished.length, 'Unpublished initial packages require Release verification and an approved maintainer first publish before normal publication');
           const stableVersion = baseline?.stableVersion;
           const policy = publicationPolicy(source, {

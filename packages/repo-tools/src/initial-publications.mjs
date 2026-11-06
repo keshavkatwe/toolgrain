@@ -21,6 +21,11 @@ export function readInitialPublications(directory, packages) {
   );
 }
 
+export function readInitialLatest(directory) {
+  const path = join(directory, ".changeset/initial-latest.json");
+  return existsSync(path) ? readJSON(path) : {};
+}
+
 /** Pack real candidate archives for first publication after the full verification jobs. */
 export function packInitialPublications(directory, output, sourceSha) {
   assert(
