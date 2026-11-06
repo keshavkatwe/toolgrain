@@ -74,6 +74,16 @@ callback. Request-cached dependencies use `createContext()` and inferred
 accessors; see the
 [context guide](https://toolgrain.mintlify.site/guides/context).
 
+## Fixed resources
+
+Declare reusable resources with `resource({ uri, name, read })` and register a
+readonly array through `createServer({ name, version, tools, resources })`.
+Readers receive `(uri, ctx)` and return `{ contents: [{ uri, text }] }` or base64
+`blob` entries, with optional metadata. The same context supports authorization,
+lazy providers, and cancellation. Resource lists are static; templates,
+subscriptions, and MCP Apps remain separate work. See the
+[resource guide](https://toolgrain.mintlify.site/guides/resources).
+
 ## Transports and compatibility
 
 Use `stdio()` or `http()` from

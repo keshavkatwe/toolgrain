@@ -159,6 +159,24 @@ async function exercise(request, notify) {
         version,
       );
     }
+    const resources = (await send("resources/list")).resources;
+    assert.equal(resources.length, 1);
+    assert.equal(resources[0].uri, "docs://guide");
+    assert.equal(Object.hasOwn(resources[0], "icons"), modern);
+    assert.deepEqual(
+      (await send("resources/templates/list")).resourceTemplates,
+      [],
+    );
+    const resource = await send("resources/read", { uri: "docs://guide" });
+    assert.deepEqual(resource.contents, [
+      {
+        uri: "docs://guide",
+        text: "Hello: resource",
+        _meta: { "example.com/content": true },
+      },
+      { uri: "docs://binary", blob: "YQ==" },
+    ]);
+    assert.equal(resource._meta["example.com/result"], true);
     const { tools } = await send("tools/list");
     assert.equal(tools.length, 1);
     assert.equal(tools[0].name, "greet");
@@ -196,7 +214,9 @@ function httpClient(fetchResponse) {
               "Mcp-Method": message.method,
               ...(message.method === "tools/call"
                 ? { "Mcp-Name": message.params.name }
-                : {}),
+                : message.method === "resources/read"
+                  ? { "Mcp-Name": message.params.uri }
+                  : {}),
             }
           : {}),
       },

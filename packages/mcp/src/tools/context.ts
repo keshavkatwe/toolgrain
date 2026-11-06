@@ -41,7 +41,7 @@ export interface ToolRequest {
   readonly meta: Readonly<Record<string, unknown>>;
 }
 
-/** Per-invocation data passed to tool handlers and lazy context resolvers. */
+/** Per-invocation data passed to tool handlers, resource readers, and lazy context resolvers. */
 export interface ToolContext {
   /** Aborts when the client cancels or disconnects, or the transport or server closes. */
   readonly signal: AbortSignal;
@@ -60,7 +60,7 @@ export interface ToolContextOptions {
 }
 
 /**
- * Build an unauthenticated context for direct `execute()` calls, for example in tests.
+ * Build an unauthenticated context for direct tool `execute()` or resource `read()` calls.
  * Request metadata is copied and deeply frozen; each call creates a fresh provider cache.
  * Direct execution still bypasses server authorization, validation, and MCP conversion.
  *

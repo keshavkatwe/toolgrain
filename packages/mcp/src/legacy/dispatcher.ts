@@ -10,7 +10,15 @@ import type { RequestScope } from "../dispatcher.js";
 import type { Request } from "../protocol/messages.js";
 import { ProtocolError } from "../protocol/responses.js";
 import { hasProtocolVersionMetadata } from "../protocol/version-metadata.js";
+import type { ResourceRegistry } from "../resources/registry.js";
+import {
+  listResources,
+  listResourceTemplates,
+  readResource,
+  requireResources,
+} from "../resources/requests.js";
 import type { ToolAdapter } from "../tools/adapter.js";
+import type { ToolContext } from "../tools/context.js";
 import { createToolContext } from "../tools/context.js";
 import { callTool, initialize, listTools, ping } from "./handlers.js";
 import { successResponse } from "./responses.js";
@@ -33,15 +41,35 @@ export function createLegacyDispatcher(
   identity: Implementation,
   instructions?: string,
   providers?: ContextRegistry,
+  resources?: ResourceRegistry,
 ) {
   return async (
     request: Request,
     scope: RequestScope,
   ): Promise<JSONRPCResponse | undefined> => {
+    const context = (params: {
+      _meta?: Record<string, unknown> | undefined;
+    }): ToolContext =>
+      createToolContext(
+        scope.signal,
+        {
+          id: request.id,
+          protocolVersion: LEGACY_PROTOCOL_VERSION,
+          ...(scope.client === undefined ? {} : { client: scope.client }),
+          meta: params._meta ?? {},
+        },
+        scope.auth,
+        providers,
+      );
     let result: Result | undefined;
     switch (request.method) {
       case "initialize":
-        result = initialize(request.params, identity, instructions);
+        result = initialize(
+          request.params,
+          identity,
+          instructions,
+          resources !== undefined,
+        );
         break;
       case "ping":
         result = ping(request.params);
@@ -50,18 +78,32 @@ export function createLegacyDispatcher(
         result = listTools(request.params, tools);
         break;
       case "tools/call":
-        result = await callTool(request.params, tools, (params) =>
-          createToolContext(
-            scope.signal,
-            {
-              id: request.id,
-              protocolVersion: LEGACY_PROTOCOL_VERSION,
-              ...(scope.client === undefined ? {} : { client: scope.client }),
-              meta: params._meta ?? {},
-            },
-            scope.auth,
-            providers,
+        result = await callTool(request.params, tools, context);
+        break;
+      case "resources/list": {
+        const listed = listResources(
+          request.params,
+          requireResources(resources),
+        );
+        result = {
+          resources: listed.resources.map(
+            ({ icons: _icons, ...entry }) => entry,
           ),
+        };
+        break;
+      }
+      case "resources/templates/list":
+        result = listResourceTemplates(
+          request.params,
+          requireResources(resources),
+        );
+        break;
+      case "resources/read":
+        result = await readResource(
+          request.params,
+          requireResources(resources),
+          context,
+          -32002,
         );
         break;
       default:

@@ -17,12 +17,13 @@ createServer<const Tools extends ToolMap>(options: ServerOptions<Tools>): Server
 | --- | --- |
 | `name`, `version` | Required server identity strings |
 | `tools` | Required registration-name → `tool()` definition map |
+| `resources` | Optional readonly array of `resource()` definitions; an empty array enables an empty resource service |
 | `instructions` | Optional server instructions |
 | `onError` | Optional `(error: unknown, details?: ToolErrorDetails) => void` diagnostic callback |
 | `auth` | Optional `AuthProvider`, for HTTP request authorization |
 | `context` | Optional readonly provider/binding array |
 
-Construction validates tool names, representable schemas, metadata, and provider registrations. It does not open a transport. Registrations are snapshots; definitions remain reusable.
+Construction validates tool names, representable schemas, resource URIs/duplicates, metadata, and provider registrations. It does not open a transport. Registrations are snapshots; definitions remain reusable.
 
 ### Server methods
 
@@ -54,6 +55,17 @@ bypassing server processing.
 
 See [definitions](/tools/definitions), [validation](/tools/validation), and [request context](/guides/request-context).
 
+## resource
+
+```ts
+resource({ uri, name, read, title?, description?, mimeType?, annotations?, size?, icons?, _meta? })
+```
+
+Returns a frozen reusable resource whose URI belongs to the definition. Readers
+receive `(uri, ctx: ToolContext)` and return `{ contents, _meta? }` synchronously
+or asynchronously. Register definitions through `ServerOptions.resources`.
+See the [resource API reference](/reference/resources) and [resource guide](/guides/resources).
+
 ## mcpResult
 
 ```ts
@@ -76,6 +88,9 @@ Overloads preserve structured-data presence and explicit error flags. Successful
 - `ToolNameError(toolName)` exposes `toolName` for an invalid registration key.
 - `ToolSchemaError(toolName, cause, schemaKind?)` exposes the underlying cause and `schemaKind`, defaulting to `"input"`; other kinds are `"output"` and `"metadata"`.
 - `ToolErrorDetails` contains readonly `toolName` and frozen `request: ToolRequest`. Arguments and auth identity are not added.
+
+Resource failures invoke `onError(error)` with the original error and no tool details;
+clients receive a generic JSON-RPC internal error.
 
 `onError` receives original unexpected failures. Expected protocol/input/explicit tool errors are not reported, late cancelled failures are suppressed, and diagnostics cannot interrupt cleanup or a response. See [error handling](/tools/errors).
 

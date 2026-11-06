@@ -7,6 +7,8 @@ remain available; `next` retains `0.1.0-rc.0`.
 
 ## Available today
 
+- Fixed-URI resources with reusable definitions, listing/reading, text/binary contents,
+  request context, and endpoint authorization.
 - Reusable, typed tools with Zod 4 Classic/Mini inputs, optional output schemas,
   ordinary JSON results, and explicit rich MCP results.
 - MCP `2026-07-28` and initialization-based `2025-06-18` over stdio and
@@ -73,7 +75,7 @@ implementation commitment or timeline:
 
 - Per-tool authorization and scope policies.
 - Context cleanup and resource lifecycle support.
-- MCP resources, prompts, and elicitation/multi-round-trip input.
+- Resource templates, dynamic discovery, MCP Apps, prompts, and elicitation/multi-round-trip input.
 - Sessions, SSE streaming, progress, resumability, and subscriptions.
 - Performance, load, endurance, and resilience testing beyond existing regressions.
 

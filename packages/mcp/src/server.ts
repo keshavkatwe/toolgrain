@@ -13,6 +13,8 @@ import { type ErrorHandler, reportError } from "./diagnostics.js";
 import { createDispatcher, formatErrorResponse } from "./dispatcher.js";
 import { executeRequest } from "./execute-request.js";
 import { decode } from "./protocol/decode.js";
+import type { Resource } from "./resources/definition.js";
+import { createResourceRegistry } from "./resources/registry.js";
 import { createToolAdapter } from "./tools/adapter.js";
 import type { ToolMap } from "./tools/registry.js";
 import {
@@ -21,7 +23,7 @@ import {
   type Transport,
 } from "./transport.js";
 
-/** Tool registrations, identity, and shared configuration for an MCP server. */
+/** Tool/resource registrations, identity, and shared configuration for an MCP server. */
 export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   /** Server implementation name advertised to clients. */
   name: string;
@@ -29,12 +31,14 @@ export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   version: string;
   /** Tools made with `tool()`; each registration key becomes its exposed tool name. */
   tools: Tools;
+  /** Fixed resources made with `resource()`; supplying an empty array enables an empty resource service. */
+  resources?: readonly Resource[];
   /** Optional usage instructions advertised to clients during discovery or initialization. */
   instructions?: string;
   /**
    * Receives original unexpected failures for private diagnostics. Tool failures
    * include frozen tool/request details; auth and transport failures pass only
-   * the error. Throws and rejected promises from this callback are ignored.
+   * the error, as do resource failures. Throws and rejected promises from this callback are ignored.
    */
   onError?: ErrorHandler;
   /** Eager endpoint authorization; requires a request transport rather than stdio. */
@@ -106,8 +110,8 @@ export interface Server {
 }
 
 /**
- * Create a server from reusable tools, optional auth, and lazy context providers.
- * Registration validates tool names, metadata, and exposable schemas immediately.
+ * Create a server from reusable tools/resources, optional auth, and lazy context providers.
+ * Registration validates tool names/schemas, resource URIs, and metadata immediately.
  * Creating the server does not start a transport or resolve context providers.
  *
  * @param options - Server identity and application-owned tool/provider registrations.
@@ -124,6 +128,9 @@ export function createServer<const Tools extends ToolMap>(
     { name: options.name, version: options.version },
     options.instructions,
     createContextRegistry(options.context),
+    options.resources === undefined
+      ? undefined
+      : createResourceRegistry(options.resources, options.onError),
   );
   let closed = false;
   const running = new Set<AbortController>();

@@ -52,6 +52,10 @@
             ]
           },
           {
+            "group": "Resources",
+            "pages": ["guides/resources"]
+          },
+          {
             "group": "Context and services",
             "pages": [
               "guides/request-context",
@@ -103,7 +107,12 @@
         "groups": [
           {
             "group": "Authoring",
-            "pages": ["reference/mcp", "reference/context", "reference/auth"]
+            "pages": [
+              "reference/mcp",
+              "reference/resources",
+              "reference/context",
+              "reference/auth"
+            ]
           },
           {
             "group": "Adapters",
