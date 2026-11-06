@@ -1,0 +1,14 @@
+---
+title: "Build React widgets"
+description: "Produce application-owned HTML resources with Vite."
+---
+
+Toolgrain accepts built HTML. It does not compile React components or provide a Vite plugin. Rendering JSX to an HTML string alone does not include interactive event handlers or the browser protocol runtime.
+
+The [workspace example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/react-apps-example) pins Vite and `vite-plugin-singlefile`. It builds weather, sales, and shared entries separately, inlining their JavaScript/CSS into HTML. Its build also inspects module IDs to reject server code, Node built-ins, and official SDKs in the widget graph.
+
+Builds write ignored artifacts under the example's `dist/`. Server readers load those HTML files explicitly; a `ui://` URI does not map to a filesystem path automatically.
+
+For your application, use any build system that produces a valid HTML5 document. External assets require appropriate resource CSP declarations and host support. Keep browser modules and server modules separate, and use type-only imports for tool contracts.
+
+Use `bun run --cwd apps/react-apps-example dev:ui` to watch the shared entry and `dev` to watch the server. Rebuild separate entries as needed. This is an explicit application workflow rather than a framework-managed build service.

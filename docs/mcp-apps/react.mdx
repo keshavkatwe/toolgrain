@@ -1,0 +1,39 @@
+---
+title: "React provider and hooks"
+description: "Connect React to the host and work with typed tool results."
+---
+
+Call `createApp<typeof tools>()` once at module scope. It creates a private React context and four bindings without reading browser globals. The provider opens the native connection after mounting; nested components share that connection.
+
+## Provider lifecycle
+
+Pass `appInfo={{ name, version }}` and exactly one of `tool` or `resolveTool`. Identity and routing are fixed for that mount. Remount the provider to change them. Use one provider per widget window.
+
+React Strict Mode's development effect replay reuses the connection. Real unmount closes it after a microtask, rejecting pending calls and removing listeners/observers. Host teardown closes it terminally. Reconnection requires a fresh provider mount.
+
+Host fonts/theme variables and size reporting are enabled by default. Disable them with `applyHostStyles={false}` or `autoResize={false}`. `useHostContext()` returns live host presentation hints; use CSS variable fallbacks because hosts may omit styling.
+
+## Initiating results
+
+`useToolResult()` returns connection/tool status, selected `toolName`, original input, full result, and any lifecycle/routing error. It retains results received before a child subscribes. Narrow the returned union by `toolName`, or use `useToolResult("weather")` to filter to one tool.
+
+Statuses are `connecting`, `waiting`, `running`, `success`, `tool-error`, `cancelled`, `error`, and `closed`. A filtered hook waits while another tool is selected. Handle empty data, cancellation, and explicit tool errors before rendering a success state.
+
+## Interactive calls
+
+`useToolCall("weather")` returns `call`, `pending`, `result`, and `error`. Its state is separate from the initiating result. `call` resolves with the complete result, including `isError: true`. Protocol and transport failures reject. Concurrent calls settle their individual promises, while the latest invocation owns hook state.
+
+```ts
+await refresh.call({ city: "Dubai" }, {
+  signal: controller.signal,
+  timeoutMs: 10_000,
+});
+```
+
+The default deadline is 30 seconds. Local cancellation rejects and suppresses late replies; a cancellation notification is sent to the host. Remote cancellation remains cooperative. Hooks do not start calls automatically or maintain a query cache.
+
+## Inferred types
+
+Arguments use the input schema's input type, before server defaults/transforms. Declared outputs use parsed schema output. Result metadata retains the type inferred by `mcpResult()`. Registration aliases define callable names.
+
+Wire envelopes are checked at runtime. Inferred application payloads are not browser-side schema validation. `structuredContent` and `_meta` remain optional, including for generic server errors. Use object-root outputs to retain structured data across both supported outer revisions.

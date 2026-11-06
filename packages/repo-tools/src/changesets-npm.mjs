@@ -37,7 +37,7 @@ export function runChangesetsNpm(
       private: privatePackage,
     } = JSON.parse(readFileSync(join(directory, "package.json")));
     assert(
-      /^@toolgrain\/(protocol|mcp|http|node|jwt|clerk)$/.test(name) &&
+      /^@toolgrain\/(protocol|mcp|http|node|jwt|clerk|react)$/.test(name) &&
         !privatePackage,
       "Only Toolgrain libraries may be packed",
     );

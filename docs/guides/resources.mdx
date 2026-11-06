@@ -109,8 +109,8 @@ Unknown URIs return `Resource not found` with code `-32602` in modern mode or
 Cancelled requests suppress late results and diagnostics.
 
 Resource and content-item `_meta` are preserved, including UI security metadata.
-Serving HTML through `ui://` provides a foundation for later MCP Apps work;
-capability detection, tool-to-UI integration, and widget rendering are not implemented.
+Use this resource foundation with the [native MCP Apps integration](/mcp-apps/overview).
+The host renders widgets; Toolgrain serves HTML and links tools through metadata.
 
 See the [resource API reference](/reference/resources), the runnable
 [Elysia example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/elysia-example),

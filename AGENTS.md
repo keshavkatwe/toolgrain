@@ -30,6 +30,7 @@ against the pinned protocol directly, without `@modelcontextprotocol/sdk`.
 | `@toolgrain/http` | Shared HTTP behavior and Web `Request`/`Response` handlers |
 | `@toolgrain/jwt` | JWT authorization and its synchronous `useAuth(ctx)` accessor |
 | `@toolgrain/clerk` | Clerk OAuth authorization and its synchronous `useAuth(ctx)` accessor |
+| `@toolgrain/react` | Native MCP Apps browser lifecycle, React provider/hooks, and typed widget contracts |
 | `@toolgrain/repo-tools` | Unpublished repository verification, reporting, and release tooling |
 
 There is no separate core package. Tool definitions and execution live in
@@ -111,7 +112,7 @@ Run checks appropriate to the change. Root commands own workspace orchestration;
 keep per-package verification behind `bun run test:package`. It includes packed
 consumer imports, strict declarations, minimum/current TypeScript/Zod, and runtime
 flows. Preserve all existing release gates and the 95% coverage floors for MCP,
-Node, HTTP, JWT, and Clerk. Protocol uses integrity/conformance checks. Report
+Node, HTTP, JWT, Clerk, and React. Protocol uses integrity/conformance checks. Report
 outputs stay ignored under `reports/`.
 
 - Public exports resolve to compiled ESM/declarations in `dist`. MCP also packages
@@ -128,7 +129,7 @@ outputs stay ignored under `reports/`.
 
 ## Releases and legal material
 
-All six libraries share a stable version under npm `latest`; `next` retains
+All libraries share a stable version under npm `latest`; `next` retains
 `0.1.0-rc.0`. See the [release guide](docs/releases.md) and
 [roadmap](ROADMAP.md) for current process and remaining verification.
 

@@ -14,6 +14,7 @@ const libraries = [
   "packages/http",
   "packages/jwt",
   "packages/clerk",
+  "packages/react",
 ];
 const escapeMarkdown = (value) =>
   String(value)

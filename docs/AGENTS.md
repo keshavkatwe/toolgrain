@@ -10,7 +10,7 @@ verification, and release rules. These instructions apply to documentation work.
 - MDX site pages use YAML frontmatter and are the guide sources. Root Markdown
   forwarding pages preserve previous GitHub URLs and section anchors; they are
   excluded by `.mintignore`. Update the linked MDX guide, avoiding parallel copies.
-- Navigation separates Guides, API reference, and Project. Keep the
+- Navigation separates Guides, MCP Apps, API reference, and Project. Keep the
   quickstart's install, compile, and Inspector flow runnable against the published
   packages. Recheck its commands and expected output when changing the example.
 - Follow the root README's installation convention: omit Toolgrain package version

@@ -1,0 +1,39 @@
+---
+title: "React and Apps API reference"
+description: "Public bindings, provider options, and protocol exports."
+---
+
+## createApp
+
+`createApp<Tools extends ToolMap>()` from `@toolgrain/react` returns `AppProvider`, `useToolResult`, `useToolCall`, and `useHostContext`. It does not read browser globals or connect until mounting.
+
+## AppProvider
+
+| Prop | Contract |
+| --- | --- |
+| `appInfo` | Required nonempty name/version; fixed for the mount |
+| `tool` | A registered tool name for a separate entry; exclusive with `resolveTool` |
+| `resolveTool` | Shared-entry selector receiving result and host context; returns a registered name or undefined |
+| `timeoutMs` | Positive integer deadline, default 30000 milliseconds |
+| `hostOrigin` | Optional exact parent origin; default allows opaque sandbox origins |
+| `applyHostStyles` | Apply/restore host fonts and CSS variables, default true |
+| `autoResize` | Report size through ResizeObserver when available, default true |
+| `children` | React component tree sharing this connection |
+
+A connection is terminal after closure. Remount to reconnect or change identity/routing. Unmount and teardown remove owned resources. Server rendering does not connect.
+
+## Hooks
+
+`useToolResult(name?)` returns status, selected tool name, optional original wire input, full result, and lifecycle/routing error. Without a name, the selected name discriminates the registered tool union. With a name, other active tools appear as waiting.
+
+`useToolCall(name)` returns `call(input, options?)`, pending, optional full result, and optional error. Options accept AbortSignal and timeoutMs. Explicit tool errors resolve; RPC/transport failures reject. Each hook tracks its latest invocation independently of the initiating result.
+
+`useHostContext()` returns live `AppHostContext`. Fields are optional and self-reported by the host.
+
+Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName`, `ToolInput`, `ToolResult`, `ToolCall`, and `ToolCallOptions`.
+
+## Server and wire contracts
+
+`getAppSupport(ctx)` and `AppSupport` are exported by `@toolgrain/mcp`. Existing `mcpResult()` types preserve inferred metadata through an optional second generic parameter; existing single-generic usage remains valid.
+
+`@toolgrain/protocol/apps` exports `APPS_PROTOCOL_VERSION`, `APPS_EXTENSION_ID`, `APPS_MIME_TYPE`, `AppToolMeta`, `AppResourceMeta`, `AppHostContext`, `AppHostCapabilities`, `AppDisplayMode`, `AppToolResult`, `AppInitializeParams`, and `AppInitializeResult`. This export has no runtime dependencies and does not replace either supported outer MCP revision.

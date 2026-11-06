@@ -37,7 +37,8 @@
         "@toolgrain/http#test:package",
         "@toolgrain/node#test:package",
         "@toolgrain/jwt#test:package",
-        "@toolgrain/clerk#test:package"
+        "@toolgrain/clerk#test:package",
+        "@toolgrain/react#test:package"
       ]
     },
     "test:coverage": {
