@@ -36,7 +36,7 @@ The tested Claude Code client hides supplemental text when structured content is
 
 ## Content types
 
-`mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and `_meta`. Image and audio blocks carry base64 data and a MIME type. Resource links and embedded resources are result content; they do not enable the separate resources methods.
+`mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and `_meta`. Image and audio blocks carry base64 data and a MIME type. Resource links and embedded resources are result content; they do not register a resource reader. Use [`resource()`](/guides/resources) and `ServerOptions.resources` to expose separately readable content.
 
 ```ts
 const result = mcpResult({

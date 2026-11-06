@@ -3,6 +3,7 @@ import {
   createContext,
   createServer,
   mcpResult,
+  resource,
   tool,
   toolContext,
 } from "@toolgrain/mcp";
@@ -272,3 +273,51 @@ const substituted = toolContext({
 });
 assert.deepEqual(await serviceContext.use(substituted), { count: 99 });
 await providerServer.close();
+
+const resourceServer = createServer({
+  name: "resources",
+  version: "1",
+  tools: {},
+  resources: [
+    resource({
+      uri: "ui://guide.html",
+      name: "guide",
+      mimeType: "text/html;profile=mcp-app",
+      read: (uri) => ({
+        contents: [
+          {
+            uri,
+            mimeType: "text/html;profile=mcp-app",
+            text: "<!doctype html><html></html>",
+            _meta: { ui: { csp: { connectDomains: [] } } },
+          },
+        ],
+      }),
+    }),
+  ],
+});
+for (const protocolVersion of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
+  const listed = await resourceServer.handle(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "resources/list",
+      params: resultParams(protocolVersion),
+    },
+    { protocolVersion },
+  );
+  assert.equal(listed.result.resources[0].uri, "ui://guide.html");
+  const read = await resourceServer.handle(
+    {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "resources/read",
+      params: { ...resultParams(protocolVersion), uri: "ui://guide.html" },
+    },
+    { protocolVersion },
+  );
+  assert.equal(read.result.contents[0].text, "<!doctype html><html></html>");
+  assert.equal(read.result.contents[0].mimeType, "text/html;profile=mcp-app");
+  assert.deepEqual(read.result.contents[0]._meta.ui.csp.connectDomains, []);
+}
+await resourceServer.close();

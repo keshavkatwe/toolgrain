@@ -203,7 +203,9 @@ application runtime. See the [support policy](https://toolgrain.mintlify.site/pr
 
 Both protocol revisions share the same tool API over stdio and HTTP. HTTP uses
 independent POST requests and JSON responses.
-Sessions, SSE, resumability, resources, prompts, elicitation, progress, and
+Fixed resources support listing and text/binary reads; see the
+[resource guide](https://toolgrain.mintlify.site/guides/resources). Resource templates,
+MCP Apps, sessions, SSE, resumability, prompts, elicitation, progress, and
 subscriptions are outside the current implementation. Check the
 [client verification notes](https://toolgrain.mintlify.site/compatibility/protocol) and [roadmap](./ROADMAP.md)
 for tested flows and planned work.

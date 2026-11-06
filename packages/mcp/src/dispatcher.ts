@@ -15,6 +15,7 @@ import { errorResponse as legacyErrorResponse } from "./legacy/responses.js";
 import { createModernDispatcher } from "./modern/dispatcher.js";
 import type { Request } from "./protocol/messages.js";
 import { validateVersionContext } from "./protocol/version-metadata.js";
+import type { ResourceRegistry } from "./resources/registry.js";
 import type { ToolAdapter } from "./tools/adapter.js";
 import type { ToolClient } from "./tools/context.js";
 
@@ -38,18 +39,21 @@ export function createDispatcher(
   identity: Implementation,
   instructions?: string,
   providers?: ContextRegistry,
+  resources?: ResourceRegistry,
 ): Dispatcher {
   const legacy = createLegacyDispatcher(
     tools,
     identity,
     instructions,
     providers,
+    resources,
   );
   const modern = createModernDispatcher(
     tools,
     identity,
     instructions,
     providers,
+    resources,
   );
   return (request, scope, protocolVersion) => {
     validateVersionContext(request, protocolVersion);

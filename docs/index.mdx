@@ -76,9 +76,10 @@ across Toolgrain libraries.
 | MCP revisions | `2026-07-28` and `2025-06-18` |
 
 Both MCP revisions use the same tool API over stdio and HTTP. HTTP uses
-independent POST requests with JSON responses. Sessions, SSE, resumability,
-resources, prompts, elicitation, progress, and subscriptions are outside the
-current implementation.
+independent POST requests with JSON responses. Fixed resources support
+[listing and reading text/binary content](/guides/resources). Resource templates,
+MCP Apps, sessions, SSE, resumability, prompts, elicitation, progress, and
+subscriptions are outside the current implementation.
 
 See the [support policy](/project/support-policy)
 for runtime and dependency commitments, and

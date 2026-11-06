@@ -16,6 +16,13 @@ Other revisions are unsupported. Legacy initialization can negotiate down to the
 
 Modern listings include cache/server metadata and icons. Legacy results omit modern envelope metadata; listings omit icons and non-object-root output schemas. Legacy structured content is object-only; other JSON results remain text. Tool lists are a single page and nonempty cursors are rejected.
 
+Fixed resources implement `resources/list`, `resources/read`, and an empty
+`resources/templates/list` in both revisions. Lists are static and unpaginated;
+all supplied cursors are rejected. Modern list/read results use `ttlMs: 0` and
+`cacheScope: "private"`; legacy results omit modern fields and listing icons.
+Resource support does not establish MCP Apps or widget rendering compatibility.
+See [resources](/guides/resources).
+
 ## Client evidence
 
 Inspector 2.11.0 passes the existing checks in both revisions and automatic discovery. Tested Codex tool flows work with the documented timeout limitation.
@@ -34,4 +41,4 @@ Node ^24.20.0 and Bun ≥1.4.4 &lt;2 are the supported application runtimes. Str
 
 ## Features outside the current scope
 
-Resources and prompts methods, elicitation/multi-round-trip input, progress, subscriptions/change notifications, HTTP sessions, SSE streaming, and resumability are separate future work. There is no built-in per-tool timeout API or automatic provider cleanup. Endpoint auth is implemented; token issuance and per-tool scope-policy configuration are not.
+Resource templates, dynamic resource discovery, MCP Apps, prompts methods, elicitation/multi-round-trip input, progress, subscriptions/change notifications, HTTP sessions, SSE streaming, and resumability are separate future work. There is no built-in per-tool timeout API or automatic provider cleanup. Endpoint auth is implemented; token issuance and per-tool scope-policy configuration are not.
