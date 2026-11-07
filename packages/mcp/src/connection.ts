@@ -1,6 +1,8 @@
 import {
+  INVALID_PARAMS,
   INVALID_REQUEST,
   PARSE_ERROR,
+  type ProgressNotification,
   type ProtocolResponse,
 } from "@toolgrain/protocol";
 import { type ErrorHandler, reportError } from "./diagnostics.js";
@@ -12,6 +14,7 @@ import { decode } from "./protocol/decode.js";
 import type { Request } from "./protocol/messages.js";
 import { protocolError } from "./protocol/responses.js";
 import type { Server } from "./server.js";
+import { isProgressToken } from "./tools/progress.js";
 import type {
   RequestTransport,
   Transport,
@@ -134,7 +137,7 @@ class Connection implements ConnectionLifecycle {
   }
 
   private send(
-    message: ProtocolResponse,
+    message: ProtocolResponse | ProgressNotification,
     isActive: () => boolean = () => this.isOpen(),
   ): Promise<void> {
     const write = this.writes.then(async () => {
@@ -188,12 +191,29 @@ class Connection implements ConnectionLifecycle {
       );
       return;
     }
+    const token = (request.params?._meta as Record<string, unknown> | undefined)
+      ?.progressToken;
+    if (isProgressToken(token) && !pending.claimProgress(token)) {
+      pending.finish();
+      await this.send(
+        protocolError(
+          INVALID_PARAMS,
+          "Progress token is already in use",
+          request.id,
+        ),
+      );
+      return;
+    }
     const initialization = this.legacy.begin(request, prepared.protocolVersion);
     try {
       const response = await executeRequest(
         this.dispatch,
         request,
-        { signal: pending.signal, client: this.legacy.client() },
+        {
+          signal: pending.signal,
+          client: this.legacy.client(),
+          notify: (message) => this.send(message, pending.isActive),
+        },
         (error) => this.report(error),
         prepared.protocolVersion,
       );

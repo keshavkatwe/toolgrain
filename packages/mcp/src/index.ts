@@ -33,6 +33,7 @@ export { toolContext } from "./tools/context.js";
 export type { Tool, ToolDefinition, ToolMetadata } from "./tools/definition.js";
 export { tool } from "./tools/definition.js";
 export { ToolNameError } from "./tools/name.js";
+export type { ToolProgress } from "./tools/progress.js";
 export type { ToolMap } from "./tools/registry.js";
 export type {
   McpErrorResult,

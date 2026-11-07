@@ -66,6 +66,7 @@ export function createHttpHandler(
       ? await authorizeRequest(server, request, auth)
       : undefined;
     if (scope instanceof Response) return scope;
+    let executing = false;
     try {
       const scopedRequest = scope
         ? new Request(request, { signal: scope.signal })
@@ -76,6 +77,8 @@ export function createHttpHandler(
         parameters,
       );
       if (!parsed.ok) return parsed.response;
+      // Execution owns the scope until its JSON response or SSE body completes.
+      executing = true;
       return await executeHttpRequest(
         server,
         parsed.message,
@@ -92,7 +95,7 @@ export function createHttpHandler(
         );
       throw error;
     } finally {
-      scope?.dispose();
+      if (!executing) scope?.dispose();
     }
   };
   return Object.assign(handle, { matches });

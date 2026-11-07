@@ -1,4 +1,7 @@
-import type { ProtocolResponse } from "@toolgrain/protocol";
+import type {
+  ProgressNotification,
+  ProtocolResponse,
+} from "@toolgrain/protocol";
 import type { Server } from "./server.js";
 
 /** Callbacks are synchronous; message processing runs independently. */
@@ -23,10 +26,10 @@ export interface Transport {
    */
   start(callbacks: TransportCallbacks): Promise<void>;
   /**
-   * Send one protocol response, resolving after the adapter's write/backpressure handling.
-   * @param message - Response envelope already converted for the client's protocol revision.
+   * Send one response or progress notification, resolving after write/backpressure handling.
+   * @param message - Envelope already converted for the client's protocol revision.
    */
-  send(message: ProtocolResponse): Promise<void>;
+  send(message: ProtocolResponse | ProgressNotification): Promise<void>;
   /** Release adapter-owned resources; closing is terminal and must tolerate repeated calls. */
   close(): Promise<void>;
 }

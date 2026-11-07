@@ -94,8 +94,9 @@ Auth-configured servers require HTTP. See the
 
 ESM only. Node.js `^24.20.0` or Bun `>=1.4.4 <2`; Zod `^4.6.6` through MCP;
 TypeScript 5.5.4 or later with `strict` enabled. Both MCP `2026-07-28` and
-`2025-06-18` are supported over stdio and independent HTTP POSTs with JSON
-responses. See the
+`2025-06-18` are supported over stdio and independent HTTP POSTs. Client-requested
+`ctx.reportProgress()` updates use stdio notifications or an HTTP SSE response;
+calls without progress keep JSON responses. See the
 [support policy](https://toolgrain.mintlify.site/project/support-policy)
 and [client compatibility notes](https://toolgrain.mintlify.site/compatibility/protocol).
 

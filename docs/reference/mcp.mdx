@@ -36,7 +36,7 @@ Construction validates tool names, representable schemas, resource URIs/duplicat
 | `getAuthMetadata()` | `AuthMetadata \| undefined` |
 | `authorize(token, { resource, signal? })` | `Promise<AuthScope>`; server-bound, single-use authorization |
 
-`HandleOptions` contains optional `signal`, `protocolVersion`, and `auth`. The protocol version is a supported revision; `auth` is a scope from this server. Always dispose an authorization scope in `finally`. `handle()` is not an HTTP validation boundary. A closed server cannot restart. Auth-configured servers reject message transports.
+`HandleOptions` contains optional `signal`, `protocolVersion`, `auth`, and `onNotification`. The protocol version is a supported revision; `auth` is a scope from this server. `onNotification(message: ProgressNotification)` may return `void` or `Promise<void>` and delivers only progress for this request, with backpressure. Omit it for one-response callers; progress is then a no-op. Abort `signal` when the delivery channel closes. Always dispose an authorization scope in `finally`. `handle()` is not an HTTP validation boundary. A closed server cannot restart. Auth-configured servers reject message transports.
 
 ## tool
 
@@ -96,7 +96,7 @@ clients receive a generic JSON-RPC internal error.
 
 ## Other exports
 
-The [context reference](/reference/context) covers `ToolContext`, `ToolRequest`, `ToolClient`, `ToolContextOptions`, `toolContext`, `ContextProvider`, and `createContext`. The [auth reference](/reference/auth) covers shared authorization exports. [Custom transports](/transports/custom) use the following public contracts:
+The [context reference](/reference/context) covers `ToolContext`, `ToolProgress`, `ToolRequest`, `ToolClient`, `ToolContextOptions`, `toolContext`, `ContextProvider`, and `createContext`. The [auth reference](/reference/auth) covers shared authorization exports. [Custom transports](/transports/custom) use the following public contracts:
 
 ```ts
 interface TransportCallbacks {
@@ -108,7 +108,7 @@ interface TransportCallbacks {
 interface Transport {
   readonly mode?: "message";
   start(callbacks: TransportCallbacks): Promise<void>;
-  send(message: ProtocolResponse): Promise<void>;
+  send(message: ProtocolResponse | ProgressNotification): Promise<void>;
   close(): Promise<void>;
 }
 interface RequestTransport {
@@ -118,4 +118,4 @@ interface RequestTransport {
 }
 ```
 
-`ProtocolResponse` above is imported from protocol. There is no exported internal registry, adapter, or separate core package. [Public source](https://github.com/keshavkatwe/toolgrain/blob/main/packages/mcp/src/index.ts).
+`ProtocolResponse` and `ProgressNotification` above are imported from protocol. Custom message transports must accept both responses and progress notifications. There is no exported internal registry, adapter, or separate core package. [Public source](https://github.com/keshavkatwe/toolgrain/blob/main/packages/mcp/src/index.ts).

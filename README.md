@@ -202,10 +202,12 @@ Node 26 is preview. Repository tooling uses Bun **1.3.14**, separately from the
 application runtime. See the [support policy](https://toolgrain.mintlify.site/project/support-policy).
 
 Both protocol revisions share the same tool API over stdio and HTTP. HTTP uses
-independent POST requests and JSON responses.
+independent POST requests and JSON responses. Tools can use
+`await ctx.reportProgress({ progress, total, message })` to send client-requested
+updates; HTTP opens a request-scoped SSE response on the first update.
 Fixed resources support listing and text/binary reads; see the
 [resource guide](https://toolgrain.mintlify.site/guides/resources). Resource templates,
-MCP Apps, sessions, SSE, resumability, prompts, elicitation, progress, and
+MCP Apps, sessions, resumability, prompts, elicitation, and
 subscriptions are outside the current implementation. Check the
 [client verification notes](https://toolgrain.mintlify.site/compatibility/protocol) and [roadmap](./ROADMAP.md)
 for tested flows and planned work.

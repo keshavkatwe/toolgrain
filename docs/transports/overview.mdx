@@ -115,14 +115,29 @@ needed for these responsibilities.
 Within HTTP, `modern/` and `legacy/` contain each era's version/header validation,
 notification rules, and response policies. `protocol-version.ts` selects one
 adapter per POST; body decoding, routing/parameter-header comparison, execution,
-and JSON serialization are shared.
+and response serialization are shared.
 
 HTTP supports revisions `2026-07-28` and `2025-06-18`: independent POST requests
-and JSON responses. Legacy initialization is supported without issuing session
+and JSON responses or request-scoped SSE progress. Legacy initialization is supported without issuing session
 IDs or keeping global client negotiation state. There is no GET event stream or
-resumption. SSE, progress, and subscriptions remain separate work. See
+resumption. Subscriptions remain separate work. See
 [authorization](/guides/authorization) for JWT/Clerk and request identities. Requests must advertise both `application/json` and
-`text/event-stream` in Accept even though this implementation returns JSON.
+`text/event-stream` in Accept.
+
+When a client includes a string or integer `params._meta.progressToken`, tools
+can call `await ctx.reportProgress({ progress, total, message })`. The first update
+opens an SSE response with `Content-Type: text/event-stream`, `Cache-Control: no-store`,
+and `X-Accel-Buffering: no`. It carries `event: message` frames with JSON-RPC
+progress notifications, followed by the revision-specific final response and EOF.
+Calls that send no progress retain JSON responses and normal HTTP status handling.
+After SSE starts, later tool errors arrive in its final JSON-RPC response.
+
+Await progress reports to respect backpressure. A consumer must read the response
+body or cancel it; cancellation/disconnection aborts that invocation and suppresses
+late events. Authorization stays active through execution and final delivery, then
+is disposed. Closing the server also interrupts a final SSE write blocked by
+backpressure. Progress uses the originating POST response and does not open a
+subscription or GET event stream. No SSE resumption or event IDs are implemented.
 
 Every modern POST carries `MCP-Protocol-Version`, `Mcp-Method`, and, for tool calls,
 `Mcp-Name`. Header values must match the JSON-RPC body. Encoded names and declared
@@ -155,8 +170,11 @@ configuration, and framework HTTP-server shutdown. Toolgrain owns MCP routing,
 host validation, and optional JWT/Clerk verification. Set explicit origins
 when using a browser client. The plain Node example binds to `127.0.0.1`.
 
-The MCP server exposes `handle(message, { signal?, protocolVersion? })` for independent decoded
+The MCP server exposes `handle(message, { signal?, protocolVersion?, onNotification? })` for independent decoded
 messages and `getToolDefinitions()` for fresh copies of advertised metadata.
+`onNotification` delivers request-scoped progress with asynchronous backpressure;
+omitting it makes reports a no-op. Direct callers own notification framing and
+must abort their signal when delivery closes.
 The HTTP adapter passes the validated revision per request; direct legacy
 callers supply `protocolVersion: LEGACY_PROTOCOL_VERSION` after initialization.
 Request processing shares dispatch/error conversion with stdio. `close()` is

@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { object } from "../protocol/messages.js";
+import { object, requestId } from "../protocol/messages.js";
 
 export const commonParams = z.looseObject({
-  _meta: object.optional(),
+  _meta: z.looseObject({ progressToken: requestId.optional() }).optional(),
 });
 export const initializeParams = commonParams.extend({
   protocolVersion: z.string(),

@@ -67,9 +67,16 @@ transforms. Ordinary strings and JSON become MCP results. Use `mcpResult()` for
 rich content, explicit public errors, and result metadata.
 
 Handlers can accept `execute(input, ctx)` to use request information and
-`ctx.signal` for cooperative cancellation. Use `toolContext()` for direct handler
-calls, which bypass server validation and result conversion. Unexpected server
-execution failures return generic errors and reach the optional `onError`
+`ctx.signal` for cooperative cancellation. Report client-requested progress with
+`await ctx.reportProgress({ progress: 1, total: 10, message: "Processing" })`.
+The bound method is safe to pass to helpers and becomes a no-op without a
+progress token or delivery channel. The first update sends immediately; later
+updates are spaced at least 100 ms apart per invocation, preserving order and
+backpressure. Await each report. Duplicate active progress tokens are rejected
+on shared message connections; independent HTTP response streams remain isolated.
+Use `toolContext()` for direct handler calls, which bypass server validation and
+result conversion. Unexpected server execution failures return generic errors
+and reach the optional `onError`
 callback. Request-cached dependencies use `createContext()` and inferred
 accessors; see the
 [context guide](https://toolgrain.mintlify.site/guides/context).
@@ -91,8 +98,8 @@ Use `stdio()` or `http()` from
 or mount a Web handler from
 [@toolgrain/http](https://github.com/keshavkatwe/toolgrain/tree/main/packages/http#readme).
 Both MCP `2026-07-28` and initialization-based `2025-06-18` are supported through
-the same tool API. Current HTTP support uses independent POST requests and JSON
-responses. See the
+the same tool API. HTTP uses independent POSTs, returning JSON or a request-scoped
+SSE stream when a tool sends progress. See the
 [client compatibility notes](https://toolgrain.mintlify.site/compatibility/protocol)
 for tested clients and limitations.
 
