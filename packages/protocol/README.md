@@ -64,12 +64,18 @@ independently of either outer MCP revision. It exports the Apps version,
 extension identifier, HTML MIME type, resource/tool metadata, host context,
 capabilities, initialization envelopes, and tool-result envelope.
 
+The `0.3.0-alpha.3` candidate also exports `AppMessageParams`,
+`AppModelContextParams`, `AppActionResult`, and `AppDisplayModeResult` for native
+host requests. They describe user messages, replacement model context, full
+acknowledgements, and actual selected display modes. These new exports are absent
+from published `0.3.0-alpha.2`.
+
 `AppResourceMeta` describes CSP, requested browser permissions, sandbox origin,
 and border preference. Tool `_meta.ui` uses `AppToolMeta` for `resourceUri` and
 visibility; CSP and permissions belong on the resource content item.
 
-This workspace adds named resource CSP/permission, host styling, theme-token,
-and content-modality types for the next reviewed release. They are not additional
+The `0.3.0-alpha.3` candidate adds named resource CSP/permission, host styling,
+theme-token, and content-modality types. They are not additional
 browser actions in the published `0.3.0-alpha.2`. Known styling tokens support
 autocomplete while custom variables and unknown host capability fields remain
 accepted for forward compatibility.

@@ -1,6 +1,6 @@
 /** Native Apps 2026-01-26 wire contracts. Reviewed specification and upstream
  * type references are pinned in apps-provenance.json. Toolgrain authors these
- * declarations directly; advertised capabilities do not enable React actions.
+ * declarations directly; browser implementations live in @toolgrain/react.
  */
 import type {
   ContentBlock,
@@ -155,4 +155,25 @@ export interface AppInitializeResult {
   hostInfo: Implementation;
   hostCapabilities: AppHostCapabilities;
   hostContext?: AppHostContext;
+}
+
+/** User message submitted through the host; sending can trigger a model follow-up. */
+export interface AppMessageParams {
+  role: "user";
+  content: readonly ContentBlock[];
+}
+/** Replacement context for future model turns. An empty object can clear prior app context. */
+export interface AppModelContextParams {
+  content?: readonly ContentBlock[];
+  structuredContent?: Record<string, unknown>;
+}
+/** Full host acknowledgement; explicit denials may resolve with isError. RPC errors reject. */
+export interface AppActionResult {
+  isError?: boolean;
+  [key: string]: unknown;
+}
+/** Actual display mode selected by the host, which can differ from the requested mode. */
+export interface AppDisplayModeResult {
+  mode: AppDisplayMode;
+  [key: string]: unknown;
 }

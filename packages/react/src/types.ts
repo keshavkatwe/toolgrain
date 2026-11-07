@@ -1,6 +1,14 @@
 import type { McpResult, ToolMap } from "@toolgrain/mcp";
 import type { MetaObject } from "@toolgrain/protocol";
-import type { AppHostContext, AppToolResult } from "@toolgrain/protocol/apps";
+import type {
+  AppActionResult,
+  AppDisplayMode,
+  AppDisplayModeResult,
+  AppHostContext,
+  AppMessageParams,
+  AppModelContextParams,
+  AppToolResult,
+} from "@toolgrain/protocol/apps";
 import type { ReactNode } from "react";
 import type * as core from "zod/v4/core";
 import type { RequestOptions, Status } from "./client.js";
@@ -63,6 +71,8 @@ export type AppProviderProps<Tools extends ToolMap> = {
   readonly applyHostStyles?: boolean;
   /** Report content dimensions with ResizeObserver; defaults to true. */
   readonly autoResize?: boolean;
+  /** Modes this widget can render; defaults to ["inline"] and is fixed until remount. */
+  readonly availableDisplayModes?: readonly AppDisplayMode[];
 } & (
   | { readonly tool: ToolName<Tools>; readonly resolveTool?: never }
   | {
@@ -87,3 +97,41 @@ export interface ToolCall<Tool extends ToolMap[string]> {
 }
 /** Optional local cancellation and per-call deadline. */
 export type ToolCallOptions = RequestOptions;
+
+/** Availability after initialization. Booleans report action advertisements; each payload's content kinds are checked separately. */
+export interface HostActionAvailability {
+  readonly openLink: boolean;
+  readonly sendMessage: boolean;
+  readonly updateModelContext: boolean;
+  /** Intersection of provider-declared and host-advertised modes; empty when unavailable. */
+  readonly displayModes: readonly AppDisplayMode[];
+}
+/** Optional AbortSignal and deadline override for one host request. */
+export type HostActionOptions = RequestOptions;
+/** Named native host actions with no automatic requests or pending/error cache.
+ * Full acknowledgements resolve, including isError denials; unsupported requests,
+ * invalid replies, RPC/transport failures, aborts, and deadlines reject.
+ */
+export interface HostActions {
+  readonly available: HostActionAvailability;
+  /** Request an absolute URL through the host's opener and permission policy. */
+  readonly openLink: (
+    url: string,
+    options?: HostActionOptions,
+  ) => Promise<AppActionResult>;
+  /** Submit a user message; requested content kinds must be advertised by the host. */
+  readonly sendMessage: (
+    params: AppMessageParams,
+    options?: HostActionOptions,
+  ) => Promise<AppActionResult>;
+  /** Replace the app's context for future turns; does not itself request a model follow-up. */
+  readonly updateModelContext: (
+    params: AppModelContextParams,
+    options?: HostActionOptions,
+  ) => Promise<AppActionResult>;
+  /** Return the host's actual mode. Host-context notifications remain the live context source. */
+  readonly requestDisplayMode: (
+    mode: AppDisplayMode,
+    options?: HostActionOptions,
+  ) => Promise<AppDisplayModeResult>;
+}

@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createApp } from "../src/index.js";
+import { createApp, type HostActions } from "../src/index.js";
 import { presentation } from "../src/presentation.js";
 import { connection, host, required, result } from "./host.js";
 
@@ -54,6 +54,113 @@ it("is SSR-safe and requires provider/routing identity", () => {
   expect(() =>
     renderToString(h(app.AppProvider, { appInfo: identity } as never)),
   ).toThrow("exactly one");
+});
+
+it("keeps host actions SSR-safe and requires their provider", () => {
+  const app = createApp<typeof tools>();
+  function Actions() {
+    const actions = app.useHostActions();
+    return h("p", null, String(actions.available.openLink));
+  }
+  expect(
+    renderToString(
+      h(app.AppProvider, { appInfo: identity, tool: "chart" }, h(Actions)),
+    ),
+  ).toContain("false");
+  expect(() => renderToString(h(Actions))).toThrow("AppProvider");
+});
+
+it("shares stable host-action callbacks, reacts to availability and separates initiating results", async () => {
+  const app = createApp<typeof tools>();
+  const x = render();
+  let actions: HostActions | undefined;
+  function Actions() {
+    actions = app.useHostActions();
+    const state = app.useToolResult("chart");
+    return h(
+      "p",
+      null,
+      `${actions.available.openLink}:${actions.available.displayModes.join(",")}:${state.status}`,
+    );
+  }
+  await mount(
+    x.root,
+    h(
+      StrictMode,
+      null,
+      h(
+        app.AppProvider,
+        {
+          appInfo: identity,
+          tool: "chart",
+          availableDisplayModes: ["inline", "fullscreen"],
+        },
+        h(Actions),
+      ),
+    ),
+  );
+  expect(
+    x.messages().filter((request) => request.method === "ui/initialize"),
+  ).toHaveLength(1);
+  expect(required(x.messages()[0]).params).toMatchObject({
+    appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] },
+  });
+  expect(x.container.textContent).toBe("false::connecting");
+  const first = required(actions);
+  await act(async () =>
+    x.initialize({
+      hostCapabilities: {
+        openLinks: {},
+        message: { text: {} },
+        updateModelContext: { structuredContent: {} },
+      },
+      hostContext: { availableDisplayModes: ["inline", "fullscreen"] },
+    }),
+  );
+  await act(async () => x.notify("ui/notifications/tool-result", result));
+  expect(x.container.textContent).toBe("true:inline,fullscreen:success");
+  const active = required(actions);
+  expect(active.openLink).toBe(first.openLink);
+  const pending = [
+    active.openLink("https://example.com", { timeoutMs: 2000 }),
+    active.sendMessage({
+      role: "user",
+      content: [{ type: "text", text: "Explain" }],
+    }),
+    active.updateModelContext({ structuredContent: { selection: 1 } }),
+    active.requestDisplayMode("fullscreen"),
+  ];
+  const requests = x.messages().slice(-4);
+  await act(async () => {
+    for (const request of requests)
+      x.reply(
+        request.id,
+        request.method === "ui/request-display-mode" ? { mode: "inline" } : {},
+      );
+    await Promise.all(pending);
+  });
+  expect(x.container.textContent).toContain("success");
+  await act(async () =>
+    x.notify("ui/notifications/host-context-changed", {
+      availableDisplayModes: ["inline"],
+    }),
+  );
+  expect(x.container.textContent).toBe("true:inline:success");
+  expect(required(actions).sendMessage).toBe(first.sendMessage);
+  expect(required(actions).updateModelContext).toBe(first.updateModelContext);
+  expect(required(actions).requestDisplayMode).toBe(first.requestDisplayMode);
+  const outstanding = active.openLink("https://example.com");
+  const rejection = expect(outstanding).rejects.toThrow("closed");
+  await act(async () =>
+    x.receive({
+      jsonrpc: "2.0",
+      id: 20,
+      method: "ui/resource-teardown",
+      params: {},
+    }),
+  );
+  await rejection;
+  expect(x.container.textContent).toBe("false::closed");
 });
 
 it("has one Strict Mode handshake and retains results delivered before child subscription", async () => {

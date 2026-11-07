@@ -43,8 +43,8 @@
     "requiredFiles": ["README.md", "LICENSE", "NOTICE", "CHANGELOG.md"]
   },
   "@toolgrain/react": {
-    "packedBytes": 13312,
-    "unpackedBytes": 49152,
+    "packedBytes": 16384,
+    "unpackedBytes": 66560,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   }
 }
