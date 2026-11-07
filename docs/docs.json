@@ -113,6 +113,7 @@
             "group": "React widgets",
             "pages": [
               "mcp-apps/react",
+              "mcp-apps/host-actions",
               "mcp-apps/shared-entries",
               "mcp-apps/build"
             ]

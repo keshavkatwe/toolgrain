@@ -8,6 +8,7 @@ MCP Apps compatibility is host-version and transport specific. Protocol tests do
 | Flow | Status |
 | --- | --- |
 | Native browser/React lifecycle | Covered by automated fixtures |
+| React host actions in alpha.3 | Capability/modalities, requests/results, deadlines, cancellation, and cleanup covered by fixtures; no live-host acceptance yet |
 | Separate/shared HTML resources | Covered by the Bun/Elysia example checks |
 | Core revisions and fallback results | Covered by server/transport tests |
 | Claude Desktop 4.23118.0, macOS 26.5.2, local stdio | Separate/shared Weather and Sales rendering, metadata, refresh calls, and light/dark updates passed on 2026-11-06 |
@@ -17,7 +18,7 @@ MCP Apps compatibility is host-version and transport specific. Protocol tests do
 
 The [November 6, 2026 publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853) completed `0.3.0-alpha.2` for all seven Toolgrain libraries. Registry checks matched the actual downloaded archives to the verified artifacts in both npm metadata formats. Fresh npm/Node 24.20.0 and Bun 1.4.4 consumers passed imports, minimum/current declarations, and stdio/HTTP flows.
 
-These publication checks are separate from the live Claude Desktop test below, which exercised the Apps implementation before the combined alpha publication. The additional named wire-type refinements in the current working branch await a subsequent reviewed release. Neither result establishes untested host versions or transports.
+These publication checks are separate from the live Claude Desktop test below, which exercised the Apps implementation before the combined alpha publication. The `0.3.0-alpha.3` candidate adds named wire types and host actions; it has not yet completed live-host acceptance for the new actions. Neither result establishes untested host versions or transports.
 
 ## Claude Desktop acceptance
 
@@ -28,6 +29,8 @@ This verifies only that host version and local stdio configuration. Claude HTTP 
 Build the example, then configure a local stdio connection launching its `start:stdio` command with a supported Bun runtime. Record the exact Claude Desktop version, OS, negotiated outer revision, Apps capabilities, and connection configuration without credentials or local machine paths.
 
 Call each separate tool and both shared tools. Confirm the expected widget, initial structured and metadata data, city/region buttons, host theme changes, expected errors, cancellation, and normal text fallback. Disconnect and confirm cleanup.
+
+For the new host actions, additionally record the host's action/content-kind advertisements and display modes. Test link opening, an explicit user message, replacement context on a later turn, and both requested/actual modes. Confirm unsupported controls and declined actions behave usefully. The recorded test above did not exercise these additions.
 
 For HTTP testing, configure the application's allowed hosts explicitly. Using a public connector or tunnel is a separate exposure/deployment decision; the example does not open one automatically.
 

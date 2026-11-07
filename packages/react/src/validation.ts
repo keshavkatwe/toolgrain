@@ -39,6 +39,28 @@ export const toolResult = z.looseObject({
 });
 const info = z.looseObject({ name: z.string(), version: z.string() });
 const mode = z.enum(["inline", "fullscreen", "pip"]);
+export const displayModes = z.array(mode).nonempty();
+const advertised = z.looseObject({});
+const modalities = z.looseObject({
+  text: advertised.optional(),
+  image: advertised.optional(),
+  audio: advertised.optional(),
+  resource: advertised.optional(),
+  resourceLink: advertised.optional(),
+  structuredContent: advertised.optional(),
+});
+export const openLink = z.object({ url: z.url() });
+export const message = z.object({
+  role: z.literal("user"),
+  content: z.array(content),
+});
+export const modelContext = z.object({
+  content: z.array(content).optional(),
+  structuredContent: jsonObject.optional(),
+});
+export const actionResult = z.looseObject({ isError: z.boolean().optional() });
+export const displayModeResult = z.looseObject({ mode });
+export const displayMode = mode;
 export const hostContext = z.looseObject({
   theme: z.enum(["light", "dark"]).optional(),
   styles: z
@@ -73,6 +95,9 @@ export const initialized = z.looseObject({
   protocolVersion: z.string(),
   hostInfo: info,
   hostCapabilities: z.looseObject({
+    openLinks: advertised.optional(),
+    message: modalities.optional(),
+    updateModelContext: modalities.optional(),
     serverTools: z
       .looseObject({ listChanged: z.boolean().optional() })
       .optional(),

@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -15,6 +16,7 @@ import { presentation } from "./presentation.js";
 import type {
   AppProviderProps,
   AppState,
+  HostActions,
   ToolCall,
   ToolInput,
   ToolName,
@@ -25,6 +27,9 @@ import type {
 export type {
   AppProviderProps,
   AppState,
+  HostActionAvailability,
+  HostActionOptions,
+  HostActions,
   ToolCall,
   ToolCallOptions,
   ToolInput,
@@ -67,6 +72,9 @@ export function createApp<Tools extends ToolMap>() {
         ...(props.hostOrigin === undefined
           ? {}
           : { hostOrigin: props.hostOrigin }),
+        ...(props.availableDisplayModes === undefined
+          ? {}
+          : { availableDisplayModes: props.availableDisplayModes }),
       });
     });
     const leases = useRef(0);
@@ -118,6 +126,27 @@ export function createApp<Tools extends ToolMap>() {
       client.getSnapshot,
     ).host;
   }
+  /** Explicit host actions sharing the provider connection; availability follows connection/context changes. */
+  function useHostActions(): HostActions {
+    const client = useClient();
+    useSyncExternalStore(
+      client.subscribe,
+      client.getSnapshot,
+      client.getSnapshot,
+    );
+    const actions = useMemo<Omit<HostActions, "available">>(
+      () => ({
+        openLink: (url, options) => client.openLink(url, options),
+        sendMessage: (params, options) => client.sendMessage(params, options),
+        updateModelContext: (params, options) =>
+          client.updateModelContext(params, options),
+        requestDisplayMode: (mode, options) =>
+          client.requestDisplayMode(mode, options),
+      }),
+      [client],
+    );
+    return { ...actions, available: client.actionAvailability() };
+  }
   /** Track an interactive call independently; the latest invocation owns hook state. */
   function useToolCall<Name extends ToolName<Tools>>(
     name: Name,
@@ -160,5 +189,11 @@ export function createApp<Tools extends ToolMap>() {
     );
     return { ...(state.name === name ? state : { pending: false }), call };
   }
-  return { AppProvider, useToolResult, useToolCall, useHostContext };
+  return {
+    AppProvider,
+    useToolResult,
+    useToolCall,
+    useHostContext,
+    useHostActions,
+  };
 }
