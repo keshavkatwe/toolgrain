@@ -59,6 +59,52 @@ Review their summaries and migration guidance in the Release PR. The root
 [CHANGELOG.md](https://github.com/keshavkatwe/toolgrain/blob/main/CHANGELOG.md) preserves the historical RC0/0.1.0 notes; it is
 no longer a second release ledger that must be edited for each change.
 
+## Plan a release
+
+Develop each feature on its own branch and reviewed PR, with tests, documentation,
+and a Changeset. Choose a small release scope: one feature or a few related
+features that can be accepted together. Use one temporary `prerelease/X.Y` branch
+to assemble the selected commits and prepare test packages.
+
+| Stage | Example version | Purpose |
+| --- | --- | --- |
+| Alpha | `0.3.0-alpha.0` | Test selected features while the release is still being built; add reviewed features in later alphas |
+| Beta | `0.3.0-beta.2` | All planned features are included and APIs are settled; focus on fixes and combined application testing |
+| RC | `0.3.0-rc.3` | Final candidate for stable publication; repeat acceptance after any changes |
+| Stable | `0.3.0` | Accepted implementation, published through the reviewed stable Release PR |
+
+All six libraries share each version. Alpha, beta, and RC use matching npm tags;
+stable `latest` and historical `next` stay unchanged during prerelease testing.
+Every stage retains the full release verification and post-publication checks.
+The pinned Changesets CLI continues its numeric counter across stages: for
+example, `alpha.0` → `alpha.1` → `beta.2` → `rc.3`. Use the version it generates.
+Freeze the feature scope at beta. Adding a feature after that point reopens the
+scope and requires renewed combined testing. An individual feature's acceptance
+does not establish acceptance of the combined release.
+
+### Where to make changes
+
+Make implementation fixes in the original feature branch and PR, then bring the
+new commits into the same series branch and publish a new prerelease version.
+Only release preparation, such as versions, generated changelogs, prerelease
+state, and manifest tags, belongs directly on the series branch. Keep feature PRs
+open until acceptance so their fixes can reach `main` through ordinary review.
+
+For example, fix progress on its original feature branch, bring that commit into
+`prerelease/0.3`, and publish the next `0.3.0-alpha.N`. Alpha is a release stage,
+not another required branch. The same series branch later produces beta and RC.
+Install exact published versions when recording test results.
+
+After RC acceptance and explicit stable-release authorization, merge the approved
+feature PRs into `main` and review the ordinary Changesets Release PR. Verify that
+the stable implementation matches the accepted RC. Keep candidate metadata off
+`main`; do not merge the series branch into it.
+
+Agreement on the strategy does not authorize publication, feature merges, or a
+stable release. Each prerelease requires confirmation of its prepared version
+and full commit SHA. The reviewed stable Release PR remains the stable
+publication gate.
+
 ## Automated release PR and publication
 
 The `npm publication` workflow runs on pushes to `main`, using Changesets Action
@@ -105,7 +151,7 @@ registry, and stable `latest` configuration. The workflow retains filename
 `publish.yml`, environment `npm`, and the six validated trusted-publisher
 bindings for `keshavkatwe/toolgrain`. No npm token secret or local login is
 required. The environment currently permits only main; it has no required reviewers.
-The reviewed Release PR is the stable publication gate. An RC needs an explicitly
+The reviewed Release PR is the stable publication gate. A prerelease needs an explicitly
 allowed, exact prerelease branch as described below; do not broaden this to all branches.
 
 GitHub Actions must be allowed to create pull requests in repository settings
@@ -163,23 +209,23 @@ main manually alongside the bot's Release PR.
 
 Stable publication uses the reviewed Release PR on `main`. Prerelease
 publication is a manual dispatch from one protected branch per release series,
-for example `prerelease/0.2`. All six libraries share each candidate version,
-such as `0.2.0-rc.0`, and publish under npm's `rc` tag. Stable `latest` and
+for example `prerelease/0.3`. All six libraries share each prerelease version,
+such as `0.3.0-alpha.0`, and publish under its matching `alpha`, `beta`, or `rc` tag. Stable `latest` and
 historical `next` stay unchanged.
 
 Keep the `publish.yml` filename, `npm` environment, and existing trusted-publisher
 bindings. In the environment's deployment-branch settings, allow `main` and only
 the exact active series branch. Restrict updates to trusted maintainers and
 review changes to publication code. A feature branch or a per-version branch
-such as `prerelease/0.2.0-rc.0` cannot publish through this RC path.
+such as `prerelease/0.3.0-alpha.0` cannot publish through this prerelease path.
 
 ### Prepare and publish a candidate
 
 1. Review the release infrastructure independently of the feature. Keep the
-   feature PR in draft while preparing and testing its candidate.
+   selected feature PRs in draft while preparing and testing prereleases.
 2. Create the series branch from the reviewed infrastructure plus the selected
-   feature commit. Run `bun run changeset pre enter rc`, then
-   `bun run release:version`. Set `publishConfig.tag` to `rc` in all six
+   feature commits. For early testing, run `bun run changeset pre enter alpha`, then
+   `bun run release:version`. Set `publishConfig.tag` to `alpha` in all six
    manifests. Changesets selects versions and changelogs; `release:version`
    aligns the Bun workspace metadata. Commit the prepared state when authorized.
 3. Run the full local checks, push the series branch, and record its full commit
@@ -187,12 +233,13 @@ such as `prerelease/0.2.0-rc.0` cannot publish through this RC path.
    both `version` and `expected_sha`. For example:
 
    ```sh
-   gh workflow run publish.yml --ref prerelease/0.2 \
-     -f version=0.2.0-rc.0 -f expected_sha=FULL_CANDIDATE_COMMIT_SHA
+   gh workflow run publish.yml --ref prerelease/0.3 \
+     -f version=0.3.0-alpha.0 -f expected_sha=FULL_PREPARED_COMMIT_SHA
    ```
 
 4. The workflow rejects missing or mismatched inputs, the wrong release series,
-   and a stable version or `latest` manifest tag on an RC branch. Pushes alone
+   a stable version on a prerelease branch, and any mismatch between the version's
+   stage, Changesets prerelease tag, and all six manifest tags. Pushes alone
    do not publish. The run uses the exact triggering commit so npm provenance
    identifies the verified candidate. Moving the branch does not change an
    already-dispatched run's source; an expected-SHA mismatch fails the run.
@@ -200,27 +247,47 @@ such as `prerelease/0.2.0-rc.0` cannot publish through this RC path.
    uses those packed artifacts, validates their package/version/tag plan, and
    retains a `publication-manifest` artifact containing the source SHA, workflow
    run, and package archive identities. Post-publication checks verify all six
-   `rc` versions, unchanged stable `latest` in both npm metadata formats, archive
+   versions under the selected tag, unchanged stable `latest` in both npm metadata formats, archive
    integrity, and fresh Node/Bun consumers.
 6. Install the exact candidate in the real application. Record the requirement,
    installed version, source SHA, workflow run, and observed result on the feature
-   PR. For the OAuth change, check automatic scope selection, fresh CIMD/DCR
+   PRs. For the OAuth change, check automatic scope selection, fresh CIMD/DCR
    authorization and consent, refresh/retry, tool access, and removal of the
    response-enrichment workaround. Local token tests do not replace these checks.
 
-The manual dispatch approves only the specified RC. For ordinary manual stable
-recovery on `main`, leave both RC inputs blank; supplying them on main is rejected.
+The manual dispatch approves only the specified prerelease. For ordinary manual stable
+recovery on `main`, leave both prerelease inputs blank; supplying them on main is rejected.
+
+### Move from alpha to beta or RC
+
+Use the same `prerelease/X.Y` branch throughout the series. To change stages,
+edit the `tag` in `.changeset/pre.json` to `beta` or `rc`. Version the next feature
+or fix Changeset with `bun run release:version`. Changing the tag alone does not
+advance the package versions. If no implementation Changeset is pending, use
+`bun run changeset` on the series branch to add a patch record that accurately
+describes the stage transition, then run `bun run release:version`. This release
+preparation record stays on the series branch and is excluded from main.
+
+Set `publishConfig.tag` in all six manifests to the same stage. Let Changesets
+select the versions; do not rename manifest versions
+or relabel an existing published archive. Review the prepared diff and dispatch
+with the resulting exact version and full source SHA when authorized.
+
+Each stage publishes a new immutable version under its matching tag. Other
+prerelease tags keep their previous versions, and `latest` remains stable. Beta
+requires the complete selected feature set; stable publication requires successful
+RC acceptance and the separately reviewed stable Release PR.
 
 ### If the published candidate fails the requirements
 
 Fix the original feature PR and add a regression test. Bring the fix and its new
 Changeset into the same series branch, then run `bun run release:version` again.
-The next candidate advances from `0.2.0-rc.0` to `0.2.0-rc.1` across all six
+The next candidate advances, for example, from `0.3.0-alpha.0` to `0.3.0-alpha.1` across all six
 libraries. Review the prepared diff, commit/push when authorized, and dispatch
 with the new version and full SHA. Repeat all publication and acceptance checks.
 No new release branch or environment permission is needed for each candidate.
 
-Never overwrite or unpublish the previous candidate. `rc` moves to the new
+Never overwrite or unpublish the previous candidate. Its stage's npm tag moves to the new
 candidate after publication; `latest` remains on stable. A partial publication
 is not an accepted candidate: inspect all six registry versions and the original
 workflow's plan/artifacts before recovery. Never reuse a published candidate
@@ -230,9 +297,9 @@ when recovering a partially published run.
 ### Release stable after acceptance
 
 Keep candidate version commits, `.changeset/pre.json`, consumed prerelease
-Changesets, and RC manifest tags off main. Once the real application passes and
-stable publication is explicitly authorized, merge the reviewed feature PR and
-use the ordinary stable Changesets Release PR for `0.2.0`.
+Changesets, and prerelease manifest tags off main. Once the final RC passes real-application
+acceptance and stable publication is explicitly authorized, merge the reviewed feature PRs and
+use the ordinary stable Changesets Release PR.
 
 Check that the stable package implementation matches the accepted candidate,
 allowing the intended version, internal dependency version, and changelog changes.

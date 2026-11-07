@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { prereleaseTags } from "./publication-policy.mjs";
 import { checkRelease } from "./release.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -45,7 +46,7 @@ export async function verifyPublishedPackage(
             assert.equal(
               metadata["dist-tags"]?.latest,
               expectedLatest,
-              `${name}: stable latest changed during RC verification`,
+              `${name}: stable latest changed during prerelease verification`,
             );
           return metadata;
         },
@@ -111,8 +112,12 @@ export async function main(args = []) {
   });
   assert(values["pack-dir"], "--pack-dir is required");
   assert(
-    values.tag === "latest" || values.tag === "rc",
+    values.tag === "latest" || prereleaseTags.includes(values.tag),
     "Unsupported publication tag",
+  );
+  assert(
+    values.tag === "latest" || values["preserve-latest"],
+    "Prerelease verification requires --preserve-latest",
   );
   const directory = values["pack-dir"];
   const { plan } = JSON.parse(
