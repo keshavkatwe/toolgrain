@@ -17,7 +17,7 @@ async function availablePort() {
 }
 
 /** Start the example's documented command and exercise its real MCP endpoint. */
-export async function testHttpExample(workspace) {
+export async function testHttpExample(workspace, { resourceUri } = {}) {
   const port = await availablePort();
   const child = spawn("bun", ["run", "start"], {
     cwd: workspace,
@@ -155,6 +155,64 @@ export async function testHttpExample(workspace) {
         assert.equal(message.result.tools[0].annotations.readOnlyHint, true);
         assert.equal(message.result.tools[0].outputSchema.type, "object");
         assert.equal(message.result.tools[0].icons, undefined);
+      }
+    }
+    if (resourceUri) {
+      for (const version of ["2026-07-28", "2025-06-18"]) {
+        for (const method of [
+          "resources/list",
+          "resources/read",
+          "resources/templates/list",
+        ]) {
+          const modern = version === "2026-07-28";
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json, text/event-stream",
+              "MCP-Protocol-Version": version,
+              ...(modern
+                ? {
+                    "Mcp-Method": method,
+                    ...(method === "resources/read"
+                      ? { "Mcp-Name": resourceUri }
+                      : {}),
+                  }
+                : {}),
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: "resource",
+              method,
+              params: {
+                ...(modern
+                  ? {
+                      _meta: {
+                        "io.modelcontextprotocol/protocolVersion": version,
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                      },
+                    }
+                  : {}),
+                ...(method === "resources/read" ? { uri: resourceUri } : {}),
+              },
+            }),
+            signal: AbortSignal.timeout(10000),
+          });
+          assert.equal(response.status, 200, output);
+          const message = await response.json();
+          assert.equal(message.error, undefined, JSON.stringify(message));
+          assert.equal(
+            message.result.resultType,
+            modern ? "complete" : undefined,
+          );
+          if (method === "resources/list")
+            assert.equal(message.result.resources[0].uri, resourceUri);
+          else if (method === "resources/read") {
+            assert.equal(message.result.contents[0].uri, resourceUri);
+            assert.equal(message.result.contents[0].mimeType, "text/markdown");
+            assert.match(message.result.contents[0].text, /Elysia/);
+          } else assert.deepEqual(message.result.resourceTemplates, []);
+        }
       }
     }
   } finally {

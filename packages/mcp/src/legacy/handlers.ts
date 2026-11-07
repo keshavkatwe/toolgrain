@@ -24,6 +24,7 @@ export function initialize(
   params: unknown,
   identity: Implementation,
   instructions?: string,
+  resources = false,
 ): InitializeResult {
   if (!initializeParams.safeParse(params).success)
     throw new ProtocolError(
@@ -32,7 +33,7 @@ export function initialize(
     );
   return {
     protocolVersion: LEGACY_PROTOCOL_VERSION,
-    capabilities: { tools: {} },
+    capabilities: { tools: {}, ...(resources ? { resources: {} } : {}) },
     serverInfo: { ...identity },
     ...(instructions === undefined ? {} : { instructions }),
   };

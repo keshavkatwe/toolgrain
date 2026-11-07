@@ -4,7 +4,7 @@ import { Ajv, type AnySchema, type ValidateFunction } from "ajv";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createServer, mcpResult, tool } from "../src/index.js";
+import { createServer, mcpResult, resource, tool } from "../src/index.js";
 
 // Wire responses are checked against the official upstream JSON Schemas, which
 // the protocol package vendors from the same pinned commit as its TypeScript schemas.
@@ -123,6 +123,20 @@ const server = createServer({
   name: "conformance",
   version: "1.0.0",
   instructions: "Use the tools.",
+  resources: [
+    resource({
+      uri: "docs://guide",
+      name: "guide",
+      icons: [icon],
+      read: (uri) => ({
+        contents: [
+          { uri, text: "Guide", _meta: { ui: { prefersBorder: true } } },
+          { uri: "docs://binary", blob: "YQ==" },
+        ],
+        _meta: { "example.com/result": true },
+      }),
+    }),
+  ],
   tools: {
     greet: tool({
       title: "Greeting",
@@ -239,6 +253,22 @@ describe(`modern ${PROTOCOL_VERSION} responses`, () => {
     );
   });
 
+  it("conform for resource listing, reads, and empty templates", async () => {
+    for (const [method, schema] of [
+      ["resources/list", "ListResourcesResultResponse"],
+      ["resources/read", "ReadResourceResultResponse"],
+      ["resources/templates/list", "ListResourceTemplatesResultResponse"],
+    ]) {
+      expectValid(
+        definition(modern, `modern#/$defs/${schema}`),
+        await request(
+          method as string,
+          method === "resources/read" ? { uri: "docs://guide" } : {},
+        ),
+      );
+    }
+  });
+
   it.each(calls)("conform for tools/call $name", async (params) => {
     expectValid(
       definition(modern, "modern#/$defs/CallToolResultResponse"),
@@ -310,6 +340,22 @@ describe(`legacy ${LEGACY_PROTOCOL_VERSION} responses`, () => {
     );
     await expectResult("EmptyResult", request("ping"));
     await expectResult("ListToolsResult", request("tools/list"));
+  });
+
+  it("conform for resource listing, reads, and empty templates", async () => {
+    for (const [method, schema] of [
+      ["resources/list", "ListResourcesResult"],
+      ["resources/read", "ReadResourceResult"],
+      ["resources/templates/list", "ListResourceTemplatesResult"],
+    ]) {
+      await expectResult(
+        schema as string,
+        request(
+          method as string,
+          method === "resources/read" ? { uri: "docs://guide" } : {},
+        ),
+      );
+    }
   });
 
   it.each(calls)("conform for tools/call $name", async (params) => {

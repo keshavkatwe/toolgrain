@@ -5,6 +5,7 @@ import {
   createContext,
   createServer,
   mcpResult,
+  resource,
   type ToolContext,
   tool,
   toolContext,
@@ -41,6 +42,28 @@ export function server() {
     version: "1.0.0",
     tools: { greet },
     context: [greeting],
+    resources: [
+      resource({
+        uri: "docs://guide",
+        name: "guide",
+        mimeType: "text/plain",
+        icons: [{ src: "https://example.com/guide.svg" }],
+        async read(uri, ctx) {
+          const { prefix } = await greeting.use(ctx);
+          return {
+            contents: [
+              {
+                uri,
+                text: `${prefix}: resource`,
+                _meta: { "example.com/content": true },
+              },
+              { uri: "docs://binary", blob: "YQ==" },
+            ],
+            _meta: { "example.com/result": true },
+          };
+        },
+      }),
+    ],
   });
 }
 

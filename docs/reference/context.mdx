@@ -3,7 +3,7 @@ title: "Context API"
 description: "Request context, direct-call helpers, and lazy provider contracts."
 ---
 
-These exports live in `@toolgrain/mcp`. Context is request-scoped and non-generic; application services are inferred through provider accessors.
+These exports live in `@toolgrain/mcp`. Context is request-scoped and non-generic; application services are inferred through provider accessors. Resource readers receive the same `ToolContext` contract as tool handlers.
 
 ## ToolContext and request types
 
@@ -69,7 +69,7 @@ toolContext(options?: ToolContextOptions): ToolContext
 
 `ToolContextOptions` accepts `signal?`, `request?: Partial<ToolRequest>`, and `context?` registrations. Omitted or undefined fields default individually: fresh signal, ID 0, modern revision, no client, empty metadata, and no providers. Each call creates a new provider cache; reusing the returned context reuses that cache.
 
-This is the supported direct-call construction helper. Handwritten contexts are not a compatibility promise. A direct `execute()` call remains raw and does not authorize or validate data.
+This is the supported direct-call construction helper. Handwritten contexts are not a compatibility promise. A direct tool `execute()` or resource `read()` call remains raw and does not authorize or validate data.
 
 ## createContext
 

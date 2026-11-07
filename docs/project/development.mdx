@@ -245,9 +245,9 @@ MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaratio
 maps, and the TypeScript sources in the archive. Verification rejects malformed
 maps, missing or incorrect source targets, and missing mapping comments. Packaged
 sources are limited to existing `src/**/*.ts` files; other libraries retain their
-existing restrictions. MCP's budgets are 103 KiB packed and 355 KiB unpacked.
-The packed limit allows approximately 20% growth above the 0.1.2 archive,
-including its API documentation, package metadata, README, and changelog.
+existing restrictions. MCP's budgets are 110 KiB packed and 440 KiB unpacked.
+These limits include fixed resources and request-scoped progress, along with API
+documentation, package metadata, README, changelog, sources, and maps.
 Every library archive must include its package-root README and LICENSE; protocol
 and Clerk also require their package-root NOTICE files. Size budgets include the
 required legal notices.

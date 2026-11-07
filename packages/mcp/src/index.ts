@@ -14,6 +14,13 @@ export { authUrl as validateAuthUrl } from "./auth/url.js";
 export type { ContextProvider } from "./context/definition.js";
 export { createContext } from "./context/definition.js";
 export type { ToolErrorDetails } from "./diagnostics.js";
+export type {
+  Resource,
+  ResourceDefinition,
+  ResourceMetadata,
+  ResourceReadResult,
+} from "./resources/definition.js";
+export { resource } from "./resources/definition.js";
 export type { HandleOptions, Server, ServerOptions } from "./server.js";
 export { createServer } from "./server.js";
 export type {

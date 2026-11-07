@@ -43,9 +43,13 @@ execution and transport lifecycle through explicit internal contracts.
 - Support only MCP `2026-07-28` and initialization-based `2025-06-18`, over stdio
   and independent HTTP POSTs with JSON responses or request-scoped SSE progress.
   Legacy initialization can negotiate down to the supported legacy revision.
-  Keep sessions, resources, prompts, elicitation, and subscriptions outside the
-  current scope. Progress requires a client token; preserve ordering, backpressure,
-  cancellation, and the ordinary final tool result.
+  Keep sessions, resource templates, prompts, elicitation, and subscriptions
+  outside the current scope. Progress requires a client token; preserve ordering,
+  backpressure, cancellation, and the ordinary final tool result.
+- Fixed resources use frozen `resource()` definitions with definition-owned URIs.
+  Register a readonly array; listing is static and readers return explicit text/blob
+  contents. Reuse `ToolContext`, auth, providers, and cancellation. Preserve metadata,
+  exact URI matching, generic internal failures, and one-argument resource diagnostics.
 - Registration keys define exposed tool names. Register frozen definitions made
   with `tool()`. Preserve schema inference, typed variants, readonly authoring
   inputs, and interoperability across compatible duplicate package copies.

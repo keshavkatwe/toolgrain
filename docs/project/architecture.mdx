@@ -28,6 +28,7 @@ Implementation responsibilities are separated:
 - `legacy/connection.ts` owns initialization/readiness and initialization cancellation rules.
 - `connection.ts` owns shared transport lifecycle and writes; `pending-requests.ts` tracks cancellation.
 - `protocol/` owns shared envelopes, decoding, and protocol errors.
+- `resources/` owns fixed definitions, registration snapshots, result validation, and shared list/read handling.
 - `tools/definition.ts` defines the public API; `tools/registry.ts` validates and executes inputs.
 - `tools/schema.ts` converts schemas and metadata; `tools/adapter.ts` adapts execution.
 - `tools/rich-result.ts` marks explicit results; `tools/content.ts` validates rich content.
@@ -44,6 +45,11 @@ clients use `initialize`, `notifications/initialized`, `ping`, `tools/list`, and
 revision, including when the client proposes another revision. Only these two
 wire revisions are implemented. The connection handles each client era without
 changing tool definitions or requiring a server mode setting.
+
+Both revisions also support fixed resources through `resources/list`,
+`resources/read`, and empty `resources/templates/list`. The optional `resources`
+array enables the capability even when empty. Each registry is static, matches
+exact URIs, and shares tool request context, providers, and endpoint auth.
 
 Modern discovery lists both supported versions. Modern discovery and tool lists
 use `ttlMs: 0` and `cacheScope: "private"`; legacy listings omit modern result and
@@ -94,6 +100,6 @@ under the `@toolgrain/protocol` workspace, in sibling revision folders
 Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
-Resources, prompts, multi-round-trip input-required results, subscriptions, and
+Resource templates, MCP Apps, prompts, multi-round-trip input-required results, subscriptions, and
 extensions remain future work. [The release guide](/project/releases) describes
 Changesets records, generated package changelogs, and automated Release PRs.
