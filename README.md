@@ -204,8 +204,11 @@ application runtime. See the [support policy](https://toolgrain.mintlify.site/pr
 Both protocol revisions share the same tool API over stdio and HTTP. HTTP uses
 independent POST requests and JSON responses.
 Fixed resources support listing and text/binary reads; see the
-[resource guide](https://toolgrain.mintlify.site/guides/resources). Resource templates,
-MCP Apps, sessions, SSE, resumability, prompts, elicitation, progress, and
+[resource guide](https://toolgrain.mintlify.site/guides/resources). Native MCP Apps
+and typed React widgets are available in the published `0.3.0-alpha.2`
+prerelease; see the [MCP Apps guide](docs/mcp-apps/overview.mdx) and
+[React example](apps/react-apps-example/README.md). Resource templates,
+sessions, SSE, resumability, prompts, elicitation, progress, and
 subscriptions are outside the current implementation. Check the
 [client verification notes](https://toolgrain.mintlify.site/compatibility/protocol) and [roadmap](./ROADMAP.md)
 for tested flows and planned work.

@@ -1,0 +1,46 @@
+---
+title: "Capabilities and fallbacks"
+description: "Detect advertised Apps support without changing authorization or registration."
+---
+
+`getAppSupport(ctx)` from `@toolgrain/mcp` returns:
+
+| Value | Meaning |
+| --- | --- |
+| `supported` | The current client advertises the Apps extension and required HTML MIME type |
+| `not-advertised` | Client capabilities are available but do not advertise that support |
+| `unknown` | This invocation has no client-capability context |
+
+The extension key is `io.modelcontextprotocol/ui`; its `mimeTypes` must include `text/html;profile=mcp-app`.
+
+Modern MCP requests carry their own capabilities. Legacy stdio retains claims from initialization. Independent legacy HTTP does not retain initialization state, so later calls return `unknown`. Toolgrain adds no session or transport-wide capability cache.
+
+Registration stays static. Every UI-enabled tool must provide meaningful text/JSON fallback content even when UI support is advertised. Capabilities can guide optional presentation work, but they must not decide whether an operation is authorized.
+
+The React iframe handshake negotiates host capabilities separately. `useToolCall` rejects when the host does not advertise server tool calls. Host themes and optional fields should have application fallbacks.
+
+## React protocol support
+
+The published alpha exposes `AppProvider`, `useToolResult`, `useToolCall`, and `useHostContext`. An upstream capability advertisement describes what a host can accept; it does not create a corresponding Toolgrain hook.
+
+| Wire feature | Toolgrain React behavior |
+| --- | --- |
+| `ui/initialize` and `ui/notifications/initialized` | Native provider handshake and revision check |
+| `tools/call` | `useToolCall`; requires advertised `serverTools` |
+| Tool input, result, and cancellation notifications | Retained initiating state through `useToolResult` |
+| `ui/notifications/tool-input-partial` | Ignored; the specification permits this. Only complete input is exposed |
+| Host context changes | `useHostContext`; optional theme/font application by the provider |
+| `ui/notifications/size-changed` | Automatic size reporting when enabled and ResizeObserver is available |
+| Host `ping` and `ui/resource-teardown` | Responded to natively; teardown closes the connection and cleans up |
+| `resources/read` from the widget | No public React resource-reading API |
+| `ui/open-link`, `ui/message`, `ui/update-model-context` | Deferred host-action APIs |
+| `ui/request-display-mode` | No public change-mode API; the provider currently advertises inline mode |
+| `ui/download-file` and `sampling/createMessage` | No public React API |
+| App-exposed tools and app-initiated teardown | Deferred; the provider does not advertise app tools |
+| Sandbox proxy setup | Host responsibility |
+
+`useHostContext()` can report the host's current display mode and available modes. It does not request a mode change. A tool that refreshes data uses `useToolCall`, independently of the initiating result.
+
+The [dedicated protocol types](/mcp-apps/reference#server-and-wire-contracts) describe host capability advertisements, including optional actions outside this React API. They preserve extension fields. The reviewed upstream type file includes newer advertisements such as file downloads that are absent from the pinned stable prose specification; their presence is not a Toolgrain implementation or live-host compatibility claim.
+
+No host-actions hook is exported in this version. Adding those actions requires a separately agreed API, capability handling, and host acceptance tests. Use the [compatibility report](/mcp-apps/compatibility) for the exact tested host versions and transports.

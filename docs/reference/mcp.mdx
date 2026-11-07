@@ -94,6 +94,12 @@ clients receive a generic JSON-RPC internal error.
 
 `onError` receives original unexpected failures. Expected protocol/input/explicit tool errors are not reported, late cancelled failures are suppressed, and diagnostics cannot interrupt cleanup or a response. See [error handling](/tools/errors).
 
+## MCP Apps
+
+`getAppSupport(ctx): AppSupport` reads the current client claim and returns
+`"supported"`, `"not-advertised"`, or `"unknown"`. Claims are advisory, not
+authorization. See the [Apps reference](/mcp-apps/reference).
+
 ## Other exports
 
 The [context reference](/reference/context) covers `ToolContext`, `ToolRequest`, `ToolClient`, `ToolContextOptions`, `toolContext`, `ContextProvider`, and `createContext`. The [auth reference](/reference/auth) covers shared authorization exports. [Custom transports](/transports/custom) use the following public contracts:

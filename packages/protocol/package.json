@@ -33,6 +33,10 @@
     "./2025-06-18": {
       "types": "./dist/legacy.d.ts",
       "import": "./dist/legacy.js"
+    },
+    "./apps": {
+      "types": "./dist/apps.d.ts",
+      "import": "./dist/apps.js"
     }
   },
   "files": [

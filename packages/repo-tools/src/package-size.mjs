@@ -87,6 +87,10 @@ export function checkSize(
         file.path,
       ) &&
       !(
+        file.path === "dist/apps-provenance.json" &&
+        budget.requiredFiles?.includes(file.path)
+      ) &&
+      !(
         budget.sourceMaps &&
         /^src\/(?:[^./\\][^/\\]*\/)*[^./\\][^/\\]*\.ts$/.test(file.path) &&
         sources.has(file.path)

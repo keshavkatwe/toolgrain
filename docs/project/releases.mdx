@@ -45,7 +45,7 @@ records remain. Consume an empty record during versioning rather than carrying a
 fresh one into the release merge.
 
 The pinned Changesets CLI 3.0.3 selects versions and updates dependencies. The
-six libraries form one explicit fixed group in `.changeset/config.json` and
+seven library workspaces form one explicit fixed group in `.changeset/config.json` and
 share a version; their manifests are the source of truth. Examples and repository
 tooling are unpublished npm workspaces and are ignored by Changesets. During
 `0.x`, compatible fixes use patch records, while features and breaking changes
@@ -73,7 +73,7 @@ to assemble the selected commits and prepare test packages.
 | RC | `0.3.0-rc.3` | Final candidate for stable publication; repeat acceptance after any changes |
 | Stable | `0.3.0` | Accepted implementation, published through the reviewed stable Release PR |
 
-All six libraries share each version. Alpha, beta, and RC use matching npm tags;
+All libraries in the fixed group share each version. Alpha, beta, and RC use matching npm tags;
 stable `latest` and historical `next` stay unchanged during prerelease testing.
 Every stage retains the full release verification and post-publication checks.
 The pinned Changesets CLI continues its numeric counter across stages: for
@@ -113,7 +113,7 @@ commit is pinned; CLI and Action upgrades must be reviewed together.
 
 1. Merge an ordinary reviewed change with its changeset. Changesets creates or
    updates **Release Toolgrain packages** on `changeset-release/main`.
-2. The bot runs `bun run release:version`, consuming records, updating all six
+2. The bot runs `bun run release:version`, consuming records, updating all library
    versions/dependencies and package changelogs, and synchronizing Bun workspace
    versions. Review that diff and the CI results. With `GITHUB_TOKEN`, GitHub can
    require a maintainer to **Approve workflows to run** for bot-created PR runs;
@@ -129,11 +129,11 @@ commit is pinned; CLI and Action upgrades must be reviewed together.
 5. A separate job builds the libraries, checks contents and size budgets, and
    uses Changesets to create packed archives and its publish-plan artifact.
    Only the publish job gets OIDC permission. It publishes those archives to npm
-   under `latest`, pushes package tags, and creates six GitHub releases from
+   under `latest`, pushes package tags, and creates package-scoped GitHub releases from
    their package changelogs. Names follow `@toolgrain/mcp@0.1.1`, for example.
-6. Post-publication checks verify all six `latest` tags in full and installer npm
+6. Post-publication checks verify all library `latest` tags in full and installer npm
    metadata, registry integrity, and downloaded archive bytes against the packed
-   artifact. Fresh npm/Node and Bun consumers then check all six imports,
+   artifact. Fresh npm/Node and Bun consumers then check all library imports,
    minimum/current declarations, and the stdio/HTTP runtime flows. Reports are
    retained as workflow artifacts. A post-publication failure needs investigation;
    npm publication cannot be rolled back by a failed check.
@@ -146,11 +146,27 @@ automated Release PR.
 
 ## npm publication setup
 
-Only the six libraries are publishable, with public access, the explicit npmjs
+The existing published libraries use public access, the explicit npmjs
 registry, and stable `latest` configuration. The workflow retains filename
 `publish.yml`, environment `npm`, and the six validated trusted-publisher
 bindings for `keshavkatwe/toolgrain`. No npm token secret or local login is
-required. The environment currently permits only main; it has no required reviewers.
+required for those existing bindings. Stable publication uses main; prereleases
+require the exact active series branch to be allowed as described below.
+
+The `@toolgrain/react` package participates in version alignment and verification.
+Its first real publication was `0.3.0-alpha.2`, using the verified archive and
+maintainer authentication; that initial publication has no automatic npm CI
+provenance. The [combined publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853)
+published the other six packages and verified all seven archives plus fresh
+Node/Bun consumers. The separately reviewed prerelease tooling preserves stable
+`latest=0.2.0` for the six established packages. npm assigned React's initial
+`latest` to the alpha and rejected removing that tag.
+
+A future React OIDC publication requires its own reviewed trusted-publisher
+binding for the next legitimate version. Do not republish an existing version
+or create a placeholder to exercise automation. Release infrastructure and
+candidate state remain on their reviewed series branch; this feature PR does
+not change `publish.yml`, the `npm` environment, or existing publisher bindings.
 The reviewed Release PR is the stable publication gate. A prerelease needs an explicitly
 allowed, exact prerelease branch as described below; do not broaden this to all branches.
 
@@ -185,7 +201,7 @@ are disabled. Ordinary development continues to use Bun.
 
 `release:version` retains the existing narrow Bun workaround: Bun 1.3.14 leaves
 stale workspace versions during lockfile-only installs, and packing reads them.
-The helper synchronizes only those six version fields, preserving external
+The helper synchronizes only the library version fields, preserving external
 resolutions. `bun run release:check [--version X.Y.Z]` checks manifest/lock
 alignment. It does not select versions or write changelogs.
 
@@ -209,7 +225,7 @@ main manually alongside the bot's Release PR.
 
 Stable publication uses the reviewed Release PR on `main`. Prerelease
 publication is a manual dispatch from one protected branch per release series,
-for example `prerelease/0.3`. All six libraries share each prerelease version,
+for example `prerelease/0.3`. All libraries in the fixed group share each prerelease version,
 such as `0.3.0-alpha.0`, and publish under its matching `alpha`, `beta`, or `rc` tag. Stable `latest` and
 historical `next` stay unchanged.
 
@@ -225,7 +241,7 @@ such as `prerelease/0.3.0-alpha.0` cannot publish through this prerelease path.
    selected feature PRs in draft while preparing and testing prereleases.
 2. Create the series branch from the reviewed infrastructure plus the selected
    feature commits. For early testing, run `bun run changeset pre enter alpha`, then
-   `bun run release:version`. Set `publishConfig.tag` to `alpha` in all six
+   `bun run release:version`. Set `publishConfig.tag` to `alpha` in all library
    manifests. Changesets selects versions and changelogs; `release:version`
    aligns the Bun workspace metadata. Commit the prepared state when authorized.
 3. Run the full local checks, push the series branch, and record its full commit
@@ -239,14 +255,14 @@ such as `prerelease/0.3.0-alpha.0` cannot publish through this prerelease path.
 
 4. The workflow rejects missing or mismatched inputs, the wrong release series,
    a stable version on a prerelease branch, and any mismatch between the version's
-   stage, Changesets prerelease tag, and all six manifest tags. Pushes alone
+   stage, Changesets prerelease tag, and all library manifest tags. Pushes alone
    do not publish. The run uses the exact triggering commit so npm provenance
    identifies the verified candidate. Moving the branch does not change an
    already-dispatched run's source; an expected-SHA mismatch fails the run.
 5. The existing complete release verification runs before packing. Publication
    uses those packed artifacts, validates their package/version/tag plan, and
    retains a `publication-manifest` artifact containing the source SHA, workflow
-   run, and package archive identities. Post-publication checks verify all six
+   run, and package archive identities. Post-publication checks verify all library
    versions under the selected tag, unchanged stable `latest` in both npm metadata formats, archive
    integrity, and fresh Node/Bun consumers.
 6. Install the exact candidate in the real application. Record the requirement,
@@ -268,7 +284,7 @@ advance the package versions. If no implementation Changeset is pending, use
 describes the stage transition, then run `bun run release:version`. This release
 preparation record stays on the series branch and is excluded from main.
 
-Set `publishConfig.tag` in all six manifests to the same stage. Let Changesets
+Set `publishConfig.tag` in all library manifests to the same stage. Let Changesets
 select the versions; do not rename manifest versions
 or relabel an existing published archive. Review the prepared diff and dispatch
 with the resulting exact version and full source SHA when authorized.
@@ -282,14 +298,14 @@ RC acceptance and the separately reviewed stable Release PR.
 
 Fix the original feature PR and add a regression test. Bring the fix and its new
 Changeset into the same series branch, then run `bun run release:version` again.
-The next candidate advances, for example, from `0.3.0-alpha.0` to `0.3.0-alpha.1` across all six
+The next candidate advances, for example, from `0.3.0-alpha.0` to `0.3.0-alpha.1` across all aligned
 libraries. Review the prepared diff, commit/push when authorized, and dispatch
 with the new version and full SHA. Repeat all publication and acceptance checks.
 No new release branch or environment permission is needed for each candidate.
 
 Never overwrite or unpublish the previous candidate. Its stage's npm tag moves to the new
 candidate after publication; `latest` remains on stable. A partial publication
-is not an accepted candidate: inspect all six registry versions and the original
+is not an accepted candidate: inspect all library registry versions and the original
 workflow's plan/artifacts before recovery. Never reuse a published candidate
 version for changed source. Keep the exact commit and verified artifact identities
 when recovering a partially published run.

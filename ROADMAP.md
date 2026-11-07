@@ -32,6 +32,11 @@ See the [API guide](README.md), [support policy](docs/support-policy.md), and
 
 These items describe remaining review or verification, without a release date:
 
+- Review the unreleased native MCP Apps and `@toolgrain/react` implementation,
+  including typed hooks, separate/shared entries, and the Bun/Elysia example.
+  Claude Desktop 4.23118.0 passed local stdio widget rendering, refresh, and theme
+  checks on 2026-11-06. Other host versions and live HTTP widget flows remain
+  unverified; see the [Apps acceptance record](docs/mcp-apps/compatibility.mdx).
 - Collect feedback from published stable releases in real applications and
   prioritize reproduced defects. A target application and next release scope are
   not selected.
@@ -75,7 +80,7 @@ implementation commitment or timeline:
 
 - Per-tool authorization and scope policies.
 - Context cleanup and resource lifecycle support.
-- Resource templates, dynamic discovery, MCP Apps, prompts, and elicitation/multi-round-trip input.
+- Resource templates, dynamic discovery, prompts, and elicitation/multi-round-trip input.
 - Sessions, SSE streaming, progress, resumability, and subscriptions.
 - Performance, load, endurance, and resilience testing beyond existing regressions.
 

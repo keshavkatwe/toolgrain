@@ -1,0 +1,39 @@
+:root {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  color: var(--color-text-primary, CanvasText);
+  background: var(--color-background-primary, Canvas);
+}
+body {
+  margin: 0;
+  padding: 20px;
+}
+h1 {
+  font-size: 22px;
+  margin-top: 0;
+}
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border-primary, currentColor);
+  border-radius: 8px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.bars {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  height: 100px;
+  margin-block: 16px;
+}
+.bars span {
+  display: block;
+  width: 32px;
+  background: var(--color-text-primary, CanvasText);
+  border-radius: 4px 4px 0 0;
+}

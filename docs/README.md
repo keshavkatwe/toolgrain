@@ -32,8 +32,10 @@ API reference, and project guides. Edit the MDX pages as the source of truth.
 Root Markdown forwarding pages retain older GitHub guide URLs and section
 anchors; `.mintignore` excludes them from the site.
 
-The Guides tab covers application development. API reference documents all six
-published libraries and shared contracts. Project contains contribution,
+The Guides tab covers server application development. The MCP Apps tab covers
+the published React alpha, HTML resources, metadata, host capabilities, and
+widget acceptance. API reference documents the libraries and shared contracts.
+Project contains contribution,
 development, support, licensing, and current release guidance. Compatibility
 reports keep their original dates and verification limits.
 
@@ -77,7 +79,10 @@ mark. Both come from `brand/`. See
 
 Current support covers tools over MCP `2026-07-28` and `2025-06-18`, using stdio
 or independent HTTP POSTs with JSON responses. Fixed resources support listing and text/binary reads.
-Resource templates, MCP Apps, prompts, elicitation,
+The `0.3.0-alpha.2` prerelease includes native MCP Apps and React widgets; use
+the [Apps quickstart](./mcp-apps/quickstart.mdx) for matching candidate installation
+and [capability coverage](./mcp-apps/capabilities.mdx) for implemented/deferred APIs.
+Resource templates, prompts, elicitation,
 sessions, SSE, progress, and subscriptions are outside the current implementation.
 
 ## Contribute and maintain

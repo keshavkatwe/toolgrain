@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 
-const library = "(?:protocol|mcp|http|node|jwt|clerk)";
+const library = "(?:protocol|mcp|http|node|jwt|clerk|react)";
 const packageDocument = new RegExp(
   `^packages/${library}/(?:README\\.md|CHANGELOG\\.md|LICENSE|NOTICE)$`,
 );

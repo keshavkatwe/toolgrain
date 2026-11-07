@@ -34,3 +34,9 @@ pins Inspector 2.11.0 and modern protocol mode. The Elysia Clerk variant has
 `dev:clerk` / `inspect:clerk` scripts for testing OAuth login and `whoAmI`;
 configure its local keys and OAuth client as described in its README. Override the URL with
 `bun run inspect http://127.0.0.1:4000/mcp` when using a different port.
+
+## React MCP Apps
+
+[react-apps-example](./react-apps-example) builds separate weather/sales widgets
+and one shared widget entry, served by Bun/Elysia or stdio. The application owns
+its Vite single-file recipe. Host rendering acceptance remains separate.

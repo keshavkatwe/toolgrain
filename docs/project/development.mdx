@@ -153,12 +153,12 @@ The isolated MCP copy includes its sources. Pinned compatibility dependencies ar
 verification requires no additional downloads or workspace dependency changes.
 
 Root `bun run test:package` also schedules an uncached clean installation task
-after the six library package checks. Turbo flags such as `--filter`, `--force`,
+after the seven library package checks. Turbo flags such as `--filter`, `--force`,
 and `--dry=json` retain their normal behavior. A package filter that excludes the
 root excludes this installation task, too; dry runs perform no installations.
 
-The check packs all six libraries with Bun and serves their unchanged archives
-through a temporary loopback registry scoped to `@toolgrain`. Six fresh npm
+The check packs all seven libraries with Bun and serves their unchanged archives
+through a temporary loopback registry scoped to `@toolgrain`. Seven fresh npm
 consumers each install one library as their only direct Toolgrain dependency,
 letting npm resolve its declared dependencies and versions. Each imports the
 installed library and checks its declaration fixture with both minimum and
@@ -192,9 +192,9 @@ or `node packages/repo-tools/src/cli.mjs clean-install`. Nothing is published.
 ### Coverage checks
 
 `bun run test:coverage` runs through Turborepo, building each workspace before
-its tests. MCP, Node, and HTTP use Vitest V8 coverage over every `src/**/*.ts`
+its tests. Runtime libraries use Vitest V8 coverage over every `src/**/*.ts`
 file, including files not imported by tests. Thresholds apply separately to
-statements, branches, functions, and lines in each package: 95% for MCP, Node, HTTP, JWT, and Clerk. A test failure or missed threshold fails CI.
+statements, branches, functions, and lines in each package: 95% for MCP, Node, HTTP, JWT, Clerk, and React. A test failure or missed threshold fails CI.
 
 Protocol runs its vendored-schema integrity test without instrumenting upstream
 code. Examples run their real-process integration tests through `bun run test:examples`,
@@ -219,7 +219,7 @@ the Actions summary and downloadable artifact. Reports link to the run logs.
 
 ### Package size and dependency auditing
 
-`bun run test:size` builds and checks the six library packages through Turbo.
+`bun run test:size` builds and checks the seven library packages through Turbo.
 Each check packs the workspace with Bun 1.3.14 into a temporary directory,
 without running lifecycle scripts or publishing anything. It measures compressed
 tarball bytes, unpacked file bytes, and file count, and writes the complete file

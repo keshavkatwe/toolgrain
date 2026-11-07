@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const name = process.argv[2];
 const specifiers =
-  name === "@toolgrain/protocol" ? [name, `${name}/2025-06-18`] : [name];
+  name === "@toolgrain/protocol"
+    ? [name, `${name}/2025-06-18`, `${name}/apps`]
+    : [name];
 // Windows may report cwd with an 8.3 alias while module URLs use its long name.
 // Anchor both paths to module resolution's spelling of this consumer directory.
 const modules = realpathSync(
