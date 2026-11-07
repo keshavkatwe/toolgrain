@@ -10,7 +10,7 @@ remain available; `next` retains `0.1.0-rc.0`.
 - Reusable, typed tools with Zod 4 Classic/Mini inputs, optional output schemas,
   ordinary JSON results, and explicit rich MCP results.
 - MCP `2026-07-28` and initialization-based `2025-06-18` over stdio and
-  independent HTTP POSTs with JSON responses.
+  independent HTTP POSTs with JSON responses or request-scoped SSE progress.
 - Node hosting and framework examples for Express, Hono, Elysia, and Next.js.
 - Handler context and cooperative cancellation; JWT/Clerk endpoint authorization;
   lazy, request-cached dependencies with inferred accessors and typed overrides.
@@ -74,7 +74,7 @@ implementation commitment or timeline:
 - Per-tool authorization and scope policies.
 - Context cleanup and resource lifecycle support.
 - MCP resources, prompts, and elicitation/multi-round-trip input.
-- Sessions, SSE streaming, progress, resumability, and subscriptions.
+- Sessions, resumability, subscriptions, and streaming beyond request-scoped progress.
 - Performance, load, endurance, and resilience testing beyond existing regressions.
 
 Protocol maintenance and public API stabilization continue within the

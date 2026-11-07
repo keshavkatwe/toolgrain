@@ -75,8 +75,8 @@ mark. Both come from `brand/`. See
 | [Published-package verification](https://toolgrain.mintlify.site/compatibility/published-packages) | Stable/RC archive and consumer verification |
 
 Current support covers tools over MCP `2026-07-28` and `2025-06-18`, using stdio
-or independent HTTP POSTs with JSON responses. Resources, prompts, elicitation,
-sessions, SSE, progress, and subscriptions are outside the current implementation.
+or independent HTTP POSTs with JSON responses or request-scoped SSE progress.
+Resources, prompts, elicitation, sessions, and subscriptions are outside the current implementation.
 
 ## Contribute and maintain
 

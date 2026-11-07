@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { icon } from "../protocol/icon.js";
-import { object } from "../protocol/messages.js";
+import { object, requestId } from "../protocol/messages.js";
 
 const capabilityObject = z.record(z.string(), z.json());
-const requestId = z.union([z.string(), z.number().finite()]);
 const capabilities = z.looseObject({
   experimental: z.record(z.string(), capabilityObject).optional(),
   roots: object.optional(),

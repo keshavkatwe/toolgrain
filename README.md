@@ -202,8 +202,10 @@ Node 26 is preview. Repository tooling uses Bun **1.3.14**, separately from the
 application runtime. See the [support policy](https://toolgrain.mintlify.site/project/support-policy).
 
 Both protocol revisions share the same tool API over stdio and HTTP. HTTP uses
-independent POST requests and JSON responses.
-Sessions, SSE, resumability, resources, prompts, elicitation, progress, and
+independent POST requests and JSON responses. Tools can use
+`await ctx.reportProgress({ progress, total, message })` to send client-requested
+updates; HTTP opens a request-scoped SSE response on the first update.
+Sessions, resumability, resources, prompts, elicitation, and
 subscriptions are outside the current implementation. Check the
 [client verification notes](https://toolgrain.mintlify.site/compatibility/protocol) and [roadmap](./ROADMAP.md)
 for tested flows and planned work.

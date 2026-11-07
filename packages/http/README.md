@@ -60,7 +60,12 @@ examples for listener and router setup.
 ## HTTP behavior
 
 Both MCP `2026-07-28` and `2025-06-18` use independent POST requests with JSON
-responses. There are no persistent sessions, SSE streams, or resumability. MCP
+responses. When a client supplies `_meta.progressToken` and a tool calls
+`ctx.reportProgress()`, the first update opens an SSE response carrying progress
+notifications followed by the final result. Calls that send no progress keep
+their JSON response. Consume the response body or cancel it to release the
+request; streaming honors backpressure and body cancellation aborts `ctx.signal`.
+There are no persistent sessions, subscriptions, or resumability. MCP
 GET and DELETE return 405; auth metadata uses its separate public route.
 
 Options include `path`, `allowedHosts`, `allowedOrigins`, and `maxMessageBytes`

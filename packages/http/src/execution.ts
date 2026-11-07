@@ -1,7 +1,8 @@
 import type { AuthScope, Server } from "@toolgrain/mcp";
 import type { HttpProtocol } from "./http-protocol.js";
-import type { ObjectValue } from "./object.js";
+import { type ObjectValue, object } from "./object.js";
 import { protocolResponse, unavailableResponse } from "./responses.js";
+import { executeStreamingRequest } from "./stream.js";
 
 export async function executeHttpRequest(
   server: Server,
@@ -10,6 +11,12 @@ export async function executeHttpRequest(
   protocol: HttpProtocol,
   auth?: AuthScope,
 ): Promise<Response> {
+  if (
+    message.method === "tools/call" &&
+    Object.hasOwn(message, "id") &&
+    object(object(message.params)?._meta)?.progressToken !== undefined
+  )
+    return executeStreamingRequest(server, message, signal, protocol, auth);
   try {
     const response = await server.handle(message, {
       signal,
@@ -24,5 +31,7 @@ export async function executeHttpRequest(
   } catch (failure) {
     if (signal.aborted) throw failure;
     return unavailableResponse(message, protocol);
+  } finally {
+    auth?.dispose();
   }
 }

@@ -11,6 +11,7 @@ These exports live in `@toolgrain/mcp`. Context is request-scoped and non-generi
 interface ToolContext {
   readonly signal: AbortSignal;
   readonly request: ToolRequest;
+  readonly reportProgress: (update: ToolProgress) => Promise<void>;
 }
 interface ToolRequest {
   readonly id: RequestId;
@@ -21,6 +22,44 @@ interface ToolRequest {
 ```
 
 `RequestId` and `SupportedProtocolVersion` come from protocol. `ToolClient` has optional `info` and `capabilities`, recursively readonly modern/legacy unions. The request, metadata, and client snapshots are deeply frozen per request. Client reports are unverified. Protocol-version checks do not narrow the union automatically.
+
+## reportProgress and ToolProgress
+
+```ts
+interface ToolProgress {
+  readonly progress: number;
+  readonly total?: number;
+  readonly message?: string;
+}
+```
+
+Await `ctx.reportProgress(update)` to respect write ordering and backpressure.
+The method is bound to its invocation and can be passed directly to application
+helpers. It resolves without sending when the client omitted `_meta.progressToken`,
+the caller supplied no delivery channel, or the invocation has completed or been
+cancelled. Direct contexts from `toolContext()` have no delivery channel.
+
+For active delivery, `progress` and any `total` must be finite numbers. Floating
+point values are allowed; each `progress` value must be strictly greater than the
+previous one. The first value may be zero, and `total` can be omitted when unknown.
+`message` is optional public text. Invalid updates reject; uncaught validation
+failures use the usual private diagnostics and generic tool error. Delivery
+failure aborts the invocation with `AbortError` reason `Progress delivery failed`
+and reaches `onError(error)` without tool details. In-flight reports can reject on
+cancellation; new reports after cancellation resolve without sending.
+Await reports during the invocation, and choose a reasonable reporting frequency.
+The first update sends immediately; subsequent updates are spaced at least
+100 ms apart per invocation. Awaiting a report includes this pacing delay and
+delivery backpressure. Accepted updates are delivered in order before the final
+response; cancellation clears pending delays and suppresses queued updates.
+
+The client supplies a string or integer progress token unique among its active
+requests. Toolgrain rejects duplicate active tokens on a shared message
+connection with `-32602`, before executing the tool. Integer and string tokens
+are distinct. Tokens become reusable on completion or cancellation, and tokens
+on independent HTTP response streams remain isolated.
+
+See [handler context](/guides/request-context#report-progress) and [HTTP behavior](/transports/overview).
 
 ## toolContext
 

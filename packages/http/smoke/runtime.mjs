@@ -75,3 +75,57 @@ try {
 } finally {
   await protectedServer.close();
 }
+
+// The packed Web handler delivers progress on the originating POST response.
+const { tool } = await import("@toolgrain/mcp");
+const { z } = await import("zod");
+const progressServer = createServer({
+  name: "progress",
+  version: "1",
+  tools: {
+    work: tool({
+      input: z.object({}),
+      async execute(_input, ctx) {
+        await ctx.reportProgress({ progress: 1, total: 1 });
+        return "done";
+      },
+    }),
+  },
+});
+try {
+  const response = await createHttpHandler(progressServer)(
+    new Request("http://localhost/mcp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        "MCP-Protocol-Version": PROTOCOL_VERSION,
+        "Mcp-Method": "tools/call",
+        "Mcp-Name": "work",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: "work",
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": PROTOCOL_VERSION,
+            "io.modelcontextprotocol/clientCapabilities": {},
+            progressToken: "job",
+          },
+        },
+      }),
+    }),
+  );
+  assert.equal(response.headers.get("Content-Type"), "text/event-stream");
+  const events = (await response.text())
+    .trim()
+    .split("\n\n")
+    .map((event) => JSON.parse(event.slice("event: message\ndata: ".length)));
+  assert.equal(events[0].method, "notifications/progress");
+  assert.equal(events[0].params.progressToken, "job");
+  assert.equal(events[1].result.content[0].text, "done");
+} finally {
+  await progressServer.close();
+}

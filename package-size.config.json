@@ -17,13 +17,13 @@
   },
   "@toolgrain/mcp": {
     "packedBytes": 105472,
-    "unpackedBytes": 363520,
+    "unpackedBytes": 393216,
     "sourceMaps": true,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/http": {
-    "packedBytes": 15360,
-    "unpackedBytes": 49152,
+    "packedBytes": 17408,
+    "unpackedBytes": 57344,
     "requiredFiles": ["README.md", "LICENSE", "CHANGELOG.md"]
   },
   "@toolgrain/node": {
