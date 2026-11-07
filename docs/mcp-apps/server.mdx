@@ -39,3 +39,28 @@ The same tools, auth accessors, providers, cancellation, and [HTTP/stdio adapter
 Always return useful content for the assistant. Toolgrain preserves the rich result envelope and also appends serialized structured output to text content. Additional widget-specific data can live in result `_meta`.
 
 Use nested `_meta.ui.resourceUri`. Legacy flat aliases are preserved when supplied but not synthesized. See [resources](/guides/resources), [results](/tools/results), and [authorization](/guides/authorization).
+
+## Tool linking and visibility
+
+Tool metadata selects the widget and the audiences allowed to call the tool. Resource metadata configures the HTML sandbox and presentation.
+
+| Tool `_meta.ui` field | Behavior |
+| --- | --- |
+| `resourceUri` | Exact URI of a registered HTML resource to render for the tool |
+| `visibility: ["model", "app"]` | Agent and widget access; also the default when visibility is omitted |
+| `visibility: ["model"]` | Agent access only |
+| `visibility: ["app"]` | Widget access only; useful for refresh and filter operations hidden from the agent |
+
+```ts
+const refreshWeather = tool({
+  input: z.object({ city: z.string() }),
+  _meta: { ui: { resourceUri: view.uri, visibility: ["app"] } },
+  execute: ({ city }) => ({ city, temperature: 29 }),
+});
+```
+
+Register this definition under an exposed key such as `refresh_weather`, then call `useToolCall("refresh_weather")` from the widget's typed bindings. A model-visible initiating tool still supplies the first widget result.
+
+The host enforces visibility. Toolgrain retains it during listing and does not use it as endpoint authorization; every call still needs normal server authentication and application authorization. Keep registration static and return useful assistant-facing content from model-visible tools.
+
+Place CSP, requested permissions, sandbox domain, and `prefersBorder` on the returned resource content item's `_meta.ui`. Hosts read that configuration from resource content; putting it on the tool does not configure the sandbox. See [security and metadata](/mcp-apps/security).

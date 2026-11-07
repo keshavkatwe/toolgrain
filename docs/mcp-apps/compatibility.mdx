@@ -13,6 +13,12 @@ MCP Apps compatibility is host-version and transport specific. Protocol tests do
 | Claude Desktop 4.23118.0, macOS 26.5.2, local stdio | Separate/shared Weather and Sales rendering, metadata, refresh calls, and light/dark updates passed on 2026-11-06 |
 | Official Apps SDK 2.0.4 widget against Toolgrain | Passed with a self-authored DOM host fixture and direct MCP 2026-07-28 dispatch; not a live-host rendering claim |
 
+## Published alpha verification
+
+The [November 6, 2026 publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853) completed `0.3.0-alpha.2` for all seven Toolgrain libraries. Registry checks matched the actual downloaded archives to the verified artifacts in both npm metadata formats. Fresh npm/Node 24.20.0 and Bun 1.4.4 consumers passed imports, minimum/current declarations, and stdio/HTTP flows.
+
+These publication checks are separate from the live Claude Desktop test below, which exercised the Apps implementation before the combined alpha publication. The additional named wire-type refinements in the current working branch await a subsequent reviewed release. Neither result establishes untested host versions or transports.
+
 ## Claude Desktop acceptance
 
 The recorded local test used Bun 1.4.4 to launch the built example's stdio entry. Claude advertised `io.modelcontextprotocol/ui` with the Apps HTML MIME type and negotiated outer MCP `2025-06-18`; the iframe negotiated Apps `2026-01-26`. Both separate entries and both metadata-routed shared entries displayed their expected data. City and region buttons updated each widget through host-mediated tool calls, and existing widgets followed light/dark host theme changes. The temporary connector and appearance changes were removed after testing.

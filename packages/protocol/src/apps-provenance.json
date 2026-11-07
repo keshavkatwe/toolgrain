@@ -1,7 +1,15 @@
 {
   "revision": "2026-01-26",
-  "specification": "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx",
+  "specification": "https://github.com/modelcontextprotocol/ext-apps/blob/298e884ec3f02daba085acdb02042d73bd00b355/specification/2026-01-26/apps.mdx",
+  "specificationCommit": "298e884ec3f02daba085acdb02042d73bd00b355",
+  "specificationSha256": "ee452a7d1b9b7fb900acfeb4d6932d3963375b0f3f37d196a4b93eb80312af0e",
+  "upstreamTypes": {
+    "source": "https://github.com/modelcontextprotocol/ext-apps/blob/040942b3af064bf76b705021e3472b6593ae839e/src/spec.types.ts",
+    "commit": "040942b3af064bf76b705021e3472b6593ae839e",
+    "sha256": "f46212be3355fa0437c81b01659187efacdeef6fa50be23be02a47d03610bc6a",
+    "scope": "Capability advertisements and styling tokens only; declaring optional host capabilities does not implement their actions."
+  },
   "apiReference": "https://apps.extensions.modelcontextprotocol.io/api/",
-  "implementation": "Toolgrain-authored wire declarations derived from the stable specification; no upstream implementation is vendored.",
-  "reviewed": "2026-11-06"
+  "implementation": "Toolgrain-authored wire declarations derived from the reviewed specification and type contracts; no upstream implementation is vendored.",
+  "reviewed": "2026-11-07"
 }

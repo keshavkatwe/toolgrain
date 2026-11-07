@@ -37,3 +37,24 @@ Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName
 `getAppSupport(ctx)` and `AppSupport` are exported by `@toolgrain/mcp`. Existing `mcpResult()` types preserve inferred metadata through an optional second generic parameter; existing single-generic usage remains valid.
 
 `@toolgrain/protocol/apps` exports `APPS_PROTOCOL_VERSION`, `APPS_EXTENSION_ID`, `APPS_MIME_TYPE`, `AppToolMeta`, `AppResourceMeta`, `AppHostContext`, `AppHostCapabilities`, `AppDisplayMode`, `AppToolResult`, `AppInitializeParams`, and `AppInitializeResult`. This export has no runtime dependencies and does not replace either supported outer MCP revision.
+
+The working branch also adds the following named types for the next reviewed release. These additions are not yet named exports of the published `0.3.0-alpha.2` archive:
+
+| Type | Contract |
+| --- | --- |
+| `AppResourceCsp` | Readonly domain lists for network, resource, nested-frame, and base-URI CSP directives |
+| `AppResourcePermissions` | Camera, microphone, geolocation, and clipboard-write requests expressed as empty objects |
+| `AppTheme` | `light` or `dark` |
+| `AppStyleVariableKey` | Standardized color, typography, radius, border-width, and shadow token names |
+| `AppStyleVariables` | Optional standard variables plus string-valued host/application extensions |
+| `AppHostCss` | Host font-loading CSS and extension fields |
+| `AppHostStyles` | Variables and CSS supplied in host context |
+| `AppContentModalities` | Content kinds advertised for optional host actions |
+
+`AppHostCapabilities` now names sandbox grants/CSP, experimental extensions, content-message/context modalities, download support, and sampling tools, alongside existing server tool/resource, link, and logging advertisements. Unknown capability fields are preserved. This is a wire description: React still exports only the provider/result/call/context API. See the [support table](/mcp-apps/capabilities#react-protocol-support).
+
+Styling variables are optional. Use CSS fallbacks such as `var(--color-text-primary, #111)` and `var(--font-sans, sans-serif)`. The provider applies supplied variables and font CSS by default; `applyHostStyles={false}` disables that behavior.
+
+The metadata guide includes [resource fields and border examples](/mcp-apps/security#resource-metadata). `AppToolMeta` rejects resource-only CSP/permissions, including when metadata is assigned through another variable. The runtime still preserves supplied metadata; the host owns enforcement.
+
+`apps-provenance.json` pins the reviewed [stable specification](https://github.com/modelcontextprotocol/ext-apps/blob/298e884ec3f02daba085acdb02042d73bd00b355/specification/2026-01-26/apps.mdx) and [upstream type reference](https://github.com/modelcontextprotocol/ext-apps/blob/040942b3af064bf76b705021e3472b6593ae839e/src/spec.types.ts), including their SHA-256 hashes. Some type-reference advertisements go beyond the stable prose; they do not imply implemented Toolgrain host actions.
