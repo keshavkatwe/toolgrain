@@ -1,20 +1,33 @@
 ---
 title: "MCP Apps"
-description: "Build native React widgets for MCP hosts."
+description: "Build a React widget, bundle it as HTML, and return it with a Toolgrain tool."
 ---
 
-MCP Apps let a tool return useful assistant-facing content while a compatible host renders an interactive HTML widget beside it. Toolgrain implements the server and React iframe protocols directly, without the official MCP or Apps SDKs.
+An MCP App is an HTML widget that a compatible MCP host displays when it calls your tool. Your server still returns useful data for the assistant; the widget adds a React interface beside it.
 
-<Note>This guide targets the `0.3.0-alpha.3` candidate, including React host actions. Install matching alpha versions across Toolgrain packages; see the [installation commands](/mcp-apps/quickstart#install-the-published-alpha). Stable release acceptance is separate.</Note>
+Start with [Build your first widget](/mcp-apps/quickstart). It begins with the Vite CLI and shows every file you need to edit.
 
-The server declares a fixed `ui://` resource, links it through tool metadata, and returns ordinary MCP results. The host fetches the HTML, creates the sandbox, and forwards results to React. Widget interactions call tools through that host connection.
+## The three pieces
 
-Toolgrain provides the provider, hooks, validation of wire envelopes, and cancellation/lifecycle handling. Your application owns React components, application data validation, HTML builds, services, and resource readers. The host owns rendering, sandbox security, CSP enforcement, and granted permissions.
+| Piece | What you write |
+| --- | --- |
+| Tool | A normal Toolgrain `tool()` that returns data and points to a widget URI |
+| Widget | React components using `AppProvider` and `useToolResult()` |
+| Resource | A `resource()` that returns the widget's built HTML |
 
-Start with the [React quickstart](/mcp-apps/quickstart), then read [server integration](/mcp-apps/server). Both separate widget entries and [shared entries](/mcp-apps/shared-entries) are supported.
+Vite turns `weather.html` into `dist/widgets/weather.html`. The resource serves that file under a URI such as `ui://weather/widget.html`. The host loads the HTML and delivers the tool result to React.
 
-The [metadata guide](/mcp-apps/security) explains border preferences, CSP, permissions, and sandbox domains. The [protocol support table](/mcp-apps/capabilities#react-protocol-support) distinguishes the implemented React API from optional upstream actions.
+Toolgrain handles the native Apps connection, result delivery, host styling, and widget sizing. Your application owns its UI and build. The host owns iframe creation, sandboxing, CSP enforcement, and permission grants.
 
-The `0.3.0-alpha.3` candidate adds [React host actions](/mcp-apps/host-actions) for links, user messages, future model context, and display modes. Live-host acceptance for these new actions is pending.
+## Follow the guides in order
 
-Apps uses iframe protocol revision `2026-01-26`, independently of Toolgrain's two supported outer MCP revisions. No sessions, SSE, server notifications, or additional outer protocol revision is enabled by this feature.
+1. [Build your first widget](/mcp-apps/quickstart): scaffold a React app, add the tool and resource, and connect a host.
+2. [Use React hooks](/mcp-apps/react): add refresh calls, loading/error states, and optional host context.
+3. [Add more widgets](/mcp-apps/build): build a separate HTML file for each resource.
+4. [Permissions and metadata](/mcp-apps/security): edit one configuration object for the widget's needs.
+
+For existing servers, use [Link tools and widgets](/mcp-apps/server). [Shared entries](/mcp-apps/shared-entries) and [host actions](/mcp-apps/host-actions) are optional follow-ups.
+
+<Note>Apps and React support are published in `0.3.0-alpha.3`. Use the matching versions in the quickstart. [Compatibility and acceptance](/mcp-apps/compatibility) records the exact tests and live-host coverage.</Note>
+
+Toolgrain implements the Apps protocol natively, without the official MCP or Apps SDKs. The iframe uses Apps revision `2026-01-26`, independently of the outer MCP connection. See the [protocol support table](/mcp-apps/capabilities#react-protocol-support) for the implemented messages.

@@ -1,66 +1,84 @@
 ---
-title: "Server integration"
-description: "Link existing Toolgrain tools to fixed HTML resources."
+title: "Link tools and widgets"
+description: "Attach built HTML widgets to tools in an existing Toolgrain server."
 ---
 
-Use the existing frozen `resource()` and `tool()` definitions. There is no second server registration system.
+Start with [Build your first widget](/mcp-apps/quickstart) for a complete new project. In an existing Toolgrain server, the integration has three parts.
+
+## 1. Define the HTML resource
+
+Use `resource()` to return the HTML produced by your Vite build:
 
 ```ts
-import { createServer, mcpResult, resource, tool } from "@toolgrain/mcp";
-import { APPS_MIME_TYPE } from "@toolgrain/protocol/apps";
-import { z } from "zod";
+import { readFile } from "node:fs/promises";
+import { resource } from "@toolgrain/mcp";
+import { APPS_MIME_TYPE, type AppResourceMeta } from "@toolgrain/protocol/apps";
 
-const view = resource({
-  uri: "ui://weather/index.html",
+const widgetUi = { prefersBorder: true } satisfies AppResourceMeta;
+
+const weatherWidget = resource({
+  uri: "ui://weather/widget.html",
   name: "weather-widget",
   mimeType: APPS_MIME_TYPE,
-  read: (uri) => ({ contents: [{ uri, mimeType: APPS_MIME_TYPE,
-    text: builtHtml,
-    _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } } },
-  }] }),
-});
-const weather = tool({
-  input: z.object({ city: z.string() }),
-  _meta: { ui: { resourceUri: view.uri } },
-  execute: ({ city }) => mcpResult({
-    content: [{ type: "text", text: `Demo weather for ${city}.` }],
-    structuredContent: { city, temperature: 29 },
-    _meta: { view: "weather" },
+  read: async (uri) => ({
+    contents: [{
+      uri,
+      mimeType: APPS_MIME_TYPE,
+      text: await readFile(new URL("../dist/widgets/weather.html", import.meta.url), "utf8"),
+      _meta: { ui: widgetUi },
+    }],
   }),
 });
-const server = createServer({ name: "weather", version: "1.0.0",
-  tools: { weather }, resources: [view] });
 ```
 
-`builtHtml` is the HTML string produced by your application build. Supply the MIME type on both listing metadata and returned content; listing metadata is not copied into read results automatically. The referenced resource must be registered. URIs match exactly.
+This file path assumes the server module lives in a `server` directory, as in the quickstart. The URI identifies the resource; the reader loads the file. Supply the HTML MIME type on both the definition and its returned content.
 
-The same tools, auth accessors, providers, cancellation, and [HTTP/stdio adapters](/transports/overview) continue to work. Resource reads and tool calls use existing endpoint authentication. A widget calls through its host, so it does not need a second browser connection carrying the endpoint's credentials.
+## 2. Point the tool at the resource
 
-Always return useful content for the assistant. Toolgrain preserves the rich result envelope and also appends serialized structured output to text content. Additional widget-specific data can live in result `_meta`.
+Add this field to your existing `tool()` definition:
 
-Use nested `_meta.ui.resourceUri`. Legacy flat aliases are preserved when supplied but not synthesized. See [resources](/guides/resources), [results](/tools/results), and [authorization](/guides/authorization).
+```ts
+_meta: { ui: { resourceUri: weatherWidget.uri } },
+```
+
+The URI must match exactly. A tool can return ordinary JSON, which Toolgrain converts to a structured result and assistant-facing text. Use `mcpResult()` when you also need rich content or [extra widget data](/mcp-apps/security#extra-widget-data).
+
+## 3. Register both definitions
+
+Pass the tool map and readonly resource list to your existing `createServer()` call:
+
+```ts
+const server = createServer({
+  name: "weather-app",
+  version: "1.0.0",
+  tools: { weather },
+  resources: [weatherWidget],
+});
+```
+
+Use the server's normal [stdio or HTTP transport](/transports/overview), auth accessors, providers, and cancellation. A widget calls tools through its host; the browser does not need a second authenticated connection to the MCP endpoint.
 
 ## Tool linking and visibility
 
-Tool metadata selects the widget and the audiences allowed to call the tool. Resource metadata configures the HTML sandbox and presentation.
-
-| Tool `_meta.ui` field | Behavior |
+| Tool `_meta.ui` field | What it controls |
 | --- | --- |
-| `resourceUri` | Exact URI of a registered HTML resource to render for the tool |
-| `visibility: ["model", "app"]` | Agent and widget access; also the default when visibility is omitted |
-| `visibility: ["model"]` | Agent access only |
-| `visibility: ["app"]` | Widget access only; useful for refresh and filter operations hidden from the agent |
+| `resourceUri` | The registered widget resource to display |
+| `visibility: ["model", "app"]` | Assistant and widget access; also the default |
+| `visibility: ["model"]` | Assistant access only |
+| `visibility: ["app"]` | Widget access only |
+
+For example, register a filter/refresh tool that the assistant does not need to discover:
 
 ```ts
 const refreshWeather = tool({
   input: z.object({ city: z.string() }),
-  _meta: { ui: { resourceUri: view.uri, visibility: ["app"] } },
+  _meta: { ui: { resourceUri: weatherWidget.uri, visibility: ["app"] } },
   execute: ({ city }) => ({ city, temperature: 29 }),
 });
 ```
 
-Register this definition under an exposed key such as `refresh_weather`, then call `useToolCall("refresh_weather")` from the widget's typed bindings. A model-visible initiating tool still supplies the first widget result.
+Register it under an exposed key such as `refresh_weather`. Export that map's type to React, then call `useToolCall("refresh_weather")`. A model-visible initiating tool supplies the first widget result.
 
-The host enforces visibility. Toolgrain retains it during listing and does not use it as endpoint authorization; every call still needs normal server authentication and application authorization. Keep registration static and return useful assistant-facing content from model-visible tools.
+The host enforces visibility. Every call still needs the server's usual authentication and application authorization. Keep registration static and provide useful assistant-facing results.
 
-Place CSP, requested permissions, sandbox domain, and `prefersBorder` on the returned resource content item's `_meta.ui`. Hosts read that configuration from resource content; putting it on the tool does not configure the sandbox. See [security and metadata](/mcp-apps/security).
+Permissions and CSP go on the returned HTML's `_meta.ui`, as the `widgetUi` object above shows. See [permissions and metadata](/mcp-apps/security) and the generic [resources](/guides/resources), [tool results](/tools/results), and [authorization](/guides/authorization) guides.

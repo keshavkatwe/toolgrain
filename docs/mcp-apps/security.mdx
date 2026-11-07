@@ -1,81 +1,117 @@
 ---
-title: "Security and metadata"
-description: "Declare resource security requirements and preserve endpoint authorization."
+title: "Permissions and metadata"
+description: "Keep widget settings in one object and put each kind of metadata in the right place."
 ---
 
-Put rendering/security configuration on the resource content item's `_meta.ui`, not on the tool or only on the outer read result.
-
-`AppResourceMeta` from `@toolgrain/protocol/apps` describes CSP domain lists, requested camera/microphone/geolocation/clipboard permissions, sandbox domain, and border preference. These are declarations to the host. Toolgrain does not create the iframe or grant permissions.
-
-## Resource metadata
-
-| Field in `_meta.ui` | Meaning |
-| --- | --- |
-| `csp.connectDomains` | Origins for fetch, XHR, and WebSocket connections (`connect-src`) |
-| `csp.resourceDomains` | Origins for scripts, styles, fonts, images, and media |
-| `csp.frameDomains` | Origins for nested frames (`frame-src`) |
-| `csp.baseUriDomains` | Allowed document base URIs (`base-uri`) |
-| `permissions.camera` | Request camera access with `{}` |
-| `permissions.microphone` | Request microphone access with `{}` |
-| `permissions.geolocation` | Request location access with `{}` |
-| `permissions.clipboardWrite` | Request clipboard writes with `{}` |
-| `domain` | Request a dedicated sandbox origin in the host's required format |
-| `prefersBorder` | Request the host's visible border and background |
-
-Use explicit origins such as `https://api.example.com`. The host may further restrict the declared origins. Omitted network and nested-frame origins do not permit arbitrary connections or frames; the default base URI is restricted to the sandbox's own origin. Declare external script, style, font, and image origins in `resourceDomains`, including development origins when needed.
-
-### Border preference
-
-`prefersBorder: true` requests a visible border and background around the widget. `false` requests neither. Omission leaves the choice to the host. This controls host-provided presentation; author the widget's own internal layout and CSS in React.
+The quickstart's `server/index.ts` has one place to configure the widget:
 
 ```ts
-import { resource } from "@toolgrain/mcp";
-import { APPS_MIME_TYPE, type AppResourceMeta } from "@toolgrain/protocol/apps";
-
-const ui = {
-  prefersBorder: false,
-  csp: {
-    connectDomains: [],
-    resourceDomains: [],
-    frameDomains: [],
-  },
-} satisfies AppResourceMeta;
-
-const view = resource({
-  uri: "ui://weather/index.html",
-  name: "weather-widget",
-  mimeType: APPS_MIME_TYPE,
-  read: (uri) => ({
-    contents: [{
-      uri,
-      mimeType: APPS_MIME_TYPE,
-      text: "<!doctype html><html><body>Weather widget</body></html>",
-      _meta: { ui },
-    }],
-  }),
-});
-```
-
-For a widget that needs a remote API or clipboard writes, the corresponding metadata can be:
-
-```ts
-const ui = {
-  csp: { connectDomains: ["https://api.example.com"] },
-  permissions: { clipboardWrite: {} },
+const widgetUi = {
   prefersBorder: true,
 } satisfies AppResourceMeta;
 ```
 
-The host can deny a permission request. Check browser feature availability and handle denial when performing the operation. Setting `domain` does not configure DNS, host allowlists, or OAuth callbacks for you.
+Edit that object as the widget needs more capabilities. Import `AppResourceMeta` as a type from `@toolgrain/protocol/apps` for autocomplete and field checking.
 
-Hosts enforce CSP and may restrict requested permissions. A sandbox domain is host-specific; do not assume that one host's domain format works elsewhere. Self-contained HTML avoids external script/style origins but does not bypass host policy.
+## Request a permission
 
-See the [reviewed resource contract](https://github.com/modelcontextprotocol/ext-apps/blob/298e884ec3f02daba085acdb02042d73bd00b355/specification/2026-01-26/apps.mdx#ui-resource-format) and [server linking](/mcp-apps/server#tool-linking-and-visibility).
+For example, a widget that copies a value to the clipboard can request:
+
+```ts
+const widgetUi = {
+  prefersBorder: true,
+  permissions: { clipboardWrite: {} },
+} satisfies AppResourceMeta;
+```
+
+Use empty objects, such as `{ clipboardWrite: {} }`, rather than booleans. Other permission names are `camera`, `microphone`, and `geolocation`. Request only the permissions your widget uses.
+
+A declaration asks the host for access; the host can deny it. Check the browser API is available and handle permission denial in the widget's interaction handler.
+
+## Allow network requests and external assets
+
+If the React code itself fetches a remote API, add its origin:
+
+```ts
+const widgetUi = {
+  prefersBorder: true,
+  permissions: { clipboardWrite: {} },
+  csp: {
+    connectDomains: ["https://api.example.com"],
+    resourceDomains: ["https://images.example.com"],
+  },
+} satisfies AppResourceMeta;
+```
+
+`connectDomains` covers fetch, XHR, and WebSocket connections. `resourceDomains` covers external scripts, styles, fonts, images, and media. Use explicit origins, not paths to individual API methods or images. The host may restrict them further.
+
+The quickstart bundles its JavaScript/CSS into HTML and needs no external origins. Calls made with `useToolCall` travel through the host; add a network origin when your widget makes the network request itself.
+
+## Put settings on the returned HTML
+
+The `widgetUi` object belongs on each resource content item's `_meta.ui`. The quickstart already places it here:
+
+```ts
+contents: [{
+  uri,
+  mimeType: APPS_MIME_TYPE,
+  text: builtHtml,
+  _meta: { ui: widgetUi },
+}],
+```
+
+Here, `builtHtml` is the string read from your built widget file. Putting permissions/CSP on the tool, or only on the outer resource-read result, does not configure the widget sandbox.
+
+## Resource metadata
+
+| Setting inside `widgetUi` | Use it for |
+| --- | --- |
+| `prefersBorder: true` | Request a host-provided border and background |
+| `prefersBorder: false` | Request neither; omit the field to let the host choose |
+| `permissions` | Request camera, microphone, geolocation, or clipboard-write access |
+| `csp.connectDomains` | Origins your widget contacts with fetch/XHR/WebSocket |
+| `csp.resourceDomains` | Origins serving external scripts, styles, fonts, images, or media |
+| `csp.frameDomains` | Origins for nested iframes |
+| `csp.baseUriDomains` | Allowed document base URIs |
+| `domain` | A dedicated sandbox origin in the host's required format |
+
+Omitted network/frame origins do not allow arbitrary connections or nested frames. The default base URI is restricted to the sandbox's own origin. A `domain` request does not configure DNS, host allowlists, or OAuth callbacks. Recheck domain/permission behavior for the host you target; the [acceptance record](/mcp-apps/compatibility) lists what was actually exercised.
+
+## Three kinds of metadata
+
+| Where it goes | What belongs there |
+| --- | --- |
+| Tool definition: `_meta.ui` | `resourceUri` and optional `visibility` |
+| Returned HTML content: `_meta.ui` | The `widgetUi` permissions, CSP, border, and domain settings above |
+| Tool result: `_meta` | Extra application data for the widget, such as chart points or a routing marker |
+
+See [tool linking and visibility](/mcp-apps/server#tool-linking-and-visibility) for app-only refresh/filter tools.
+
+## Extra widget data
+
+Use `mcpResult()` when the tool also needs result metadata. For example, replace the weather tool's `execute` function and import `mcpResult` from `@toolgrain/mcp`:
+
+```ts
+execute: ({ city }) => mcpResult({
+  content: [{ type: "text", text: `Demo weather for ${city}.` }],
+  structuredContent: { city, temperature: city === "London" ? 14 : 29 },
+  _meta: { forecast: [24, 26, 29, 27] },
+}),
+```
+
+React receives the full envelope, including the inferred metadata type:
+
+```tsx
+const { result } = useToolResult("weather");
+const forecast = result?._meta?.forecast;
+```
+
+Keep result `_meta` optional in your component: errors or protocol conversion can omit it. Continue returning meaningful content for the assistant. Shared entries can use an application-owned marker such as `_meta.view` for [routing](/mcp-apps/shared-entries).
 
 ## Connection and authorization
 
-The native React connection accepts messages only from the embedding parent. `hostOrigin` can restrict it to an exact origin; omit it for hosts using opaque-origin sandbox proxies. Incoming RPC envelopes and known message payloads are validated. Server-supplied application data still needs application-specific validation where required.
+The host owns iframe creation, sandboxing, CSP enforcement, and permission grants. Toolgrain's browser connection accepts messages from the embedding parent and validates known wire envelopes. `hostOrigin` can restrict that parent to an exact origin; hosts using opaque sandbox origins may need the default setting.
 
-Client capability claims, host context, UI visibility, and routing markers are not verified identities. Preserve endpoint authentication for every resource read and tool call. Use [JWT or Clerk authorization](/authentication/overview) and authorize operations using verified identity in server handlers.
+Permissions, capability claims, and routing metadata do not establish identity or authorize server work. Preserve [endpoint authentication and application authorization](/authentication/overview) for tool calls and resource reads. Never put bearer credentials or server services in widget HTML. Use `import type` for the tool map and validate application data when your UI requires it.
 
-Never embed bearer credentials or server services in the HTML. Import registered tool maps using `import type`; the example's browser build checks that server implementations and Node built-ins are absent.
+The [reviewed Apps resource contract](https://github.com/modelcontextprotocol/ext-apps/blob/298e884ec3f02daba085acdb02042d73bd00b355/specification/2026-01-26/apps.mdx#ui-resource-format) defines the wire fields.

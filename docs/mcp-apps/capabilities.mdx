@@ -21,7 +21,7 @@ The React iframe handshake negotiates host capabilities separately. `useToolCall
 
 ## React protocol support
 
-The published `0.3.0-alpha.2` exposes `AppProvider`, `useToolResult`, `useToolCall`, and `useHostContext`. The `0.3.0-alpha.3` candidate adds [`useHostActions()`](/mcp-apps/host-actions). The table marks those additions explicitly. An upstream advertisement describes what a host can accept; only implemented APIs can send the corresponding requests.
+The published `0.3.0-alpha.3` exposes the provider and four hooks. Start with [`AppProvider` and `useToolResult()`](/mcp-apps/quickstart), then add optional hooks as needed. An upstream advertisement describes what a host can accept; only implemented APIs can send the corresponding requests.
 
 | Wire feature | Toolgrain React behavior |
 | --- | --- |
@@ -33,8 +33,8 @@ The published `0.3.0-alpha.2` exposes `AppProvider`, `useToolResult`, `useToolCa
 | `ui/notifications/size-changed` | Automatic size reporting when enabled and ResizeObserver is available |
 | Host `ping` and `ui/resource-teardown` | Responded to natively; teardown closes the connection and cleans up |
 | `resources/read` from the widget | No public React resource-reading API |
-| `ui/open-link`, `ui/message`, `ui/update-model-context` | `0.3.0-alpha.3`: `useHostActions`; requires action and content-kind advertisements |
-| `ui/request-display-mode` | `0.3.0-alpha.3`: `useHostActions`; requires intersection of host/provider modes. Provider defaults to inline |
+| `ui/open-link`, `ui/message`, `ui/update-model-context` | `useHostActions`; requires action and content-kind advertisements |
+| `ui/request-display-mode` | `useHostActions`; requires intersection of host/provider modes. Provider defaults to inline |
 | `ui/download-file` and `sampling/createMessage` | No public React API |
 | App-exposed tools and app-initiated teardown | Deferred; the provider does not advertise app tools |
 | Sandbox proxy setup | Host responsibility |

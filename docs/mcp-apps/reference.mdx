@@ -5,9 +5,9 @@ description: "Public bindings, provider options, and protocol exports."
 
 ## createApp
 
-`createApp<Tools extends ToolMap>()` from `@toolgrain/react` returns `AppProvider`, `useToolResult`, `useToolCall`, and `useHostContext`. It does not read browser globals or connect until mounting.
+`createApp<Tools extends ToolMap>()` from `@toolgrain/react` returns `AppProvider`, `useToolResult`, `useToolCall`, `useHostContext`, and `useHostActions`. It does not read browser globals or connect until mounting.
 
-<Note>The `0.3.0-alpha.3` candidate additionally returns `useHostActions()` and accepts the provider's `availableDisplayModes` option. These additions and the new named wire types below are absent from published `0.3.0-alpha.2`.</Note>
+<Note>This reference describes the published `0.3.0-alpha.3` API. Start with the [Vite walkthrough](/mcp-apps/quickstart) for a runnable project, then add only the hooks your widget uses.</Note>
 
 ## AppProvider
 
@@ -20,7 +20,7 @@ description: "Public bindings, provider options, and protocol exports."
 | `hostOrigin` | Optional exact parent origin; default allows opaque sandbox origins |
 | `applyHostStyles` | Apply/restore host fonts and CSS variables, default true |
 | `autoResize` | Report size through ResizeObserver when available, default true |
-| `availableDisplayModes` | `0.3.0-alpha.3`: nonempty readonly list of modes this widget supports; default `["inline"]`, fixed for the mount |
+| `availableDisplayModes` | Nonempty readonly list of modes this widget supports; default `["inline"]`, fixed for the mount |
 | `children` | React component tree sharing this connection |
 
 A connection is terminal after closure. Remount to reconnect or change identity/routing. Unmount and teardown remove owned resources. Server rendering does not connect.
@@ -33,7 +33,7 @@ A connection is terminal after closure. Remount to reconnect or change identity/
 
 `useHostContext()` returns live `AppHostContext`. Fields are optional and self-reported by the host.
 
-The new `useHostActions()` returns `available` and stable request functions:
+`useHostActions()` returns `available` and stable request functions:
 
 | Function | Parameters | Resolved result |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ The new `useHostActions()` returns `available` and stable request functions:
 
 Request options accept `signal` and `timeoutMs`; the provider default is 30000 milliseconds. Capability/content checks happen before sending. Explicit `isError` acknowledgements resolve; RPC/transport/validation failures reject. The hook owns no pending/error state. See [host actions](/mcp-apps/host-actions) for availability, replacement context, and actual display-mode behavior.
 
-Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName`, `ToolInput`, `ToolResult`, `ToolCall`, and `ToolCallOptions`. The candidate adds `HostActions`, `HostActionAvailability`, and `HostActionOptions`.
+Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName`, `ToolInput`, `ToolResult`, `ToolCall`, and `ToolCallOptions`. Host-action types are `HostActions`, `HostActionAvailability`, and `HostActionOptions`.
 
 ## Server and wire contracts
 
@@ -52,7 +52,7 @@ Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName
 
 `@toolgrain/protocol/apps` exports `APPS_PROTOCOL_VERSION`, `APPS_EXTENSION_ID`, `APPS_MIME_TYPE`, `AppToolMeta`, `AppResourceMeta`, `AppHostContext`, `AppHostCapabilities`, `AppDisplayMode`, `AppToolResult`, `AppInitializeParams`, and `AppInitializeResult`. This export has no runtime dependencies and does not replace either supported outer MCP revision.
 
-The `0.3.0-alpha.3` candidate also adds the following named types. These additions are not yet named exports of the published `0.3.0-alpha.2` archive:
+Additional named exports describe resource settings, host presentation, and host-action envelopes:
 
 | Type | Contract |
 | --- | --- |

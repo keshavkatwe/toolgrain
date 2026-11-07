@@ -106,29 +106,29 @@
         "tab": "MCP Apps",
         "groups": [
           {
-            "group": "Get started",
+            "group": "Start here",
             "pages": ["mcp-apps/overview", "mcp-apps/quickstart"]
           },
           {
-            "group": "React widgets",
+            "group": "Build your app",
             "pages": [
               "mcp-apps/react",
-              "mcp-apps/host-actions",
-              "mcp-apps/shared-entries",
-              "mcp-apps/build"
-            ]
-          },
-          {
-            "group": "Server integration",
-            "pages": [
-              "mcp-apps/server",
+              "mcp-apps/build",
               "mcp-apps/security",
-              "mcp-apps/capabilities"
+              "mcp-apps/server"
             ]
           },
           {
-            "group": "Reference and verification",
-            "pages": ["mcp-apps/reference", "mcp-apps/compatibility"]
+            "group": "Optional features",
+            "pages": ["mcp-apps/host-actions", "mcp-apps/shared-entries"]
+          },
+          {
+            "group": "Reference and testing",
+            "pages": [
+              "mcp-apps/reference",
+              "mcp-apps/capabilities",
+              "mcp-apps/compatibility"
+            ]
           }
         ]
       },
