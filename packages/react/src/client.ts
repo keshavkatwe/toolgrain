@@ -1,10 +1,16 @@
-import type { Implementation } from "@toolgrain/protocol";
+import type { ContentBlock, Implementation } from "@toolgrain/protocol";
 import {
   APPS_PROTOCOL_VERSION,
+  type AppActionResult,
+  type AppDisplayMode,
+  type AppDisplayModeResult,
   type AppHostCapabilities,
   type AppHostContext,
+  type AppMessageParams,
+  type AppModelContextParams,
   type AppToolResult,
 } from "@toolgrain/protocol/apps";
+import type { HostActionAvailability } from "./types.js";
 import * as wire from "./validation.js";
 
 export interface ClientOptions {
@@ -16,6 +22,7 @@ export interface ClientOptions {
   ) => string | undefined;
   timeoutMs?: number;
   hostOrigin?: string;
+  availableDisplayModes?: readonly AppDisplayMode[];
 }
 export type Status =
   | "connecting"
@@ -62,11 +69,15 @@ export class AppClient {
   private started = false;
   private closed = false;
   private capabilities: AppHostCapabilities = {};
+  private readonly displayModes: AppDisplayMode[];
 
   constructor(private readonly options: ClientOptions) {
     deadline(options.timeoutMs);
     if (!options.appInfo.name || !options.appInfo.version)
       throw new TypeError("App name and version are required");
+    this.displayModes = wire.displayModes.parse(
+      options.availableDisplayModes ?? ["inline"],
+    );
     this.snapshot = { status: "connecting", host: {}, toolName: options.tool };
   }
   readonly isClosed = () => this.closed;
@@ -97,7 +108,7 @@ export class AppClient {
       const raw = await this.request("ui/initialize", {
         protocolVersion: APPS_PROTOCOL_VERSION,
         appInfo: this.options.appInfo,
-        appCapabilities: { availableDisplayModes: ["inline"] },
+        appCapabilities: { availableDisplayModes: this.displayModes },
       });
       if (this.closed) return;
       const result = wire.initialized.parse(raw);
@@ -193,6 +204,104 @@ export class AppClient {
         options,
       ),
     ) as unknown as AppToolResult;
+  }
+  actionAvailability(): HostActionAvailability {
+    const active = this.ready && !this.closed;
+    return {
+      openLink: active && !!this.capabilities.openLinks,
+      sendMessage: active && !!this.capabilities.message,
+      updateModelContext: active && !!this.capabilities.updateModelContext,
+      displayModes: active
+        ? this.displayModes.filter((mode) =>
+            this.snapshot.host.availableDisplayModes?.includes(mode),
+          )
+        : [],
+    };
+  }
+  private requireReady() {
+    if (!this.ready || this.closed)
+      throw new Error("Apps connection is not ready");
+  }
+  private requireModalities(
+    action: "message" | "updateModelContext",
+    content?: readonly Pick<ContentBlock, "type">[],
+    structured = false,
+  ) {
+    const supported = this.capabilities[action];
+    if (!supported) throw new Error(`Host does not advertise ${action}`);
+    for (const block of content ?? []) {
+      const kind = block.type === "resource_link" ? "resourceLink" : block.type;
+      if (!supported[kind])
+        throw new Error(`Host does not support ${kind} for ${action}`);
+    }
+    if (structured && !supported.structuredContent)
+      throw new Error(
+        "Host does not support structuredContent for updateModelContext",
+      );
+  }
+  async openLink(
+    url: string,
+    options?: RequestOptions,
+  ): Promise<AppActionResult> {
+    this.requireReady();
+    if (!this.capabilities.openLinks)
+      throw new Error("Host does not advertise openLinks");
+    return this.actionRequest(
+      "ui/open-link",
+      wire.openLink.parse({ url }),
+      options,
+    );
+  }
+  private async actionRequest(
+    method: string,
+    params: object,
+    options?: RequestOptions,
+  ): Promise<AppActionResult> {
+    // Structured-clone optional fields can explicitly contain undefined, as on tool results.
+    return wire.actionResult.parse(
+      await this.request(method, params, options),
+    ) as AppActionResult;
+  }
+  async sendMessage(
+    input: AppMessageParams,
+    options?: RequestOptions,
+  ): Promise<AppActionResult> {
+    this.requireReady();
+    const params = wire.message.parse(input);
+    this.requireModalities("message", params.content);
+    return this.actionRequest("ui/message", params, options);
+  }
+  async updateModelContext(
+    input: AppModelContextParams,
+    options?: RequestOptions,
+  ): Promise<AppActionResult> {
+    this.requireReady();
+    const params = wire.modelContext.parse(input);
+    this.requireModalities(
+      "updateModelContext",
+      params.content,
+      params.structuredContent !== undefined,
+    );
+    return this.actionRequest("ui/update-model-context", params, options);
+  }
+  async requestDisplayMode(
+    mode: AppDisplayMode,
+    options?: RequestOptions,
+  ): Promise<AppDisplayModeResult> {
+    this.requireReady();
+    const requested = wire.displayMode.parse(mode);
+    if (!this.actionAvailability().displayModes.includes(requested))
+      throw new Error("Display mode is not available to both host and app");
+    const result = wire.displayModeResult.parse(
+      await this.request(
+        "ui/request-display-mode",
+        { mode: requested },
+        options,
+      ),
+    );
+    if (!this.displayModes.includes(result.mode))
+      throw new Error("Host returned a display mode the app did not declare");
+    return result;
   }
   size(width: number, height: number) {
     if (this.ready && !this.closed) {

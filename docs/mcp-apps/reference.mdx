@@ -7,6 +7,8 @@ description: "Public bindings, provider options, and protocol exports."
 
 `createApp<Tools extends ToolMap>()` from `@toolgrain/react` returns `AppProvider`, `useToolResult`, `useToolCall`, and `useHostContext`. It does not read browser globals or connect until mounting.
 
+<Note>The `0.3.0-alpha.3` candidate additionally returns `useHostActions()` and accepts the provider's `availableDisplayModes` option. These additions and the new named wire types below are absent from published `0.3.0-alpha.2`.</Note>
+
 ## AppProvider
 
 | Prop | Contract |
@@ -18,6 +20,7 @@ description: "Public bindings, provider options, and protocol exports."
 | `hostOrigin` | Optional exact parent origin; default allows opaque sandbox origins |
 | `applyHostStyles` | Apply/restore host fonts and CSS variables, default true |
 | `autoResize` | Report size through ResizeObserver when available, default true |
+| `availableDisplayModes` | `0.3.0-alpha.3`: nonempty readonly list of modes this widget supports; default `["inline"]`, fixed for the mount |
 | `children` | React component tree sharing this connection |
 
 A connection is terminal after closure. Remount to reconnect or change identity/routing. Unmount and teardown remove owned resources. Server rendering does not connect.
@@ -30,10 +33,46 @@ A connection is terminal after closure. Remount to reconnect or change identity/
 
 `useHostContext()` returns live `AppHostContext`. Fields are optional and self-reported by the host.
 
-Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName`, `ToolInput`, `ToolResult`, `ToolCall`, and `ToolCallOptions`.
+The new `useHostActions()` returns `available` and stable request functions:
+
+| Function | Parameters | Resolved result |
+| --- | --- | --- |
+| `openLink` | Absolute URL string, optional request options | `AppActionResult` |
+| `sendMessage` | `AppMessageParams`, optional request options | `AppActionResult` |
+| `updateModelContext` | `AppModelContextParams`, optional request options | `AppActionResult` |
+| `requestDisplayMode` | `AppDisplayMode`, optional request options | `AppDisplayModeResult` |
+
+Request options accept `signal` and `timeoutMs`; the provider default is 30000 milliseconds. Capability/content checks happen before sending. Explicit `isError` acknowledgements resolve; RPC/transport/validation failures reject. The hook owns no pending/error state. See [host actions](/mcp-apps/host-actions) for availability, replacement context, and actual display-mode behavior.
+
+Exported authoring types: `AppProviderProps`, `AppState`, `ToolState`, `ToolName`, `ToolInput`, `ToolResult`, `ToolCall`, and `ToolCallOptions`. The candidate adds `HostActions`, `HostActionAvailability`, and `HostActionOptions`.
 
 ## Server and wire contracts
 
 `getAppSupport(ctx)` and `AppSupport` are exported by `@toolgrain/mcp`. Existing `mcpResult()` types preserve inferred metadata through an optional second generic parameter; existing single-generic usage remains valid.
 
 `@toolgrain/protocol/apps` exports `APPS_PROTOCOL_VERSION`, `APPS_EXTENSION_ID`, `APPS_MIME_TYPE`, `AppToolMeta`, `AppResourceMeta`, `AppHostContext`, `AppHostCapabilities`, `AppDisplayMode`, `AppToolResult`, `AppInitializeParams`, and `AppInitializeResult`. This export has no runtime dependencies and does not replace either supported outer MCP revision.
+
+The `0.3.0-alpha.3` candidate also adds the following named types. These additions are not yet named exports of the published `0.3.0-alpha.2` archive:
+
+| Type | Contract |
+| --- | --- |
+| `AppResourceCsp` | Readonly domain lists for network, resource, nested-frame, and base-URI CSP directives |
+| `AppResourcePermissions` | Camera, microphone, geolocation, and clipboard-write requests expressed as empty objects |
+| `AppTheme` | `light` or `dark` |
+| `AppStyleVariableKey` | Standardized color, typography, radius, border-width, and shadow token names |
+| `AppStyleVariables` | Optional standard variables plus string-valued host/application extensions |
+| `AppHostCss` | Host font-loading CSS and extension fields |
+| `AppHostStyles` | Variables and CSS supplied in host context |
+| `AppContentModalities` | Content kinds advertised for optional host actions |
+| `AppMessageParams` | User role and readonly MCP content-block array |
+| `AppModelContextParams` | Optional content blocks and object-root structured replacement context |
+| `AppActionResult` | Host acknowledgement with optional `isError` and preserved extensions |
+| `AppDisplayModeResult` | Actual selected display mode and preserved extensions |
+
+`AppHostCapabilities` now names sandbox grants/CSP, experimental extensions, content-message/context modalities, download support, and sampling tools, alongside existing server tool/resource, link, and logging advertisements. Unknown capability fields are preserved. The [support table](/mcp-apps/capabilities#react-protocol-support) distinguishes implemented requests from other advertisements.
+
+Styling variables are optional. Use CSS fallbacks such as `var(--color-text-primary, #111)` and `var(--font-sans, sans-serif)`. The provider applies supplied variables and font CSS by default; `applyHostStyles={false}` disables that behavior.
+
+The metadata guide includes [resource fields and border examples](/mcp-apps/security#resource-metadata). `AppToolMeta` rejects resource-only CSP/permissions, including when metadata is assigned through another variable. The runtime still preserves supplied metadata; the host owns enforcement.
+
+`apps-provenance.json` pins the reviewed [stable specification](https://github.com/modelcontextprotocol/ext-apps/blob/298e884ec3f02daba085acdb02042d73bd00b355/specification/2026-01-26/apps.mdx) and [upstream type reference](https://github.com/modelcontextprotocol/ext-apps/blob/040942b3af064bf76b705021e3472b6593ae839e/src/spec.types.ts), including their SHA-256 hashes. Some type-reference advertisements go beyond the stable prose; their presence alone does not implement a React action.

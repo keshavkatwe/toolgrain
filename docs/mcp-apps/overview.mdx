@@ -5,12 +5,16 @@ description: "Build native React widgets for MCP hosts."
 
 MCP Apps let a tool return useful assistant-facing content while a compatible host renders an interactive HTML widget beside it. Toolgrain implements the server and React iframe protocols directly, without the official MCP or Apps SDKs.
 
-<Note>The Apps APIs and `@toolgrain/react` package are unreleased in this branch. Use the workspace example until a reviewed release publishes them.</Note>
+<Note>This guide targets the `0.3.0-alpha.3` candidate, including React host actions. Install matching alpha versions across Toolgrain packages; see the [installation commands](/mcp-apps/quickstart#install-the-published-alpha). Stable release acceptance is separate.</Note>
 
 The server declares a fixed `ui://` resource, links it through tool metadata, and returns ordinary MCP results. The host fetches the HTML, creates the sandbox, and forwards results to React. Widget interactions call tools through that host connection.
 
 Toolgrain provides the provider, hooks, validation of wire envelopes, and cancellation/lifecycle handling. Your application owns React components, application data validation, HTML builds, services, and resource readers. The host owns rendering, sandbox security, CSP enforcement, and granted permissions.
 
 Start with the [React quickstart](/mcp-apps/quickstart), then read [server integration](/mcp-apps/server). Both separate widget entries and [shared entries](/mcp-apps/shared-entries) are supported.
+
+The [metadata guide](/mcp-apps/security) explains border preferences, CSP, permissions, and sandbox domains. The [protocol support table](/mcp-apps/capabilities#react-protocol-support) distinguishes the implemented React API from optional upstream actions.
+
+The `0.3.0-alpha.3` candidate adds [React host actions](/mcp-apps/host-actions) for links, user messages, future model context, and display modes. Live-host acceptance for these new actions is pending.
 
 Apps uses iframe protocol revision `2026-01-26`, independently of Toolgrain's two supported outer MCP revisions. No sessions, SSE, server notifications, or additional outer protocol revision is enabled by this feature.

@@ -1,5 +1,16 @@
 import { mcpResult, tool } from "@toolgrain/mcp";
-import { createApp, type ToolInput, type ToolResult } from "@toolgrain/react";
+import type {
+  AppActionResult,
+  AppDisplayModeResult,
+} from "@toolgrain/protocol/apps";
+import {
+  type AppProviderProps,
+  createApp,
+  type HostActionOptions,
+  type HostActions,
+  type ToolInput,
+  type ToolResult,
+} from "@toolgrain/react";
 import { z } from "zod";
 import * as mini from "zod/mini";
 
@@ -63,6 +74,37 @@ const badOutput: ToolResult<typeof original> = {
   structuredContent: { doubled: "4" },
 };
 function Hooks() {
+  const actions: HostActions = app.useHostActions();
+  const options: HostActionOptions = {
+    timeoutMs: 1000,
+    signal: new AbortController().signal,
+  };
+  const link: Promise<AppActionResult> = actions.openLink(
+    "https://example.com",
+    options,
+  );
+  const content = [{ type: "text", text: "Explain" }] as const;
+  void actions.sendMessage({ role: "user", content });
+  void actions.updateModelContext({
+    structuredContent: { selection: [1] },
+    content,
+  });
+  const mode: Promise<AppDisplayModeResult> =
+    actions.requestDisplayMode("fullscreen");
+  // @ts-expect-error Only user messages are supported.
+  void actions.sendMessage({ role: "assistant", content });
+  // @ts-expect-error Model context structured content must be an object.
+  void actions.updateModelContext({ structuredContent: 1 });
+  // @ts-expect-error Display modes use the wire enum.
+  void actions.requestDisplayMode("floating");
+  // @ts-expect-error URLs must be strings.
+  void actions.openLink(new URL("https://example.com"));
+  const props: AppProviderProps<typeof tools> = {
+    appInfo: { name: "test", version: "1" },
+    tool: "alias",
+    availableDisplayModes: ["inline", "fullscreen"] as const,
+  };
+  void [link, mode, props];
   const call = app.useToolCall("alias");
   void call.call(input);
   // @ts-expect-error Registration keys define names.

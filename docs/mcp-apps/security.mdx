@@ -7,7 +7,72 @@ Put rendering/security configuration on the resource content item's `_meta.ui`, 
 
 `AppResourceMeta` from `@toolgrain/protocol/apps` describes CSP domain lists, requested camera/microphone/geolocation/clipboard permissions, sandbox domain, and border preference. These are declarations to the host. Toolgrain does not create the iframe or grant permissions.
 
+## Resource metadata
+
+| Field in `_meta.ui` | Meaning |
+| --- | --- |
+| `csp.connectDomains` | Origins for fetch, XHR, and WebSocket connections (`connect-src`) |
+| `csp.resourceDomains` | Origins for scripts, styles, fonts, images, and media |
+| `csp.frameDomains` | Origins for nested frames (`frame-src`) |
+| `csp.baseUriDomains` | Allowed document base URIs (`base-uri`) |
+| `permissions.camera` | Request camera access with `{}` |
+| `permissions.microphone` | Request microphone access with `{}` |
+| `permissions.geolocation` | Request location access with `{}` |
+| `permissions.clipboardWrite` | Request clipboard writes with `{}` |
+| `domain` | Request a dedicated sandbox origin in the host's required format |
+| `prefersBorder` | Request the host's visible border and background |
+
+Use explicit origins such as `https://api.example.com`. The host may further restrict the declared origins. Omitted network and nested-frame origins do not permit arbitrary connections or frames; the default base URI is restricted to the sandbox's own origin. Declare external script, style, font, and image origins in `resourceDomains`, including development origins when needed.
+
+### Border preference
+
+`prefersBorder: true` requests a visible border and background around the widget. `false` requests neither. Omission leaves the choice to the host. This controls host-provided presentation; author the widget's own internal layout and CSS in React.
+
+```ts
+import { resource } from "@toolgrain/mcp";
+import { APPS_MIME_TYPE, type AppResourceMeta } from "@toolgrain/protocol/apps";
+
+const ui = {
+  prefersBorder: false,
+  csp: {
+    connectDomains: [],
+    resourceDomains: [],
+    frameDomains: [],
+  },
+} satisfies AppResourceMeta;
+
+const view = resource({
+  uri: "ui://weather/index.html",
+  name: "weather-widget",
+  mimeType: APPS_MIME_TYPE,
+  read: (uri) => ({
+    contents: [{
+      uri,
+      mimeType: APPS_MIME_TYPE,
+      text: "<!doctype html><html><body>Weather widget</body></html>",
+      _meta: { ui },
+    }],
+  }),
+});
+```
+
+For a widget that needs a remote API or clipboard writes, the corresponding metadata can be:
+
+```ts
+const ui = {
+  csp: { connectDomains: ["https://api.example.com"] },
+  permissions: { clipboardWrite: {} },
+  prefersBorder: true,
+} satisfies AppResourceMeta;
+```
+
+The host can deny a permission request. Check browser feature availability and handle denial when performing the operation. Setting `domain` does not configure DNS, host allowlists, or OAuth callbacks for you.
+
 Hosts enforce CSP and may restrict requested permissions. A sandbox domain is host-specific; do not assume that one host's domain format works elsewhere. Self-contained HTML avoids external script/style origins but does not bypass host policy.
+
+See the [reviewed resource contract](https://github.com/modelcontextprotocol/ext-apps/blob/298e884ec3f02daba085acdb02042d73bd00b355/specification/2026-01-26/apps.mdx#ui-resource-format) and [server linking](/mcp-apps/server#tool-linking-and-visibility).
+
+## Connection and authorization
 
 The native React connection accepts messages only from the embedding parent. `hostOrigin` can restrict it to an exact origin; omit it for hosts using opaque-origin sandbox proxies. Incoming RPC envelopes and known message payloads are validated. Server-supplied application data still needs application-specific validation where required.
 

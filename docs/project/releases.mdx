@@ -150,13 +150,23 @@ The existing published libraries use public access, the explicit npmjs
 registry, and stable `latest` configuration. The workflow retains filename
 `publish.yml`, environment `npm`, and the six validated trusted-publisher
 bindings for `keshavkatwe/toolgrain`. No npm token secret or local login is
-required. The environment currently permits only main; it has no required reviewers.
+required for those existing bindings. Stable publication uses main; prereleases
+require the exact active series branch to be allowed as described below.
 
-The new `@toolgrain/react` workspace participates in version alignment and package
-verification. Its first alpha uses the verified maintainer-publication path
-below; subsequent CI publication requires its own reviewed trusted-publisher
-setup. The workflow filename, `npm` environment, and existing publisher bindings
-remain unchanged.
+The `@toolgrain/react` package participates in version alignment and verification.
+Its first real publication was `0.3.0-alpha.2`, using the verified archive and
+maintainer authentication; that initial publication has no automatic npm CI
+provenance. The [combined publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853)
+published the other six packages and verified all seven archives plus fresh
+Node/Bun consumers. The separately reviewed prerelease tooling preserves stable
+`latest=0.2.0` for the six established packages. npm assigned React's initial
+`latest` to the alpha and rejected removing that tag.
+
+A future React OIDC publication requires its own reviewed trusted-publisher
+binding for the next legitimate version. Do not republish an existing version
+or create a placeholder to exercise automation. Release infrastructure and
+candidate state remain on their reviewed series branch; this feature PR does
+not change `publish.yml`, the `npm` environment, or existing publisher bindings.
 The reviewed Release PR is the stable publication gate. A prerelease needs an explicitly
 allowed, exact prerelease branch as described below; do not broaden this to all branches.
 

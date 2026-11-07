@@ -207,8 +207,8 @@ independent POST requests and JSON responses. Tools can use
 updates; HTTP opens a request-scoped SSE response on the first update.
 Fixed resources support listing and text/binary reads; see the
 [resource guide](https://toolgrain.mintlify.site/guides/resources). Native MCP Apps
-and typed React widgets are implemented in the unreleased `@toolgrain/react`
-workspace; see the [MCP Apps guide](docs/mcp-apps/overview.mdx) and
+and typed React widgets are available in the published `0.3.0-alpha.2`
+prerelease; see the [MCP Apps guide](docs/mcp-apps/overview.mdx) and
 [React example](apps/react-apps-example/README.md). Resource templates,
 sessions, resumability, prompts, elicitation, and
 subscriptions are outside the current implementation. Check the
