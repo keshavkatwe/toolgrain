@@ -18,7 +18,7 @@ import { parseArgs } from "node:util";
 import { startArchiveRegistry } from "./archive-registry.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
-const libraries = ["protocol", "mcp", "http", "node", "jwt", "clerk"];
+const libraries = ["protocol", "mcp", "http", "node", "jwt", "clerk", "react"];
 const readJSON = (path) => JSON.parse(readFileSync(path, "utf8"));
 const inside = (parent, path) => {
   const fromParent = relative(parent, path);
@@ -224,6 +224,9 @@ export async function main(args = []) {
                       values.typescript ?? mcp.devDependencies.typescript,
                     "typescript-minimum": `npm:typescript@${policy.typescript.minimum}`,
                     "@types/node": node.devDependencies["@types/node"],
+                    "@types/react": packages.find(
+                      (p) => p.name === "@toolgrain/react",
+                    ).devDependencies["@types/react"],
                   }
                 : {}),
               ...tools,

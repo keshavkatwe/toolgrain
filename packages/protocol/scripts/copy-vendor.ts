@@ -6,3 +6,5 @@ for (const path of ["vendor/2026-07-28", "vendor/2025-06-18"]) {
     await copyFile(`src/${path}/${name}`, `dist/${path}/${name}`);
   }
 }
+
+await copyFile("src/apps-provenance.json", "dist/apps-provenance.json");

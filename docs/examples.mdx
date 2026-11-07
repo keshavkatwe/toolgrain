@@ -28,3 +28,10 @@ HTTP applications have `inspect` scripts that connect to an already running exam
 The protected Clerk flow is explicit: `bun run --cwd apps/elysia-example dev:clerk`. It requires local keys and OAuth application configuration; ordinary Elysia dev remains credential-free. Its README covers Inspector PKCE configuration.
 
 Use [framework recipes](/transports/frameworks) for the adapter boundaries and the linked source for complete startup/shutdown behavior. Example code is teaching material, not a deployment or credential-management service.
+
+## React MCP Apps
+
+The [React Apps example](https://github.com/keshavkatwe/toolgrain/tree/2ea4e61191c17926bb86d388c49fd5367d847d6d/apps/react-apps-example)
+uses Bun/Elysia with separate and shared HTML widgets. Start with the
+[Apps quickstart](/mcp-apps/quickstart) for published `0.3.0-alpha.2` installation
+and workspace commands. Host acceptance is tracked separately from protocol tests.

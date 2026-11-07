@@ -129,7 +129,7 @@ test("package command forwards Turbo flags and schedules the uncached install af
     assert.equal(install.resolvedTaskDefinition.cache, false);
     assert.deepEqual(
       install.dependencies.toSorted(),
-      ["clerk", "http", "jwt", "mcp", "node", "protocol"].map(
+      ["clerk", "http", "jwt", "mcp", "node", "protocol", "react"].map(
         (name) => `@toolgrain/${name}#test:package`,
       ),
     );

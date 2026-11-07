@@ -57,6 +57,28 @@ The root exports the modern schema, `LEGACY_PROTOCOL_VERSION`,
 `ProtocolResponse` envelopes. The `2025-06-18` subpath exports the legacy schema.
 These are wire definitions; runtime validation remains in `@toolgrain/mcp`.
 
+## MCP Apps contracts
+
+The `@toolgrain/protocol/apps` subpath describes the Apps iframe channel,
+independently of either outer MCP revision. It exports the Apps version,
+extension identifier, HTML MIME type, resource/tool metadata, host context,
+capabilities, initialization envelopes, and tool-result envelope.
+
+`AppResourceMeta` describes CSP, requested browser permissions, sandbox origin,
+and border preference. Tool `_meta.ui` uses `AppToolMeta` for `resourceUri` and
+visibility; CSP and permissions belong on the resource content item.
+
+This workspace adds named resource CSP/permission, host styling, theme-token,
+and content-modality types for the next reviewed release. They are not additional
+browser actions in the published `0.3.0-alpha.2`. Known styling tokens support
+autocomplete while custom variables and unknown host capability fields remain
+accepted for forward compatibility.
+
+The package retains `dist/apps-provenance.json` with exact reviewed specification
+and upstream type-file commits/checksums. The declarations are Toolgrain-authored;
+no Apps SDK implementation is vendored and there are no runtime dependencies.
+See the [Apps API reference](https://toolgrain.mintlify.site/mcp-apps/reference).
+
 ## Requirements
 
 ESM only. Supported application runtimes are Node.js `^24.20.0` or Bun

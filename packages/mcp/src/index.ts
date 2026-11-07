@@ -1,3 +1,5 @@
+export type { AppSupport } from "./apps.js";
+export { getAppSupport } from "./apps.js";
 export { validateTokenAudience } from "./auth/audience.js";
 export { createAuthAccessor } from "./auth/context.js";
 export type { AuthErrorCode } from "./auth/errors.js";

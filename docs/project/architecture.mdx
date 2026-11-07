@@ -100,6 +100,12 @@ under the `@toolgrain/protocol` workspace, in sibling revision folders
 Builds retain those files. Updates are explicit;
 there is no build-time download or MCP SDK dependency.
 
-Resource templates, MCP Apps, prompts, multi-round-trip input-required results, subscriptions, and
-extensions remain future work. [The release guide](/project/releases) describes
+The `@toolgrain/react` package implements the Apps iframe lifecycle and typed React
+bindings, with fixed HTML resources supplied by the server. Its browser connection
+is internal. The [MCP Apps guide](/mcp-apps/overview) describes the published alpha;
+[capability coverage](/mcp-apps/capabilities#react-protocol-support) separates wire
+declarations from implemented React actions.
+
+Resource templates, prompts, multi-round-trip input-required results, subscriptions, and
+additional extensions remain future work. [The release guide](/project/releases) describes
 Changesets records, generated package changelogs, and automated Release PRs.

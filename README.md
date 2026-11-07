@@ -206,8 +206,11 @@ independent POST requests and JSON responses. Tools can use
 `await ctx.reportProgress({ progress, total, message })` to send client-requested
 updates; HTTP opens a request-scoped SSE response on the first update.
 Fixed resources support listing and text/binary reads; see the
-[resource guide](https://toolgrain.mintlify.site/guides/resources). Resource templates,
-MCP Apps, sessions, resumability, prompts, elicitation, and
+[resource guide](https://toolgrain.mintlify.site/guides/resources). Native MCP Apps
+and typed React widgets are available in the published `0.3.0-alpha.2`
+prerelease; see the [MCP Apps guide](docs/mcp-apps/overview.mdx) and
+[React example](apps/react-apps-example/README.md). Resource templates,
+sessions, resumability, prompts, elicitation, and
 subscriptions are outside the current implementation. Check the
 [client verification notes](https://toolgrain.mintlify.site/compatibility/protocol) and [roadmap](./ROADMAP.md)
 for tested flows and planned work.

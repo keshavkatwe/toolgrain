@@ -295,6 +295,9 @@ test("packed protocol archives must retain internal modules and both revisions' 
       "dist/legacy.d.ts",
       "dist/shared.js",
       "dist/shared.d.ts",
+      "dist/apps.js",
+      "dist/apps.d.ts",
+      "dist/apps-provenance.json",
     ];
     for (const revision of ["2026-07-28", "2025-06-18"]) {
       for (const name of ["schema.ts", "provenance.json", "LICENSE"])
@@ -327,8 +330,9 @@ test("packed protocol archives must retain internal modules and both revisions' 
       ),
     );
     const compiledOnly = execute(["dist/**/*.js", "dist/**/*.d.ts"], 1);
-    for (const path of files.filter((path) =>
-      path.startsWith("dist/vendor/"),
+    for (const path of files.filter(
+      (path) =>
+        path.startsWith("dist/vendor/") || path === "dist/apps-provenance.json",
     )) {
       assert.ok(
         compiledOnly.errors.includes(`Missing required package file: ${path}`),

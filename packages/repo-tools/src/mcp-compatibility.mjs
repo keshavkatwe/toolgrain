@@ -37,9 +37,12 @@ export function main() {
   const manifest = readJSON(join(directory, "package.json"));
   const isMcp = manifest.name === "@toolgrain/mcp";
   if (
-    !["@toolgrain/mcp", "@toolgrain/jwt", "@toolgrain/clerk"].includes(
-      manifest.name,
-    )
+    ![
+      "@toolgrain/mcp",
+      "@toolgrain/jwt",
+      "@toolgrain/clerk",
+      "@toolgrain/react",
+    ].includes(manifest.name)
   )
     throw new Error(
       "Run mcp-compat from packages/mcp, packages/jwt, or packages/clerk",
@@ -90,6 +93,21 @@ export function main() {
         ? ["consumer.mts", "runtime.mjs"]
         : ["consumer.mts"])
         cpSync(join(directory, "smoke", name), join(temporary, name));
+      if (manifest.name === "@toolgrain/react") {
+        for (const name of ["react", "@types/react", "csstype"]) {
+          const req =
+            name === "csstype"
+              ? createRequire(
+                  consumerRequire.resolve("@types/react/package.json"),
+                )
+              : consumerRequire;
+          const source = dependency(req, name).directory;
+          cpSync(source, join(temporary, "node_modules", name), {
+            recursive: true,
+            dereference: true,
+          });
+        }
+      }
       cpSync(
         resolve(directory, "../../tsconfig.base.json"),
         join(temporary, "tsconfig.base.json"),

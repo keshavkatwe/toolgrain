@@ -1,0 +1,81 @@
+---
+title: "React quickstart"
+description: "Install the published alpha and build a typed React widget."
+---
+
+The runnable example contains weather and sales widgets, plus one shared HTML entry. It uses deterministic demo data and needs no API credentials.
+
+## Install the published alpha
+
+The `0.3.0-alpha.2` candidate was published on November 6, 2026. Use Node `^24.20.0` or Bun `>=1.4.4 <2`, TypeScript 5.5.4 or later with strict mode, React 19, and Zod 4.6.6 or later in major version 4.
+
+In your application, install the exact candidate versions together:
+
+```sh
+npm install @toolgrain/react@0.3.0-alpha.2 @toolgrain/mcp@0.3.0-alpha.2 @toolgrain/protocol@0.3.0-alpha.2 react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
+npm install --save-dev typescript@^5.5.4 @types/react@19 @types/react-dom@19 @types/node@24
+```
+
+Add the matching adapter for your server:
+
+```sh
+# Web Request/Response handlers, including Bun/Elysia.
+npm install @toolgrain/http@0.3.0-alpha.2
+
+# Stdio or Node HTTP.
+npm install @toolgrain/node@0.3.0-alpha.2
+```
+
+Keep any JWT or Clerk integration on the same Toolgrain version. During acceptance, use these exact versions rather than mixing `latest` and `alpha`: the six established libraries retain stable `latest=0.2.0`, while npm assigned React's initial `latest` to this alpha. See the [published release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853).
+
+The [candidate example source](https://github.com/keshavkatwe/toolgrain/tree/2ea4e61191c17926bb86d388c49fd5367d847d6d/apps/react-apps-example) matches the published React archive. The following workspace commands are for contributors running a checkout that contains the example; they do not install npm packages into your application.
+
+## Build the workspace example
+
+Use Bun 1.3.14 for repository tooling and a supported Node 24 runtime:
+
+```sh
+bun install --frozen-lockfile
+bun run build --filter=@toolgrain/react-apps-example
+```
+
+Run the application with Bun 1.4.4 or later:
+
+```sh
+bun run --cwd apps/react-apps-example start
+```
+
+The HTTP endpoint is `http://localhost:3008/mcp`. The example also has `start:stdio` for a host connecting to a local process. Opening the HTML in a browser alone does not create an Apps connection.
+
+## Create browser bindings
+
+Keep the exported tool map in a module your frontend can import by type:
+
+```tsx
+import type { tools } from "../server/tools";
+import { createApp } from "@toolgrain/react";
+
+const { AppProvider, useToolResult, useToolCall } = createApp<typeof tools>();
+
+function Weather() {
+  const initial = useToolResult("weather");
+  const refresh = useToolCall("weather");
+  const result = refresh.result ?? initial.result;
+  if (initial.error) return <p role="alert">{initial.error.message}</p>;
+  if (!result) return <p>Loading…</p>;
+  return <button disabled={refresh.pending}
+    onClick={() => void refresh.call({ city: "London" }).catch(() => {})}>
+    {result.structuredContent?.temperature}°C
+  </button>;
+}
+
+export function App() {
+  return <AppProvider appInfo={{ name: "Weather", version: "1.0.0" }} tool="weather">
+    <Weather />
+  </AppProvider>;
+}
+```
+
+The example's full components display call errors as well. Type imports do not bundle server handlers or credentials. Build this React entry into HTML and [register that HTML as a resource](/mcp-apps/server).
+
+See the [example source](https://github.com/keshavkatwe/toolgrain/tree/2ea4e61191c17926bb86d388c49fd5367d847d6d/apps/react-apps-example), [build recipe](/mcp-apps/build), and [client acceptance procedure](/mcp-apps/compatibility).
