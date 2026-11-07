@@ -1,0 +1,104 @@
+---
+title: "React host actions"
+description: "Open links, send messages, share context, and request display modes through the host."
+---
+
+<Note>`useHostActions()` and `availableDisplayModes` are implemented in the `0.3.0-alpha.3` candidate. They are absent from the published `0.3.0-alpha.2` archive. Live-host acceptance for these actions is pending.</Note>
+
+Get `useHostActions` from the same `createApp<typeof tools>()` factory as your provider. The hook shares that provider's native connection. It sends no requests until you call an action.
+
+```tsx
+const { AppProvider, useHostActions, useHostContext } = createApp<typeof tools>();
+
+function SourceLink() {
+  const { available, openLink } = useHostActions();
+  const [error, setError] = useState<string>();
+  async function openSource() {
+    setError(undefined);
+    try {
+      const result = await openLink("https://github.com/keshavkatwe/toolgrain");
+      if (result.isError) setError("The host declined the link.");
+    } catch {
+      setError("The link could not be opened.");
+    }
+  }
+  return (
+    <>
+      <button disabled={!available.openLink} onClick={() => void openSource()}>
+        Open source
+      </button>
+      {error ? <p role="alert">{error}</p> : null}
+    </>
+  );
+}
+```
+
+Import `useState` from React. Keep requests in explicit interaction handlers when they affect the conversation or open another application. Your component owns pending, success, and error state; the hook supplies stable action functions without a request cache.
+
+## Check availability
+
+`available` contains `openLink`, `sendMessage`, `updateModelContext`, and `displayModes`. Before initialization and after closure, booleans are false and modes are empty. Availability follows host-context changes.
+
+The first three actions require explicit `openLinks`, `message`, and `updateModelContext` host capability advertisements respectively. Message and context requests also require every supplied content kind to be advertised, such as `text: {}` or `structuredContent: {}`. An availability boolean reports the action's advertisement; a particular payload can still be unsupported. Missing advertisements reject locally without posting a request, including with older hosts that implement an action without advertising it.
+
+## Open a link
+
+`openLink(url, options?)` sends `ui/open-link` with an absolute URL. The host chooses whether and how to open it, applying its own URL and permission policy. Toolgrain does not open a browser window itself.
+
+## Send a user message
+
+`sendMessage(params, options?)` sends `ui/message`. The role must be `user` and `content` is an array of MCP content blocks. Sending can add a message to the conversation and trigger a model follow-up; the host may request consent.
+
+```ts
+const result = await actions.sendMessage({
+  role: "user",
+  content: [{ type: "text", text: "Explain the selected sales region." }],
+});
+if (result.isError) showError("The host declined the message.");
+```
+
+## Update future model context
+
+`updateModelContext(params, options?)` sends `ui/update-model-context`. Pass optional `content` blocks, object-root `structuredContent`, or both. Each update replaces the app's previously submitted context. An empty object submits an empty replacement.
+
+```ts
+const result = await actions.updateModelContext({
+  structuredContent: { region: "West", total: 31000 },
+});
+if (result.isError) showError("The host declined the context update.");
+```
+
+This does not itself request a model follow-up. The host may defer the context until a future user message and may deduplicate updates. It remains separate from your initiating tool result and `useToolCall` state.
+
+## Request a display mode
+
+Declare every mode the widget can render on the provider. The default is `["inline"]`; this declaration stays fixed until remount.
+
+```tsx
+<AppProvider
+  appInfo={{ name: "Sales view", version: "1.0.0" }}
+  tool="sales"
+  availableDisplayModes={["inline", "fullscreen"]}
+>
+  <Sales />
+</AppProvider>
+```
+
+`available.displayModes` is the intersection of this declaration and the host's `availableDisplayModes`. If the host omits its modes, the intersection is empty. Only request a mode in that list:
+
+```ts
+if (actions.available.displayModes.includes("fullscreen")) {
+  const result = await actions.requestDisplayMode("fullscreen");
+  showStatus(`Host selected ${result.mode}`);
+}
+```
+
+The host may return a different mode, such as `inline`. A response selecting a mode the app never declared rejects. The returned result describes this request's outcome; `useHostContext().displayMode` continues to follow host notifications. The hook does not synthesize context changes from responses. The `pip` mode is also available when both app and host advertise it.
+
+## Results, deadlines, and cancellation
+
+All four actions return the complete validated host response, including extension fields. Link, message, and context acknowledgements may contain `isError: true`; these resolve so callers can inspect the denial. Display requests return `{ mode, ...extensions }`. JSON-RPC errors, invalid replies, unsupported requests, and transport failures reject.
+
+Each function accepts an optional `HostActionOptions` with `signal` and `timeoutMs`. The provider's deadline defaults to 30 seconds; an action can override it. Local abort or timeout rejects the promise, sends a cancellation notification, and suppresses late replies. Cancellation is cooperative and cannot undo an action the host already performed. Teardown rejects pending actions and removes owned timers/listeners.
+
+See the [API reference](/mcp-apps/reference), [support table](/mcp-apps/capabilities#react-protocol-support), and [acceptance scope](/mcp-apps/compatibility). The repository's React example includes all four controls with caller-owned pending/error state.

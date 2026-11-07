@@ -7,12 +7,12 @@ The runnable example contains weather and sales widgets, plus one shared HTML en
 
 ## Install the published alpha
 
-The `0.3.0-alpha.2` candidate was published on November 6, 2026. Use Node `^24.20.0` or Bun `>=1.4.4 <2`, TypeScript 5.5.4 or later with strict mode, React 19, and Zod 4.6.6 or later in major version 4.
+The `0.3.0-alpha.3` candidate includes the host actions described in this guide. Use Node `^24.20.0` or Bun `>=1.4.4 <2`, TypeScript 5.5.4 or later with strict mode, React 19, and Zod 4.6.6 or later in major version 4.
 
 In your application, install the exact candidate versions together:
 
 ```sh
-npm install @toolgrain/react@0.3.0-alpha.2 @toolgrain/mcp@0.3.0-alpha.2 @toolgrain/protocol@0.3.0-alpha.2 react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
+npm install @toolgrain/react@0.3.0-alpha.3 @toolgrain/mcp@0.3.0-alpha.3 @toolgrain/protocol@0.3.0-alpha.3 react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
 npm install --save-dev typescript@^5.5.4 @types/react@19 @types/react-dom@19 @types/node@24
 ```
 
@@ -20,15 +20,15 @@ Add the matching adapter for your server:
 
 ```sh
 # Web Request/Response handlers, including Bun/Elysia.
-npm install @toolgrain/http@0.3.0-alpha.2
+npm install @toolgrain/http@0.3.0-alpha.3
 
 # Stdio or Node HTTP.
-npm install @toolgrain/node@0.3.0-alpha.2
+npm install @toolgrain/node@0.3.0-alpha.3
 ```
 
-Keep any JWT or Clerk integration on the same Toolgrain version. During acceptance, use these exact versions rather than mixing `latest` and `alpha`: the six established libraries retain stable `latest=0.2.0`, while npm assigned React's initial `latest` to this alpha. See the [published release verification](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853).
+Keep any JWT or Clerk integration on the same Toolgrain version. During acceptance, use these exact versions rather than mixing `latest` and `alpha`: the six established libraries retain stable `latest=0.2.0`, while npm assigned React's initial `latest` to `0.3.0-alpha.2`. See the [alpha.2 publication verification](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853).
 
-The [candidate example source](https://github.com/keshavkatwe/toolgrain/tree/2ea4e61191c17926bb86d388c49fd5367d847d6d/apps/react-apps-example) matches the published React archive. The following workspace commands are for contributors running a checkout that contains the example; they do not install npm packages into your application.
+The [series example source](https://github.com/keshavkatwe/toolgrain/tree/prerelease/0.3/apps/react-apps-example) includes the candidate widgets and host-action controls. The following workspace commands are for contributors running a checkout that contains the example; they do not install npm packages into your application.
 
 ## Build the workspace example
 

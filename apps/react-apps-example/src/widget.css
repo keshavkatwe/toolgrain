@@ -22,7 +22,16 @@ button {
 }
 button:disabled {
   opacity: 0.5;
-  cursor: wait;
+  cursor: default;
+}
+.host-actions {
+  margin-top: 24px;
+  border-top: 1px solid var(--color-border-primary, currentColor);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .bars {
   display: flex;
