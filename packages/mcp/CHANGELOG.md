@@ -1,5 +1,13 @@
 # @toolgrain/mcp
 
+## 0.3.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @toolgrain/protocol@0.3.0-alpha.3
+
 ## 0.3.0-alpha.2
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@toolgrain/react",
-  "version": "0.3.0-alpha.2",
+  "version": "0.3.0-alpha.3",
   "description": "Native, typed React widgets for MCP Apps hosts.",
   "license": "MIT",
   "repository": {

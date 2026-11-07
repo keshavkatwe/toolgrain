@@ -1,5 +1,12 @@
 # @toolgrain/clerk
 
+## 0.3.0-alpha.3
+
+### Patch Changes
+
+- @toolgrain/mcp@0.3.0-alpha.3
+  - @toolgrain/jwt@0.3.0-alpha.3
+
 ## 0.3.0-alpha.2
 
 ### Patch Changes
