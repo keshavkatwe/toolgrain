@@ -60,6 +60,7 @@ export function createLegacyDispatcher(
         },
         scope.auth,
         providers,
+        scope.reportProgress,
       );
     let result: Result | undefined;
     switch (request.method) {

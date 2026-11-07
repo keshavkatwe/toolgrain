@@ -78,12 +78,12 @@ mark. Both come from `brand/`. See
 | [Published-package verification](https://toolgrain.mintlify.site/compatibility/published-packages) | Stable/RC archive and consumer verification |
 
 Current support covers tools over MCP `2026-07-28` and `2025-06-18`, using stdio
-or independent HTTP POSTs with JSON responses. Fixed resources support listing and text/binary reads.
+or independent HTTP POSTs with JSON responses or request-scoped SSE progress.
+Fixed resources support listing and text/binary reads.
 The `0.3.0-alpha.2` prerelease includes native MCP Apps and React widgets; use
 the [Apps quickstart](./mcp-apps/quickstart.mdx) for matching candidate installation
 and [capability coverage](./mcp-apps/capabilities.mdx) for implemented/deferred APIs.
-Resource templates, prompts, elicitation,
-sessions, SSE, progress, and subscriptions are outside the current implementation.
+Resource templates, prompts, elicitation, sessions, and subscriptions are outside the current implementation.
 
 ## Contribute and maintain
 

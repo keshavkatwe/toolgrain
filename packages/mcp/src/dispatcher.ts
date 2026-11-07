@@ -2,6 +2,7 @@ import {
   type Implementation,
   type JSONRPCErrorResponse,
   LEGACY_PROTOCOL_VERSION,
+  type ProgressNotification,
   type ProtocolResponse,
   type SupportedProtocolVersion,
 } from "@toolgrain/protocol";
@@ -17,7 +18,7 @@ import type { Request } from "./protocol/messages.js";
 import { validateVersionContext } from "./protocol/version-metadata.js";
 import type { ResourceRegistry } from "./resources/registry.js";
 import type { ToolAdapter } from "./tools/adapter.js";
-import type { ToolClient } from "./tools/context.js";
+import type { ToolClient, ToolContext } from "./tools/context.js";
 
 /** Per-request execution state supplied by the connection or independent caller. */
 export interface RequestScope {
@@ -25,6 +26,8 @@ export interface RequestScope {
   /** Client details negotiated by legacy initialization, when the connection has them. */
   client?: ToolClient | undefined;
   auth?: AuthIdentity;
+  notify?: (message: ProgressNotification) => void | Promise<void>;
+  reportProgress?: ToolContext["reportProgress"];
 }
 
 export type Dispatcher = (

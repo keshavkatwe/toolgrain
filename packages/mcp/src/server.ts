@@ -1,8 +1,10 @@
 import type {
+  ProgressNotification,
   ProtocolResponse,
   Tool as ProtocolTool,
   SupportedProtocolVersion,
 } from "@toolgrain/protocol";
+import { abortable } from "./abort.js";
 import { createAuthorization } from "./auth/authorization.js";
 import { AuthError, isAuthError } from "./auth/errors.js";
 import type { AuthMetadata, AuthProvider, AuthScope } from "./auth/types.js";
@@ -22,6 +24,13 @@ import {
   type RequestTransport,
   type Transport,
 } from "./transport.js";
+
+// Internal adapter contract: final delivery remains part of the active request.
+// A global symbol preserves the hook across compatible package copies.
+const responseDelivery = Symbol.for("@toolgrain/mcp/response-delivery/v1");
+interface ResponseDeliveryOptions {
+  [responseDelivery]?: (response: ProtocolResponse) => void | Promise<void>;
+}
 
 /** Tool/resource registrations, identity, and shared configuration for an MCP server. */
 export interface ServerOptions<Tools extends ToolMap = ToolMap> {
@@ -58,6 +67,13 @@ export interface HandleOptions {
   protocolVersion?: SupportedProtocolVersion;
   /** Single-use scope issued by this server's `authorize()`; dispose it in `finally`. */
   auth?: AuthScope;
+  /**
+   * Deliver progress notifications for this request, honoring asynchronous
+   * backpressure. Omit for a one-response caller; progress then becomes a no-op.
+   * The caller owns framing and must abort `signal` when its response channel closes.
+   * Callback failure cancels this invocation and reaches `onError(error)` without tool details.
+   */
+  onNotification?: (message: ProgressNotification) => void | Promise<void>;
 }
 
 /** An MCP dispatcher with one optional transport attachment and terminal shutdown. */
@@ -154,6 +170,9 @@ export function createServer<const Tools extends ToolMap>(
     running.add(controller);
     return {
       signal: controller.signal,
+      abort(reason: unknown) {
+        controller.abort(reason);
+      },
       finish() {
         signal?.removeEventListener("abort", abort);
         running.delete(controller);
@@ -192,10 +211,8 @@ export function createServer<const Tools extends ToolMap>(
         throw error;
       }
     },
-    async handle(
-      message,
-      { signal, protocolVersion, auth }: HandleOptions = {},
-    ) {
+    async handle(message, handleOptions: HandleOptions = {}) {
+      const { signal, protocolVersion, auth, onNotification } = handleOptions;
       if (closed) throw new Error("Server is closed");
       const identity = authorization.consume(auth);
       if (auth?.signal.aborted) return;
@@ -211,13 +228,62 @@ export function createServer<const Tools extends ToolMap>(
         ? AbortSignal.any([pending.signal, auth.signal])
         : pending.signal;
       try {
-        return await executeRequest(
-          dispatch,
-          incoming.request,
-          { signal: combined, ...(identity ? { auth: identity } : {}) },
-          options.onError,
-          protocolVersion,
+        const response = await abortable(
+          executeRequest(
+            dispatch,
+            incoming.request,
+            {
+              signal: combined,
+              ...(identity ? { auth: identity } : {}),
+              ...(onNotification
+                ? {
+                    notify: async (message: ProgressNotification) => {
+                      try {
+                        await onNotification(message);
+                      } catch (error) {
+                        if (combined.aborted) return;
+                        reportError(options.onError, error);
+                        pending.abort(
+                          new DOMException(
+                            "Progress delivery failed",
+                            "AbortError",
+                          ),
+                        );
+                      }
+                    },
+                  }
+                : {}),
+            },
+            options.onError,
+            protocolVersion,
+          ),
+          combined,
         );
+        const deliver = (handleOptions as ResponseDeliveryOptions)[
+          responseDelivery
+        ];
+        if (response && deliver) {
+          try {
+            await abortable(
+              Promise.resolve().then(() => {
+                combined.throwIfAborted();
+                return deliver(response);
+              }),
+              combined,
+            );
+          } catch (error) {
+            if (!combined.aborted) {
+              reportError(options.onError, error);
+              pending.abort(
+                new DOMException("Response delivery failed", "AbortError"),
+              );
+            }
+            return;
+          }
+        }
+        return response;
+      } catch (error) {
+        if (!combined.aborted) throw error;
       } finally {
         pending.finish();
       }

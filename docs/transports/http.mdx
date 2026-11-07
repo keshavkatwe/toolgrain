@@ -3,7 +3,7 @@ title: "Streamable HTTP"
 description: "Choose a listener or handler and configure HTTP request validation."
 ---
 
-Toolgrain supports independent HTTP POST requests with JSON responses. Choose a managed Node listener, Node middleware, or a Web handler depending on who owns your application listener.
+Toolgrain supports independent HTTP POST requests with JSON responses or request-scoped SSE progress. Choose a managed Node listener, Node middleware, or a Web handler depending on who owns your application listener. A tool's first client-requested `ctx.reportProgress()` update opens SSE; calls that send no updates retain JSON responses. Consume or cancel response bodies so streaming backpressure and cleanup can complete.
 
 | Application | Adapter |
 | --- | --- |

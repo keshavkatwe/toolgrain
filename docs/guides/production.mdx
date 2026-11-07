@@ -35,4 +35,4 @@ Close is terminal, idempotent, and re-entrant. Do not try to restart an attached
 
 Keep protocol stdout clean on stdio. Record unexpected errors with `onError`, keeping raw failures in private diagnostics. Review logging of client metadata and application data. Verify discovery, listing, a successful call, invalid input, auth rejection, metadata discovery, disconnects, and shutdown on your actual runtime.
 
-Use the [support policy](/project/support-policy) and [interoperability report](/compatibility/clients) to distinguish a supported target from a verified combination. Toolgrain's current HTTP implementation does not supply sessions, SSE, resumability, or subscriptions.
+Use the [support policy](/project/support-policy) and [interoperability report](/compatibility/clients) to distinguish a supported target from a verified combination. Toolgrain supplies request-scoped SSE progress; sessions, resumability, and subscriptions remain outside the current scope. Configure reverse proxies and framework response handling to pass streaming bodies through promptly. Dated client reports do not verify progress UI presentation.

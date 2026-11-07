@@ -69,8 +69,9 @@ requests and unknown tools return protocol errors. Unexpected handler failures
 return generic errors and reach the server diagnostics callback; explicit public
 `mcpResult()` errors retain their intended content.
 
-`Transport` provides asynchronous `start(callbacks)`, `send(response)`, and `close()`.
-Its responses use `ProtocolResponse`, covering both protocol eras.
+`Transport` provides asynchronous `start(callbacks)`, `send(message)`, and `close()`.
+Its messages use `ProtocolResponse | ProgressNotification`, covering responses
+and request-scoped progress in both protocol eras.
 Callbacks report decoded messages, JSON parse failures, transport errors, and EOF.
 Adapters own byte framing and JSON parsing. Messages run independently; writes
 are serialized. `listen()` resolves after startup. A server permits one transport
@@ -83,6 +84,14 @@ Cancellation suppresses pending responses and aborts the handler's `ctx.signal`;
 handlers stop early only if they observe it. A request cancelled during
 validation never starts its handler. Responses already handed to an adapter
 cannot be recalled.
+
+Each execution owns a bound progress reporter. It validates and snapshots active
+updates, serializes delivery, drains accepted writes before the final response, and
+stops accepting reports on completion or cancellation. `ToolContext` exposes only
+`reportProgress(update)`; the dispatcher receives its request-scoped delivery
+callback explicitly. Direct contexts and callers without a channel use a no-op.
+HTTP opens SSE lazily on the first progress notification and retains authorization
+until final delivery or cancellation. Node owns stream conversion and backpressure.
 
 Both complete upstream schemas are vendored unchanged at commit
 `271ecc9accafdd9b83a3c869fa67c22953b2af80`, with checksum/provenance and its license

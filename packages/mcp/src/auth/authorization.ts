@@ -1,4 +1,4 @@
-import { abortable } from "./abort.js";
+import { abortable } from "../abort.js";
 import { identitySnapshot } from "./context.js";
 import { AuthError } from "./errors.js";
 import { validateAuthScopes } from "./scopes.js";

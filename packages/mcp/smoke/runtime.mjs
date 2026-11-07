@@ -321,3 +321,64 @@ for (const protocolVersion of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
   assert.deepEqual(read.result.contents[0]._meta.ui.csp.connectDomains, []);
 }
 await resourceServer.close();
+
+// Public progress API and wire delivery must work from the packed ESM package.
+const progressServer = createServer({
+  name: "progress-smoke",
+  version: "1",
+  tools: {
+    work: tool({
+      input: z.object({}),
+      async execute(_input, ctx) {
+        const report = ctx.reportProgress;
+        await report({ progress: 0.5, total: 1, message: "Working" });
+        return "done";
+      },
+    }),
+  },
+});
+try {
+  for (const revision of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
+    const updates = [];
+    const result = await progressServer.handle(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: "work",
+          _meta: {
+            progressToken: 0,
+            ...(revision === PROTOCOL_VERSION
+              ? {
+                  "io.modelcontextprotocol/protocolVersion": revision,
+                  "io.modelcontextprotocol/clientCapabilities": {},
+                }
+              : {}),
+          },
+        },
+      },
+      {
+        protocolVersion: revision,
+        onNotification(message) {
+          updates.push(message);
+        },
+      },
+    );
+    assert.deepEqual(updates, [
+      {
+        jsonrpc: "2.0",
+        method: "notifications/progress",
+        params: {
+          progressToken: 0,
+          progress: 0.5,
+          total: 1,
+          message: "Working",
+        },
+      },
+    ]);
+    assert.equal(result.result.content[0].text, "done");
+  }
+} finally {
+  await progressServer.close();
+}

@@ -1,9 +1,9 @@
 ---
 title: "Request context"
-description: "Read request metadata and cancellation from the handler context."
+description: "Read request metadata, observe cancellation, and report progress from tool handlers."
 ---
 
-Handlers receive a second argument, `ctx: ToolContext`. Use it for cancellation and request information without making the tool definition specific to a server or auth provider.
+Handlers receive a second argument, `ctx: ToolContext`. Use it for cancellation, progress, and request information without making the tool definition specific to a server or auth provider.
 
 ```ts
 import { tool } from "@toolgrain/mcp";
@@ -24,6 +24,7 @@ const lookup = tool({
 | Field | Meaning |
 | --- | --- |
 | `signal` | AbortSignal for the active request |
+| `reportProgress(update)` | Bound asynchronous progress reporter; no-op without a client token or delivery channel |
 | `request.id` | JSON-RPC request ID |
 | `request.protocolVersion` | Selected supported revision |
 | `request.client` | Optional self-reported client info and capabilities |
@@ -47,3 +48,57 @@ const value = await lookup.execute({ id: "u_1" }, ctx);
 ```
 
 The helper defaults omitted fields independently: ID `0`, the modern revision, no client, empty metadata, a fresh signal, and no registered providers. Reusing one context reuses its provider cache. Use the helper rather than hand-building context objects; future fields may be supplied by the helper. Direct calls bypass server validation and authorization.
+
+## Report progress
+
+Tool handlers and context providers can report progress during an active invocation:
+
+```ts
+const processFiles = tool({
+  input: z.object({ files: z.array(z.string()) }),
+  async execute({ files }, ctx) {
+    for (let index = 0; index < files.length; index++) {
+      ctx.signal.throwIfAborted();
+      // Perform application work for files[index], observing ctx.signal.
+      await ctx.reportProgress({
+        progress: index + 1,
+        total: files.length,
+        message: `Processed ${index + 1} files`,
+      });
+    }
+    return { processed: files.length };
+  },
+});
+```
+
+The MCP client opts in with a string or integer `params._meta.progressToken`.
+Toolgrain attaches that token to `notifications/progress`. Without a token or
+delivery channel, reports resolve without sending. `toolContext()` uses that
+no-op behavior for direct calls. Tool results retain their normal validation and
+conversion.
+
+Clients must choose unique tokens for active requests. On a shared message
+connection, Toolgrain rejects a duplicate active token with `-32602` before
+invoking the handler. String and integer tokens are distinct. Completion or
+cancellation releases the token for reuse; independent HTTP response streams
+keep their tokens isolated.
+
+Progress values must be finite and strictly increase. `total` and `message` are
+optional; values may be fractional. Await reports to respect backpressure and
+use `ctx.signal` to stop application work on cancellation. Reports after completion
+or cancellation send nothing. The bound method can be passed as
+`reportProgress: ctx.reportProgress` to application helpers alongside `ctx.signal`.
+
+The first update is sent immediately. Later updates are spaced at least 100 ms
+apart per invocation, also respecting delivery backpressure. Accepted updates
+retain their order and finish before the final response; they are not dropped.
+Await each report to avoid building up a queue. Cancellation and shutdown clear
+pending pacing timers and suppress queued updates. This is a per-request limit,
+not a server-wide connection or request limit.
+
+Stdio uses its existing message channel. HTTP opens a POST SSE response on the first
+progress update, sends the final response on the same stream, and ends it. Calls
+that send no updates retain JSON responses. Progress belongs to the individual
+request and does not require `subscriptions/listen`. Client UI presentation is
+separate from protocol delivery; the dated client compatibility reports do not
+verify progress displays.

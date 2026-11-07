@@ -42,9 +42,11 @@ execution and transport lifecycle through explicit internal contracts.
 ## Contracts to preserve
 
 - Support only MCP `2026-07-28` and initialization-based `2025-06-18`, over stdio
-  and independent HTTP POSTs with JSON responses. Legacy initialization can
-  negotiate down to the supported legacy revision. Keep sessions, SSE, progress,
-  resource templates, prompts, elicitation, and subscriptions outside the current scope.
+  and independent HTTP POSTs with JSON responses or request-scoped SSE progress.
+  Legacy initialization can negotiate down to the supported legacy revision.
+  Keep sessions, resource templates, prompts, elicitation, and subscriptions
+  outside the current scope. Progress requires a client token; preserve ordering,
+  backpressure, cancellation, and the ordinary final tool result.
 - Fixed resources use frozen `resource()` definitions with definition-owned URIs.
   Register a readonly array; listing is static and readers return explicit text/blob
   contents. Reuse `ToolContext`, auth, providers, and cancellation. Preserve metadata,

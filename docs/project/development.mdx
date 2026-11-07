@@ -168,6 +168,10 @@ over stdio, Web HTTP, Node HTTP, and the managed HTTP transport, including input
 validation, rich results, and a context provider. JWT and Clerk initialize with
 test configuration; signed-token and opaque-token verification uses offline
 responses. Both eras also exercise stdio cancellation and HTTP disconnects.
+Client-requested progress is checked over stdio and Web/Node HTTP, including
+ordered fractional updates, final responses, SSE cancellation, and shutdown
+while a final SSE write is blocked. These flows run in the supported Node/Bun
+matrix and post-publication consumers.
 No live credentials or external authorization calls are used.
 
 The default check uses npm and Node and retains all verification. Internal
@@ -241,9 +245,9 @@ MCP's `sourceMaps` size policy additionally requires JavaScript maps, declaratio
 maps, and the TypeScript sources in the archive. Verification rejects malformed
 maps, missing or incorrect source targets, and missing mapping comments. Packaged
 sources are limited to existing `src/**/*.ts` files; other libraries retain their
-existing restrictions. MCP's budgets are 103 KiB packed and 355 KiB unpacked.
-The packed limit allows approximately 20% growth above the 0.1.2 archive,
-including its API documentation, package metadata, README, and changelog.
+existing restrictions. MCP's budgets are 110 KiB packed and 440 KiB unpacked.
+These limits include fixed resources and request-scoped progress, along with API
+documentation, package metadata, README, changelog, sources, and maps.
 Every library archive must include its package-root README and LICENSE; protocol
 and Clerk also require their package-root NOTICE files. Size budgets include the
 required legal notices.
