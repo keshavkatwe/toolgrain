@@ -3,7 +3,7 @@ title: "Shared widget entries"
 description: "Render several tool widgets from one HTML application."
 ---
 
-A React project may build separate HTML entries or reuse one HTML entry for several tools. Each host-created widget instance has its own connection and state; this does not create one persistent dashboard across the conversation.
+Follow [Add more widgets](/mcp-apps/build) for one HTML file per resource. Use this shared-entry pattern when several tools should render the same HTML application. Each host-created widget instance has its own connection and state; this does not create one persistent dashboard across the conversation.
 
 For a separate entry, declare `tool="weather"` on its provider. For a shared entry, set `resolveTool(result, hostContext)` instead. The result notification has no required tool name, and host tool information is optional, so shared routing must be explicit.
 

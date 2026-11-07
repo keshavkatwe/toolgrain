@@ -1,81 +1,246 @@
 ---
-title: "React quickstart"
-description: "Install the published alpha and build a typed React widget."
+title: "Build your first widget"
+description: "Start with the Vite CLI and connect a React widget to a Toolgrain tool."
 ---
 
-The runnable example contains weather and sales widgets, plus one shared HTML entry. It uses deterministic demo data and needs no API credentials.
+Build a small weather widget from a new React project. A tool returns the weather, Vite builds the widget into one HTML file, and your MCP host displays it.
 
-## Install the published alpha
+Use **Node 24.20.0 or later in Node 24** and npm. This walkthrough uses the published **`0.3.0-alpha.3`** packages and pins the build recipe so you can reproduce it.
 
-The `0.3.0-alpha.3` candidate includes the host actions described in this guide. Use Node `^24.20.0` or Bun `>=1.4.4 <2`, TypeScript 5.5.4 or later with strict mode, React 19, and Zod 4.6.6 or later in major version 4.
+## 1. Create a Vite project
 
-In your application, install the exact candidate versions together:
-
-```sh
-npm install @toolgrain/react@0.3.0-alpha.3 @toolgrain/mcp@0.3.0-alpha.3 @toolgrain/protocol@0.3.0-alpha.3 react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
-npm install --save-dev typescript@^5.5.4 @types/react@19 @types/react-dom@19 @types/node@24
-```
-
-Add the matching adapter for your server:
+Run the [Vite CLI](https://vite.dev/guide/#scaffolding-your-first-vite-project) with its React and TypeScript template:
 
 ```sh
-# Web Request/Response handlers, including Bun/Elysia.
-npm install @toolgrain/http@0.3.0-alpha.3
-
-# Stdio or Node HTTP.
-npm install @toolgrain/node@0.3.0-alpha.3
+npm create vite@9.3.4 weather-app -- --template react-ts --no-interactive --no-immediate
+cd weather-app
+npm install
 ```
 
-Keep any JWT or Clerk integration on the same Toolgrain version. During acceptance, use these exact versions rather than mixing `latest` and `alpha`: the six established libraries retain stable `latest=0.2.0`, while npm assigned React's initial `latest` to `0.3.0-alpha.2`. See the [alpha.2 publication verification](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853).
-
-The [series example source](https://github.com/keshavkatwe/toolgrain/tree/prerelease/0.3/apps/react-apps-example) includes the candidate widgets and host-action controls. The following workspace commands are for contributors running a checkout that contains the example; they do not install npm packages into your application.
-
-## Build the workspace example
-
-Use Bun 1.3.14 for repository tooling and a supported Node 24 runtime:
+Add Toolgrain and the single-file build plugin:
 
 ```sh
-bun install --frozen-lockfile
-bun run build --filter=@toolgrain/react-apps-example
+npm install --save-exact @toolgrain/react@0.3.0-alpha.3 @toolgrain/mcp@0.3.0-alpha.3 @toolgrain/node@0.3.0-alpha.3 @toolgrain/protocol@0.3.0-alpha.3 zod@^4.6.6
+npm install --save-dev --save-exact vite@8.3.4 vite-plugin-singlefile@2.3.4
 ```
 
-Run the application with Bun 1.4.4 or later:
+Use matching Toolgrain versions. The Apps packages are currently an alpha; the commands above deliberately select that version.
 
-```sh
-bun run --cwd apps/react-apps-example start
+## 2. Define the tool
+
+Create a `server` folder and add this file. The tool's registration key, `weather`, is also the name React will use.
+
+```ts server/tools.ts
+import { tool } from "@toolgrain/mcp";
+import { z } from "zod";
+
+export const weatherWidgetUri = "ui://weather/widget.html";
+
+export const tools = {
+  weather: tool({
+    description: "Show demo weather for a city.",
+    input: z.object({ city: z.string().default("Dubai") }),
+    output: z.object({ city: z.string(), temperature: z.number() }),
+    _meta: { ui: { resourceUri: weatherWidgetUri } },
+    execute: ({ city }) => ({
+      city,
+      temperature: city === "London" ? 14 : 29,
+    }),
+  }),
+};
 ```
 
-The HTTP endpoint is `http://localhost:3008/mcp`. The example also has `start:stdio` for a host connecting to a local process. Opening the HTML in a browser alone does not create an Apps connection.
+This is deterministic demo data. Toolgrain converts the returned object into structured content and assistant-facing text, so the tool also works in clients that do not display widgets.
 
-## Create browser bindings
+## 3. Create the React bindings
 
-Keep the exported tool map in a module your frontend can import by type:
+Add one small module that connects your components to the tool types:
 
-```tsx
-import type { tools } from "../server/tools";
+```ts src/mcp.ts
 import { createApp } from "@toolgrain/react";
+import type { tools } from "../server/tools.ts";
 
-const { AppProvider, useToolResult, useToolCall } = createApp<typeof tools>();
+export const { AppProvider, useToolResult } = createApp<typeof tools>();
+```
+
+The `import type` is important: it gives React the tool's input/output types without bundling the server code. Create these bindings once, outside your components.
+
+## 4. Replace the starter component
+
+Replace `src/App.tsx`:
+
+```tsx src/App.tsx
+import { AppProvider, useToolResult } from "./mcp.ts";
 
 function Weather() {
-  const initial = useToolResult("weather");
-  const refresh = useToolCall("weather");
-  const result = refresh.result ?? initial.result;
-  if (initial.error) return <p role="alert">{initial.error.message}</p>;
-  if (!result) return <p>Loading…</p>;
-  return <button disabled={refresh.pending}
-    onClick={() => void refresh.call({ city: "London" }).catch(() => {})}>
-    {result.structuredContent?.temperature}°C
-  </button>;
+  const { result, error, status } = useToolResult();
+  if (error) return <p role="alert">{error.message}</p>;
+  if (result?.isError) return <p role="alert">Weather could not be loaded.</p>;
+
+  const weather = result?.structuredContent;
+  if (!weather) {
+    return <p>{status === "cancelled" ? "Request cancelled." : "Waiting for weather…"}</p>;
+  }
+
+  return (
+    <section>
+      <h1>{weather.city}</h1>
+      <p>{weather.temperature}°C</p>
+    </section>
+  );
 }
 
-export function App() {
-  return <AppProvider appInfo={{ name: "Weather", version: "1.0.0" }} tool="weather">
-    <Weather />
-  </AppProvider>;
+export default function App() {
+  return (
+    <AppProvider appInfo={{ name: "Weather widget", version: "1.0.0" }} tool="weather">
+      <Weather />
+    </AppProvider>
+  );
 }
 ```
 
-The example's full components display call errors as well. Type imports do not bundle server handlers or credentials. Build this React entry into HTML and [register that HTML as a resource](/mcp-apps/server).
+**One provider and one hook are enough to display a result.** The provider connects to the host, applies its theme, and reports widget size. `useToolResult()` receives the initiating tool result. The host creates the widget when the tool is called.
 
-See the [example source](https://github.com/keshavkatwe/toolgrain/tree/2ea4e61191c17926bb86d388c49fd5367d847d6d/apps/react-apps-example), [build recipe](/mcp-apps/build), and [client acceptance procedure](/mcp-apps/compatibility).
+Replace the starter's full-page styles with a widget layout:
+
+```css src/index.css
+:root {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  color: var(--color-text-primary, #1f2937);
+  background: var(--color-background-primary, #fff);
+}
+body { margin: 0; padding: 16px; }
+h1 { margin: 0 0 8px; font-size: 22px; }
+p { margin: 8px 0; }
+```
+
+## 5. Configure one HTML build
+
+Rename the generated `index.html` to `weather.html` and replace its contents:
+
+```html weather.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather widget</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+The generated `src/main.tsx` renders the `App` you replaced. Now replace `vite.config.ts`:
+
+```ts vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { viteSingleFile } from "vite-plugin-singlefile";
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), viteSingleFile()],
+  publicDir: false,
+  build: {
+    outDir: "dist/widgets",
+    emptyOutDir: mode === "weather",
+    rolldownOptions: { input: `${mode}.html` },
+  },
+}));
+```
+
+In `package.json`, set the `build` script and add `start:mcp`:
+
+```json
+{
+  "scripts": {
+    "build": "tsc -b && vite build --mode weather",
+    "start:mcp": "node server/index.ts"
+  }
+}
+```
+
+Merge those entries into the existing `scripts` object. In `tsconfig.node.json`, add `server` to `include` so the build also checks your server files:
+
+```json
+"include": ["vite.config.ts", "server"]
+```
+
+`--mode weather` selects `weather.html`. The plugin inlines its JavaScript and CSS into **`dist/widgets/weather.html`**. `publicDir: false` skips the starter's public assets; the HTML above also removes its favicon/logo references.
+
+## 6. Serve the HTML as a resource
+
+Create the MCP server. Keep the widget's presentation and permission settings in the named `widgetUi` object:
+
+```ts server/index.ts
+import { readFile } from "node:fs/promises";
+import { createServer, resource } from "@toolgrain/mcp";
+import { stdio } from "@toolgrain/node";
+import { APPS_MIME_TYPE, type AppResourceMeta } from "@toolgrain/protocol/apps";
+import { tools, weatherWidgetUri } from "./tools.ts";
+
+const widgetUi = {
+  prefersBorder: true,
+} satisfies AppResourceMeta;
+
+const weatherWidget = resource({
+  uri: weatherWidgetUri,
+  name: "weather-widget",
+  mimeType: APPS_MIME_TYPE,
+  read: async (uri) => ({
+    contents: [{
+      uri,
+      mimeType: APPS_MIME_TYPE,
+      text: await readFile(new URL("../dist/widgets/weather.html", import.meta.url), "utf8"),
+      _meta: { ui: widgetUi },
+    }],
+  }),
+});
+
+const server = createServer({
+  name: "weather-app",
+  version: "1.0.0",
+  tools,
+  resources: [weatherWidget],
+});
+
+await server.listen(stdio());
+```
+
+The tool's `resourceUri` and the resource's `uri` must match exactly. The resource reads your built file; a `ui://` URI is an identifier, not a filesystem location.
+
+The HTML MIME type appears on both the resource definition and the returned content. To request permissions or allow network origins later, edit `widgetUi` using the [permissions and metadata guide](/mcp-apps/security).
+
+## 7. Build and connect a host
+
+```sh
+npm run build
+```
+
+You should have `dist/widgets/weather.html`, with its script and styles inside it. The server runs with `npm run start:mcp`. It waits for MCP messages over stdio; it does not open a browser or print a startup message to stdout. [Node 24 runs these TypeScript server files directly](https://nodejs.org/docs/latest-v24.x/api/typescript.html#type-stripping).
+
+In Claude Desktop, open **Settings → Developer → Edit Config** ([host setup guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers)). Add the following entry to its `mcpServers` object, using your Node executable and the absolute server entry path:
+
+```json
+{
+  "mcpServers": {
+    "toolgrain-weather": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/weather-app/server/index.ts"]
+    }
+  }
+}
+```
+
+Find your Node executable with `node -p "process.execPath"`. Replace both paths, save the configuration, and restart Claude Desktop to load it. Ask Claude to call `weather` with `{ "city": "Dubai" }`. An Apps-capable host should load the widget and supply that tool's result.
+
+Opening `weather.html` directly, or visiting Vite's dev server, does not create an MCP host connection. Test the connected widget inside a compatible host. See [host testing and troubleshooting](/mcp-apps/compatibility) for the recorded environments, setup details, and resource-cache behavior.
+
+## Next steps
+
+- [Add a refresh button](/mcp-apps/react#add-a-refresh-button) with `useToolCall`.
+- [Add a second widget](/mcp-apps/build) with one HTML file and resource per widget.
+- [Request permissions or network access](/mcp-apps/security) in `widgetUi`.
+- [Use host actions](/mcp-apps/host-actions) when you need links, messages, or display-mode requests.

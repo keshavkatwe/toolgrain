@@ -1,41 +1,117 @@
 ---
-title: "React provider and hooks"
-description: "Connect React to the host and work with typed tool results."
+title: "Use React hooks"
+description: "Start with one result hook and add interactive calls only when you need them."
 ---
 
-Call `createApp<typeof tools>()` once at module scope. It creates a private React context and provider/hooks without reading browser globals. The provider opens the native connection after mounting; nested components share that connection.
+The [first widget](/mcp-apps/quickstart) uses one provider and one hook. Add the other hooks as the widget gains features.
 
-## Provider lifecycle
+| You want to… | Use |
+| --- | --- |
+| Connect the widget to its host | `AppProvider` around the component tree |
+| Display the tool's initial result | `useToolResult()` |
+| Refresh or filter by calling a tool | `useToolCall("tool_name")` |
+| Read locale, current display mode, or other host hints | `useHostContext()` |
+| Open a link, send a message, share context, or change display mode | [`useHostActions()`](/mcp-apps/host-actions) |
 
-Pass `appInfo={{ name, version }}` and exactly one of `tool` or `resolveTool`. Identity and routing are fixed for that mount. Remount the provider to change them. Use one provider per widget window.
+Create the bindings once in `src/mcp.ts`. Components import the hooks from that file. Every hook runs inside that factory's `AppProvider`.
 
-React Strict Mode's development effect replay reuses the connection. Real unmount closes it after a microtask, rejecting pending calls and removing listeners/observers. Host teardown closes it terminally. Reconnection requires a fresh provider mount.
+## Display the first result
 
-Host fonts/theme variables and size reporting are enabled by default. Disable them with `applyHostStyles={false}` or `autoResize={false}`. `useHostContext()` returns live host presentation hints; use CSS variable fallbacks because hosts may omit styling.
+```tsx
+const { result, error, status } = useToolResult();
+```
 
-The `0.3.0-alpha.3` candidate also provides [`useHostActions()`](/mcp-apps/host-actions) for explicit link, message, model-context, and display-mode requests. These additions are absent from published alpha.2. Declare supported widget modes with `availableDisplayModes`; the default is inline only.
+`result` is the complete initiating tool result. Its `structuredContent` contains the typed data you returned on the server. It can be absent while waiting, after cancellation, or when a tool fails.
 
-## Initiating results
+Handle `error`, `result?.isError`, and missing data before rendering the result, as shown in the quickstart. With several tools in the map, use `useToolResult("weather")` to select the expected tool's type. An unnamed result is a union you can narrow by `state.toolName`.
 
-`useToolResult()` returns connection/tool status, selected `toolName`, original input, full result, and any lifecycle/routing error. It retains results received before a child subscribes. Narrow the returned union by `toolName`, or use `useToolResult("weather")` to filter to one tool.
+## Add a refresh button
 
-Statuses are `connecting`, `waiting`, `running`, `success`, `tool-error`, `cancelled`, `error`, and `closed`. A filtered hook waits while another tool is selected. Handle empty data, cancellation, and explicit tool errors before rendering a success state.
+First, export `useToolCall` alongside your existing bindings:
+
+```ts src/mcp.ts
+import { createApp } from "@toolgrain/react";
+import type { tools } from "../server/tools.ts";
+
+export const { AppProvider, useToolResult, useToolCall } = createApp<typeof tools>();
+```
+
+In `src/App.tsx`, import `useToolCall` from `./mcp.ts`. Replace the `Weather` component with this version; keep it inside the provider:
+
+```tsx
+function Weather() {
+  const initial = useToolResult("weather");
+  const refresh = useToolCall("weather");
+  const result = refresh.result ?? initial.result;
+
+  if (initial.error) return <p role="alert">{initial.error.message}</p>;
+  if (result?.isError) return <p role="alert">The tool reported a weather error.</p>;
+  const weather = result?.structuredContent;
+  if (!weather) return <p>Waiting for weather…</p>;
+
+  return (
+    <section>
+      <h1>{weather.city}</h1>
+      <p>{weather.temperature}°C</p>
+      <button
+        type="button"
+        disabled={refresh.pending}
+        onClick={() => {
+          void refresh.call({
+            city: weather.city === "Dubai" ? "London" : "Dubai",
+          }).catch(() => {});
+        }}
+      >
+        {refresh.pending ? "Refreshing…" : "Switch city"}
+      </button>
+      {refresh.error ? <p role="alert">Refresh failed. Try again.</p> : null}
+    </section>
+  );
+}
+```
+
+`useToolCall` returns `call`, `pending`, `result`, and `error`. The catch prevents an unhandled rejection; the hook stores the failure in `refresh.error`, which the component displays. The host must advertise server tool-call support.
+
+The initial result and refresh result are separate. `refresh.result ?? initial.result` displays the latest successful call or the original data. The hook does not overwrite `useToolResult()` or start calls automatically.
 
 ## Interactive calls
 
-`useToolCall("weather")` returns `call`, `pending`, `result`, and `error`. Its state is separate from the initiating result. `call` resolves with the complete result, including `isError: true`. Protocol and transport failures reject. Concurrent calls settle their individual promises, while the latest invocation owns hook state.
+`call(input, options?)` returns the full result. Explicit `isError: true` tool results resolve normally; transport and JSON-RPC failures reject. Concurrent calls each settle their promises, while the latest invocation owns the hook's displayed state.
+
+Options are optional:
 
 ```ts
-await refresh.call({ city: "Dubai" }, {
-  signal: controller.signal,
+const controller = new AbortController();
+await refresh.call({ city: "London" }, {
   timeoutMs: 10_000,
+  signal: controller.signal,
 });
 ```
 
-The default deadline is 30 seconds. Local cancellation rejects and suppresses late replies; a cancellation notification is sent to the host. Remote cancellation remains cooperative. Hooks do not start calls automatically or maintain a query cache.
+The default deadline is 30 seconds. An abort or timeout rejects locally and suppresses late replies. Host cancellation remains cooperative.
+
+## Read host context when needed
+
+The provider already applies host fonts and theme variables. CSS such as `var(--color-text-primary, #1f2937)` is enough for the basic widget.
+
+Export `useHostContext` from `src/mcp.ts` when you need host information in React logic:
+
+```tsx
+const { locale, timeZone, displayMode } = useHostContext();
+```
+
+These hints are optional. Supply application defaults, such as `locale ?? "en"`. Use [host actions](/mcp-apps/host-actions) to request a display-mode change or another explicit host operation.
 
 ## Inferred types
 
-Arguments use the input schema's input type, before server defaults/transforms. Declared outputs use parsed schema output. Result metadata retains the type inferred by `mcpResult()`. Registration aliases define callable names.
+Tool names come from registration keys. Arguments use the input schema's input type, before defaults/transforms. Structured results use the parsed output schema type. Result `_meta` retains the type inferred from `mcpResult()`.
 
-Wire envelopes are checked at runtime. Inferred application payloads are not browser-side schema validation. `structuredContent` and `_meta` remain optional, including for generic server errors. Use object-root outputs to retain structured data across both supported outer revisions.
+`structuredContent` and `_meta` remain optional. Toolgrain validates the wire envelopes; application payload types are inferred rather than schema-validated in the browser. See [metadata](/mcp-apps/security#extra-widget-data) for an example.
+
+## Provider lifecycle
+
+Use one provider per widget window. Pass `appInfo` and either `tool` for a separate entry or `resolveTool` for a [shared entry](/mcp-apps/shared-entries). Identity, routing, and declared display modes are fixed for that mount.
+
+The factory is safe to import during server rendering. Mounting connects to the host; React Strict Mode reuses the connection during effect replay. Unmount/host teardown removes owned listeners, observers, and timers and rejects pending requests. Remount to reconnect.
+
+Host styling and automatic size reporting default to on. Disable them with `applyHostStyles={false}` or `autoResize={false}` when your application needs to manage them. See the [API reference](/mcp-apps/reference) for the complete provider options and state contracts.

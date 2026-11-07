@@ -3,12 +3,13 @@ title: "React host actions"
 description: "Open links, send messages, share context, and request display modes through the host."
 ---
 
-<Note>`useHostActions()` and `availableDisplayModes` are implemented in the `0.3.0-alpha.3` candidate. They are absent from the published `0.3.0-alpha.2` archive. Live-host acceptance for these actions is pending.</Note>
+<Note>These actions are available in published `0.3.0-alpha.3`. They have automated fixture coverage; live-host acceptance for the new actions is pending.</Note>
 
-Get `useHostActions` from the same `createApp<typeof tools>()` factory as your provider. The hook shares that provider's native connection. It sends no requests until you call an action.
+Add `useHostActions` to the exports from your existing `src/mcp.ts` factory. The hook shares that provider's connection and sends no requests until you call an action.
 
 ```tsx
-const { AppProvider, useHostActions, useHostContext } = createApp<typeof tools>();
+import { useState } from "react";
+import { useHostActions } from "./mcp.ts";
 
 function SourceLink() {
   const { available, openLink } = useHostActions();
@@ -33,7 +34,7 @@ function SourceLink() {
 }
 ```
 
-Import `useState` from React. Keep requests in explicit interaction handlers when they affect the conversation or open another application. Your component owns pending, success, and error state; the hook supplies stable action functions without a request cache.
+Keep requests in explicit interaction handlers when they affect the conversation or open another application. Your component owns pending, success, and error state; the hook supplies stable action functions without a request cache.
 
 ## Check availability
 
