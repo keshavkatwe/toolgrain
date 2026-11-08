@@ -393,6 +393,42 @@ with CIMD and DCR clients and verify refresh/retry. These client/provider flows
 require your configuration and credentials; local metadata and offline token
 tests do not establish live OAuth interoperability.
 
+### Live scope acceptance
+
+On **November 8, 2026**, a self-authored acceptance client using
+`@modelcontextprotocol/client` **2.3.1** on Node **24.22.2** completed real OAuth
+flows against a Clerk development instance. The Elysia **1.4.30** server ran on
+Bun **1.4.4**, using published Toolgrain **0.3.0** packages and independent HTTP
+POSTs on loopback. Consent used Chrome **156.0.8078.81**. The server's direct
+`clerk()` configuration declared `scopesSupported`;
+the native HTTP handler served discovery without a metadata-response wrapper.
+
+| Check | CIMD | DCR |
+| --- | --- | --- |
+| Fresh client with no saved registration or tokens | HTTPS client metadata document | New dynamic registration |
+| Authorization code, S256 PKCE, state and issuer binding | Passed | Passed |
+| Native canonical metadata GET/HEAD | Passed | Passed |
+| Automatic resource scope selection and consent | Passed | Passed |
+| Initial and refreshed tool access in both MCP revisions | Passed | Passed |
+| Refresh, then retry after a deliberate invalid-token 401 | Passed | Passed |
+
+The client supplied no scope override. It selected exactly
+`openid profile email offline_access` from resource discovery, even though
+Clerk advertised additional `public_metadata` and `private_metadata` scopes.
+Both consent screens requested identity, basic profile, and email access.
+The issued grants retained exactly the declared scopes and the requested MCP
+resource audience. `greet` and `whoAmI` calls passed before and after refresh in
+MCP `2026-07-28` and `2025-06-18`; verified identity values stayed out of the
+record. Each 401 recovery performed another real refresh and a successful retry.
+
+Both clients' access and refresh tokens were revoked after verification. The
+disposable DCR registration was removed, and the local services and temporary
+public CIMD metadata endpoint were stopped. Clerk instance settings were unchanged.
+
+This records the tested development instance and acceptance client. Production
+Clerk configurations, packaged client UIs such as Claude Desktop or Claude Code,
+remote MCP endpoints, and expiry-driven refresh remain outside this test.
+
 ## Custom providers and direct invocation
 
 Integrations implement `AuthProvider<T>` from `@toolgrain/mcp`, with a registered
