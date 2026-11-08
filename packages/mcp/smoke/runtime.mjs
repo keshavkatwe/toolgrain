@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  content,
   createContext,
   createServer,
   mcpResult,
@@ -60,6 +61,18 @@ const server = createServer({
       input: mini.object({ name: mini._default(mini.string(), "Mini") }),
       output: mini.object({ message: mini.string() }),
       execute: ({ name }) => ({ message: `Hello, ${name}!` }),
+    }),
+    image: tool({
+      input: z.object({}),
+      execute: () =>
+        mcpResult({
+          content: [
+            content.image({
+              data: new Uint8Array([0, 128, 255]),
+              mimeType: "image/png",
+            }),
+          ],
+        }),
     }),
   },
 });
@@ -130,6 +143,18 @@ for (const protocolVersion of [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION]) {
   assert.deepEqual(result.result.structuredContent, {
     message: "Hello, Mini!",
   });
+  const image = await server.handle(
+    {
+      jsonrpc: "2.0",
+      id: "image",
+      method: "tools/call",
+      params: { ...resultParams(protocolVersion), name: "image" },
+    },
+    { protocolVersion },
+  );
+  assert.deepEqual(image.result.content, [
+    { type: "image", data: "AID/", mimeType: "image/png" },
+  ]);
   for (const [name, text] of [
     ["fails", "Tool execution failed"],
     ["publicError", "Project unavailable"],

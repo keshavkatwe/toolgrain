@@ -179,7 +179,7 @@ async function exercise(request, notify) {
     ]);
     assert.equal(resource._meta["example.com/result"], true);
     const { tools } = await send("tools/list");
-    assert.equal(tools.length, 1);
+    assert.equal(tools.length, 2);
     assert.equal(tools[0].name, "greet");
     assert.equal(tools[0].title, "Greeting");
     assert.equal(tools[0].annotations.readOnlyHint, true);
@@ -223,6 +223,33 @@ async function exercise(request, notify) {
         .isError,
       true,
     );
+    const report = await send("tools/call", { name: "report" });
+    assert.equal(report.isError, undefined);
+    assert.deepEqual(report.structuredContent, { count: 2 });
+    assert.deepEqual(report.content, [
+      { type: "text", text: "Report ready" },
+      { type: "image", data: "AID/", mimeType: "image/png" },
+      { type: "audio", data: "AID/", mimeType: "audio/wav" },
+      {
+        type: "resource_link",
+        uri: "https://example.com/report.pdf",
+        name: "report.pdf",
+      },
+      {
+        type: "resource",
+        _meta: { "example.com/block": true },
+        resource: {
+          uri: "report:///summary.txt",
+          text: "Résumé 世界",
+          _meta: { "example.com/resource": true },
+        },
+      },
+      {
+        type: "resource",
+        resource: { uri: "report:///data.bin", blob: "/w==" },
+      },
+      { type: "text", text: '{"count":2}' },
+    ]);
   }
 }
 

@@ -16,15 +16,19 @@ An ordinary object shaped like `{ content, isError }` is still application data.
 
 ## Structured data with narrative
 
+The `content` helpers below require Toolgrain 0.3.0 or later; check the
+[publication status](/project/releases#current-release-status) before installing.
+You can also supply raw protocol content blocks to `mcpResult()`.
+
 ```ts
-import { mcpResult, tool } from "@toolgrain/mcp";
+import { content, mcpResult, tool } from "@toolgrain/mcp";
 import { z } from "zod";
 
 const report = tool({
   input: z.object({}),
   output: z.object({ count: z.number(), summary: z.string() }),
   execute: () => mcpResult({
-    content: [{ type: "text", text: "Report complete" }],
+    content: [content.text("Report complete")],
     structuredContent: { count: 2, summary: "Two records matched." },
   }),
 });
@@ -38,15 +42,72 @@ The tested Claude Code client hides supplemental text when structured content is
 
 `mcpResult()` supports text, image, audio, resource links, embedded text/blob resources, structured JSON, `isError`, and `_meta`. Image and audio blocks carry base64 data and a MIME type. Resource links and embedded resources are result content; they do not register a resource reader. Use [`resource()`](/guides/resources) and `ServerOptions.resources` to expose separately readable content.
 
+Use the [`content` helpers](/reference/mcp#content-helpers) to construct typed blocks. Extracted arrays retain their
+content discriminators without `as const`. Existing raw content blocks remain
+supported, and you can mix them with helper-created blocks.
+
+| Helper | Content |
+| --- | --- |
+| `content.text(text, options?)` | Text with optional annotations and `_meta` |
+| `content.image({ data, mimeType, ... })` | Inline image |
+| `content.audio({ data, mimeType, ... })` | Inline audio |
+| `content.resourceLink({ uri, name, ... })` | Link to a file or other resource |
+| `content.resource({ uri, text, ... }, options?)` | Embedded text file |
+| `content.resource({ uri, blob, ... }, options?)` | Embedded binary file |
+
 ```ts
-const result = mcpResult({
-  content: [
-    { type: "text", text: "The report is ready." },
-    { type: "resource_link", uri: "https://example.com/report", name: "report" },
-  ],
-  _meta: { "example.com/report-id": "r_123" },
-});
+import { content, mcpResult } from "@toolgrain/mcp";
+
+// Your application supplies the file contents and the report URL.
+function reportResult(pngBytes: Uint8Array, wavBytes: Uint8Array, reportUrl: string) {
+  const blocks = [
+    content.text("The report is ready."),
+    content.image({ data: pngBytes, mimeType: "image/png" }),
+    content.audio({ data: wavBytes, mimeType: "audio/wav" }),
+    content.resourceLink({
+      uri: reportUrl,
+      name: "report.pdf",
+      mimeType: "application/pdf",
+    }),
+    content.resource({
+      uri: "report:///summary.txt",
+      text: "Two records matched.",
+      mimeType: "text/plain",
+    }),
+    content.resource({
+      uri: "report:///data.csv",
+      blob: new TextEncoder().encode("id,total\n1,42\n"),
+      mimeType: "text/csv",
+    }),
+  ];
+
+  return mcpResult({
+    content: blocks,
+    structuredContent: { count: 2, summary: "Two records matched." },
+    _meta: { "example.com/report-id": "r_123" },
+  });
+}
 ```
+
+Image/audio `data` and resource `blob` accept a base64 string or `Uint8Array`,
+including Node `Buffer`. Helpers encode bytes synchronously and pass base64
+strings through unchanged. They encode only the supplied byte view, without
+mutating it. Supply an explicit MIME type for images and audio.
+
+Helpers perform no file reads, URI fetching, MIME detection, or resource
+registration. Your application owns those operations. Resource links describe a
+resource; clients decide whether to fetch or display it.
+
+All helpers accept readonly authoring inputs and return blocks with readonly
+types. Nested annotations and metadata remain references to the supplied values
+until server conversion. For `content.resource(value, options)`, `value._meta`
+belongs to the embedded resource, while `options._meta` and
+`options.annotations` belong to the enclosing content block. Text and blob
+contents are mutually exclusive in the helper's type contract.
+
+Wrap helper blocks in `mcpResult()` to return rich content. The helpers construct
+ordinary objects, so returning one directly retains ordinary application-data
+semantics. They do not change output-schema validation or client presentation.
 
 Content is validated and copied at conversion. Undefined optional envelope fields are omitted; undefined inside unparsed structured data is rejected. Legacy structured content must be object-rooted.
 
