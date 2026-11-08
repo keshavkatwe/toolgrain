@@ -62,6 +62,7 @@ across Toolgrain libraries.
 | [`@toolgrain/http`](/reference/http) | Web `Request`/`Response` handlers for existing applications |
 | [`@toolgrain/jwt`](/reference/jwt) | JWT access-token verification for HTTP endpoints |
 | [`@toolgrain/clerk`](/reference/clerk) | Clerk OAuth access-token verification for HTTP endpoints |
+| [`@toolgrain/react`](/mcp-apps/reference) | Native MCP Apps browser lifecycle and typed React hooks |
 | [`@toolgrain/protocol`](/reference/protocol) | Pinned MCP wire types and protocol version constants |
 
 ## Compatibility and scope
@@ -78,7 +79,7 @@ across Toolgrain libraries.
 Both MCP revisions use the same tool API over stdio and HTTP. HTTP uses
 independent POST requests with JSON responses or request-scoped SSE progress.
 Fixed resources support [listing and reading text/binary content](/guides/resources).
-The published `0.3.0-alpha.2` prerelease includes [native React MCP Apps](/mcp-apps/overview).
+[Native React MCP Apps](/mcp-apps/overview) require Toolgrain 0.3.0 or later; check the [publication status](/project/releases#current-release-status) before installing.
 Resource templates, sessions, resumability, prompts, elicitation, and
 subscriptions are outside the current implementation.
 

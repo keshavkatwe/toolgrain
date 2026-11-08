@@ -3,13 +3,13 @@ title: "Runtime and dependency support"
 description: "Supported runtimes, TypeScript, Zod, platforms, and upgrade rules."
 ---
 
-All six libraries publish stable releases under npm's `latest` tag. This policy
-defines their runtime and dependency contract. CI configuration alone does not establish that
+All seven library workspaces use one fixed release group, with stable publication
+under npm's `latest` tag. This policy defines their runtime and dependency contract. CI configuration alone does not establish that
 an unrun platform has passed; releases require a green supported matrix. See the
 [published-package verification](/compatibility/published-packages) for recorded results.
 
-The `@toolgrain/react` package is published in `0.3.0-alpha.2`, joins the aligned release group, and
-uses the same TypeScript/Zod consumer floors. Its initial browser integration
+The `@toolgrain/react` package targets Toolgrain 0.3.0 or later and uses the same
+TypeScript/Zod consumer floors. Check the [publication status](/project/releases#current-release-status). Its initial browser integration
 requires React `^19.3.1`; the example pins React and React DOM 19.3.1. Server
 runtime floors below apply to its server/tooling integrations. Live widget
 compatibility is recorded separately in the [Apps acceptance notes](/mcp-apps/compatibility).
@@ -18,8 +18,8 @@ compatibility is recorded separately in the [Apps acceptance notes](/mcp-apps/co
 
 | Component | Contract | Verification |
 | --- | --- | --- |
-| Node.js | 24.x from 24.20.0, for all six libraries | Exact minimum in the full baseline; latest 24.x in packed-consumer jobs |
-| Bun runtime | 1.x from 1.4.4, for all six libraries | Minimum on Linux and latest stable 1.x on Linux, macOS, and Windows |
+| Node.js | 24.x from 24.20.0, for library Node integrations | Exact minimum in the full baseline; latest 24.x in packed-consumer jobs |
+| Bun runtime | 1.x from 1.4.4, for library Bun integrations | Minimum on Linux and latest stable 1.x on Linux, macOS, and Windows |
 | Repository tools | Bun 1.3.14 and Node 24.20.0 baseline | Frozen lockfile; the Bun development pin is independent of consumer runtime support |
 | TypeScript | 5.5.4 minimum, with strict mode | Minimum and development compiler for each installed library; MCP/JWT/Clerk also cross minimum/current Zod |
 | Zod | `^4.6.6`, Classic and Mini | Minimum 4.6.6 and development version; weekly current 4.x |
@@ -52,9 +52,11 @@ and successful verification; the date alone does not promote it. Node 24's
 scheduled EOL is 2028-04-30. Node 22 is outside the initial matrix; its scheduled
 EOL is 2027-04-30. See the [upstream Node schedule](https://github.com/nodejs/Release/blob/main/schedule.json).
 
-Deno, Workers, browsers, other package managers, and untested OS/architecture
-combinations have no support commitment. Runtime-independent modules may be
-usable there. Framework examples retain their own pinned framework/runtime
+`@toolgrain/react` runs in an MCP Apps host's browser iframe; compatibility is
+limited to the [recorded host versions and transports](/mcp-apps/compatibility).
+This does not make the server adapters browser runtimes. Deno, Workers, other
+package managers, and untested OS/architecture combinations have no support
+commitment. Runtime-independent modules may be usable there. Framework examples retain their own pinned framework/runtime
 requirements; an example is not a promise to support every framework version.
 
 ## Required CI

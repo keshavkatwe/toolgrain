@@ -142,7 +142,7 @@ npm run build
 
 The weather build clears `dist/widgets`; the sales build preserves it. The result contains **both** `weather.html` and `sales.html`, each with its own inlined JavaScript/CSS.
 
-Use one Vite build per HTML input with [vite-plugin-singlefile](https://github.com/richardtallent/vite-plugin-singlefile#readme). The plugin is designed for one HTML entry at a time; separate runs give each resource its own bundled dependencies. For a longer list of widgets, the repository's [build script](https://github.com/keshavkatwe/toolgrain/blob/prerelease/0.3/apps/react-apps-example/scripts/build-widgets.mjs) runs the same sequence in a loop.
+Use one Vite build per HTML input with [vite-plugin-singlefile](https://github.com/richardtallent/vite-plugin-singlefile#readme). The plugin is designed for one HTML entry at a time; separate runs give each resource its own bundled dependencies. For a longer list of widgets, the repository's [build script](https://github.com/keshavkatwe/toolgrain/blob/main/apps/react-apps-example/scripts/build-widgets.mjs) runs the same sequence in a loop.
 
 ## 4. Register the second resource
 

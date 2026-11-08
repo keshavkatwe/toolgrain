@@ -5,7 +5,9 @@ description: "Start with the Vite CLI and connect a React widget to a Toolgrain 
 
 Build a small weather widget from a new React project. A tool returns the weather, Vite builds the widget into one HTML file, and your MCP host displays it.
 
-Use **Node 24.20.0 or later in Node 24** and npm. This walkthrough uses the published **`0.3.0-alpha.3`** packages and pins the build recipe so you can reproduce it.
+Use **Node 24.20.0 or later in Node 24**, npm, and matching **Toolgrain 0.3.0 or later** packages. The Vite build recipe is pinned so you can reproduce it.
+
+<Note>Check the [publication status](/project/releases#current-release-status) before running the npm install commands: the combined 0.3.0 release is awaiting publication. To test from source now, build the [repository example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/react-apps-example). Exact previously tested package versions remain in the [verification record](/mcp-apps/compatibility#vite-walkthrough-verification).</Note>
 
 ## 1. Create a Vite project
 
@@ -20,11 +22,11 @@ npm install
 Add Toolgrain and the single-file build plugin:
 
 ```sh
-npm install --save-exact @toolgrain/react@0.3.0-alpha.3 @toolgrain/mcp@0.3.0-alpha.3 @toolgrain/node@0.3.0-alpha.3 @toolgrain/protocol@0.3.0-alpha.3 zod@^4.6.6
+npm install --save-exact @toolgrain/react @toolgrain/mcp @toolgrain/node @toolgrain/protocol zod@^4.6.6
 npm install --save-dev --save-exact vite@8.3.4 vite-plugin-singlefile@2.3.4
 ```
 
-Use matching Toolgrain versions. The Apps packages are currently an alpha; the commands above deliberately select that version.
+Use matching Toolgrain 0.3.0 or later versions. The commands resolve npm's `latest` tag and save exact versions in your application.
 
 ## 2. Define the tool
 

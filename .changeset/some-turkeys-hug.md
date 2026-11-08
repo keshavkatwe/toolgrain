@@ -11,5 +11,5 @@ provenance. Preserve custom styling variables and unknown host capability fields
 assigned through a variable. Put those fields on the resource content item's
 `_meta.ui`; tool metadata retains its resource URI and visibility settings.
 
-Document the published React alpha, matching-version installation, resource
+Document React widgets, matching-version installation, resource
 metadata examples, and implemented versus deferred React protocol features.

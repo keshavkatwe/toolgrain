@@ -149,7 +149,7 @@ listeners, HTTP headers, production hosts, and cancellation, or start from a
 </table>
 
 Toolgrain implements MCP directly, independently of `@modelcontextprotocol/sdk`.
-The current scope is tool discovery and execution across two protocol revisions;
+The current scope includes tools, fixed resources, progress, and React MCP Apps across two protocol revisions;
 see [support and scope](#support-and-scope) before choosing it for your project.
 
 ## Build beyond hello
@@ -162,6 +162,7 @@ see [support and scope](#support-and-scope) before choosing it for your project.
 | Protect an HTTP endpoint with JWT or Clerk | [Authorization](https://toolgrain.mintlify.site/guides/authorization) |
 | Connect Inspector or check tested clients | [Compatibility](https://toolgrain.mintlify.site/compatibility/protocol) |
 | Use Express, Hono, Elysia, or Next.js | [Runnable examples](https://toolgrain.mintlify.site/examples) |
+| Build a React widget for an MCP host | [MCP Apps quickstart](https://toolgrain.mintlify.site/mcp-apps/quickstart) |
 
 ## For AI agents
 
@@ -182,6 +183,7 @@ transport package your application needs; add authorization when you need it.
 | [@toolgrain/http](./packages/http/README.md) | Web `Request`/`Response` handlers |
 | [@toolgrain/jwt](./packages/jwt/README.md) | JWT access-token verification |
 | [@toolgrain/clerk](./packages/clerk/README.md) | Clerk OAuth access-token verification |
+| [@toolgrain/react](./packages/react/README.md) | Native MCP Apps browser lifecycle and typed React hooks |
 | [@toolgrain/protocol](./packages/protocol/README.md) | Pinned MCP wire types and version constants |
 
 ## Support and scope
@@ -207,8 +209,8 @@ independent POST requests and JSON responses. Tools can use
 updates; HTTP opens a request-scoped SSE response on the first update.
 Fixed resources support listing and text/binary reads; see the
 [resource guide](https://toolgrain.mintlify.site/guides/resources). Native MCP Apps
-and typed React widgets are available in the published `0.3.0-alpha.2`
-prerelease; see the [MCP Apps guide](docs/mcp-apps/overview.mdx) and
+and typed React widgets require Toolgrain 0.3.0 or later; see the
+[MCP Apps guide](docs/mcp-apps/overview.mdx), [publication status](docs/project/releases.mdx#current-release-status), and
 [React example](apps/react-apps-example/README.md). Resource templates,
 sessions, resumability, prompts, elicitation, and
 subscriptions are outside the current implementation. Check the

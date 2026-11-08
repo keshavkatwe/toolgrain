@@ -1,12 +1,15 @@
 # Roadmap
 
-Toolgrain's six libraries share a stable version under npm `latest`.
+Toolgrain's seven library workspaces share a fixed Changesets release group.
+Stable publication uses npm `latest`; see the [current release status](docs/project/releases.mdx#current-release-status).
 The initial [0.1.0 release](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0)
 and [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
 remain available; `next` retains `0.1.0-rc.0`.
 
-## Available today
+## Implemented in the repository
 
+- Native MCP Apps and typed React widgets, including separate/shared entries,
+  host styling, refresh calls, and capability-gated host actions.
 - Fixed-URI resources with reusable definitions, listing/reading, text/binary contents,
   request context, and endpoint authorization.
 - Reusable, typed tools with Zod 4 Classic/Mini inputs, optional output schemas,
@@ -32,14 +35,18 @@ See the [API guide](README.md), [support policy](docs/support-policy.md), and
 
 These items describe remaining review or verification, without a release date:
 
-- Review the unreleased native MCP Apps and `@toolgrain/react` implementation,
-  including typed hooks, separate/shared entries, and the Bun/Elysia example.
+- Complete live-host acceptance for React host actions, including advertised
+  content kinds, declined requests, and requested/actual display modes.
   Claude Desktop 4.23118.0 passed local stdio widget rendering, refresh, and theme
   checks on 2026-11-06. Other host versions and live HTTP widget flows remain
   unverified; see the [Apps acceptance record](docs/mcp-apps/compatibility.mdx).
 - Collect feedback from published stable releases in real applications and
-  prioritize reproduced defects. A target application and next release scope are
-  not selected.
+  prioritize reproduced defects. The combined 0.3.0 scope is progress, fixed
+  resources, MCP Apps/React, and host actions; publication remains a separate decision.
+- Complete fresh CIMD/DCR authorization and refresh acceptance for the native
+  scope configuration before closing [#53](https://github.com/keshavkatwe/toolgrain/issues/53).
+  The scope metadata and `insufficient_scope` APIs are implemented; dated
+  protocol tests do not establish the remaining live OAuth flows.
 - Expand client coverage for live OAuth login and client configurations/GUI flows
   beyond the dated reviews. These remain unverified.
 
