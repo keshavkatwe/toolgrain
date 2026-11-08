@@ -1,5 +1,27 @@
 # @toolgrain/mcp
 
+## 0.3.0
+
+### Minor Changes
+
+- 0e1669b: Add request-scoped progress reporting through `ctx.reportProgress()` with stdio notifications and HTTP SSE delivery. The bound reporter honors client progress tokens, increasing values, backpressure, cancellation, and normal final tool results. HTTP opens SSE on the first progress update and retains JSON responses when no progress is sent.
+  
+  Custom message transports must accept progress notifications alongside protocol responses. Direct `server.handle()` integrations can supply `onNotification` for request-scoped delivery; contexts without a delivery channel use a no-op reporter.
+  
+  Keep final HTTP SSE delivery active until it completes or is cancelled, including server shutdown while the final write is blocked by backpressure.
+- e4ac322: Add reusable fixed-URI resources with text and binary reads, request context, and endpoint authorization across both MCP revisions.
+- 1cf25e6: Add typed content helpers for text, images, audio, resource links, and embedded files, with synchronous Uint8Array encoding and readonly authoring inputs.
+- 1cde354: Add native MCP Apps protocol contracts and typed React widgets with shared-entry routing.
+
+### Patch Changes
+
+- 0e1669b: Pace request-scoped progress notifications at 100 ms intervals while preserving ordered delivery, backpressure, and prompt cancellation. Reject duplicate active progress tokens on shared message connections, release tokens on completion or cancellation, and preserve isolation between independent HTTP response streams.
+- Updated dependencies [414e8f5]
+- Updated dependencies [1cde354]
+- Updated dependencies [712e975]
+- Updated dependencies [1cde354]
+  - @toolgrain/protocol@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
