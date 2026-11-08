@@ -14,6 +14,21 @@ MCP Apps compatibility is host-version and transport specific. Protocol tests do
 | Claude Desktop 4.23118.0, macOS 26.5.2, local stdio | Separate/shared Weather and Sales rendering, metadata, refresh calls, and light/dark updates passed on 2026-11-06 |
 | Official Apps SDK 2.0.4 widget against Toolgrain | Passed with a self-authored DOM host fixture and direct MCP 2026-07-28 dispatch; not a live-host rendering claim |
 
+## Stable publication verification
+
+On November 8, 2026, [Release PR #63](https://github.com/keshavkatwe/toolgrain/pull/63)
+merged as [`d067bbb`](https://github.com/keshavkatwe/toolgrain/commit/d067bbb8d1710b232d026d1f3754c9b0fd112d4f). The
+[release run](https://github.com/keshavkatwe/toolgrain/actions/runs/42451243089)
+published 0.3.0 for all seven libraries under npm's `latest` tag after the full
+release matrix passed. Downloaded archives matched the verified build artifacts;
+both npm metadata formats, registry integrity, and fresh npm/Node 24.20.0 and
+Bun 1.4.4 consumers passed. All seven versions include npm provenance.
+
+These checks verify published packages, declarations, and protocol flows. The
+live Claude Desktop record below retains its original version, date, and local
+stdio scope. Host actions and live HTTP widgets have no additional live-host
+acceptance from this publication run.
+
 ## Published alpha verification
 
 The [November 6, 2026 publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853) completed `0.3.0-alpha.2` for all seven Toolgrain libraries. Registry checks matched the actual downloaded archives to the verified artifacts in both npm metadata formats. Fresh npm/Node 24.20.0 and Bun 1.4.4 consumers passed imports, minimum/current declarations, and stdio/HTTP flows.
@@ -31,6 +46,13 @@ This verifies package publication and automated consumers. The new host actions 
 On November 7, 2026, the [Vite walkthrough](/mcp-apps/quickstart) was checked from a fresh `create-vite@9.3.4` React/TypeScript scaffold using published `0.3.0-alpha.3`, Node 24.22.2, Vite 8.3.4, and `vite-plugin-singlefile` 2.3.4. The initial widget, refresh component, typed resource/result metadata, and separate weather/sales builds compiled. Each output HTML contained its own JavaScript/CSS; real stdio tool calls and resource reads passed under both supported outer MCP revisions, including assistant fallback content.
 
 These are local build/compiler and protocol checks. The exact scaffold was not tested in a live Claude Desktop session; the separately recorded host test below retains its original scope.
+
+On November 8, 2026, the weather quickstart was rechecked from a fresh scaffold
+with published Toolgrain 0.3.0, Node 24.22.2, React 19.3.1, Vite 8.3.4, and
+`vite-plugin-singlefile` 2.3.4. The documented files compiled into a single HTML
+widget. Tool calls, assistant fallback text, resource listing/reading, the Apps
+MIME type, and resource metadata passed over real stdio in both supported MCP
+revisions. This check did not add live-host rendering coverage.
 
 ## Claude Desktop acceptance
 

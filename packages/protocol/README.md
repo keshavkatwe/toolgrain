@@ -67,9 +67,7 @@ capabilities, initialization envelopes, and tool-result envelope.
 Toolgrain 0.3.0 or later also exports `AppMessageParams`,
 `AppModelContextParams`, `AppActionResult`, and `AppDisplayModeResult` for native
 host requests. They describe user messages, replacement model context, full
-acknowledgements, and actual selected display modes. Check the
-[publication status](https://toolgrain.mintlify.site/project/releases#current-release-status)
-before installing these APIs.
+acknowledgements, and actual selected display modes.
 
 `AppResourceMeta` describes CSP, requested browser permissions, sandbox origin,
 and border preference. Tool `_meta.ui` uses `AppToolMeta` for `resourceUri` and

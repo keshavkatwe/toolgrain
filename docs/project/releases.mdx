@@ -22,23 +22,25 @@ the same.
 
 ## Current release status
 
-As of **November 8, 2026**, the combined **0.3.0** implementation is merged and
-[Release PR #63](https://github.com/keshavkatwe/toolgrain/pull/63) is open. It includes
-progress, fixed resources, MCP Apps/React, host actions, and the Vite walkthrough.
-**Stable 0.3.0 has not been published.** Merging feature PRs does not publish packages.
-Keep the Release PR open until the combined release is approved.
+**Toolgrain 0.3.0 was published on November 8, 2026 for all seven libraries under
+npm's `latest` tag.** [Release PR #63](https://github.com/keshavkatwe/toolgrain/pull/63)
+merged as commit [`d067bbb`](https://github.com/keshavkatwe/toolgrain/commit/d067bbb8d1710b232d026d1f3754c9b0fd112d4f). The release includes
+progress, fixed resources, MCP Apps/React, host actions, typed rich-content helpers,
+and the Vite walkthrough.
 
-The everyday guides describe Toolgrain 0.3.0 or later without pinning a test build.
-Their npm commands become applicable when that version is published. For local
-verification before publication, build the
-[repository example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/react-apps-example).
-Exact previously published test builds and their results remain in the
-[Apps compatibility record](/mcp-apps/compatibility).
+The [release run](https://github.com/keshavkatwe/toolgrain/actions/runs/42451243089)
+passed the full release matrix, including supported TypeScript versions and stable
+dependency drift, before publishing. All seven downloaded npm archives matched
+the verified build artifacts. Registry integrity and fresh Node/Bun consumer checks
+passed. All seven versions include npm provenance and package-scoped GitHub releases.
 
-The six established libraries currently retain `latest=0.2.0`. React's initial
-`latest` still points to `0.3.0-alpha.2`; all seven `alpha` tags point to
-`0.3.0-alpha.3`. These registry values were checked on November 8, 2026. They are
-release history, not the version contract of the new API guides.
+Install matching Toolgrain versions using the guides' npm commands. Exact build
+and host test versions remain in the [Apps compatibility record](/mcp-apps/compatibility);
+publication checks do not extend the recorded live-host coverage.
+
+The existing prerelease tags are unchanged: all seven `alpha` tags remain
+`0.3.0-alpha.3`, and the six established libraries' `next` tags retain
+`0.1.0-rc.0`. Registry values were checked on November 8, 2026.
 
 ## Verified automated release
 
@@ -179,9 +181,10 @@ Its first real publication was `0.3.0-alpha.2`, using the verified archive and
 maintainer authentication; that initial publication has no automatic npm CI
 provenance. The [combined publication run](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853)
 published the other six packages and verified all seven archives plus fresh
-Node/Bun consumers. The separately reviewed prerelease tooling preserves stable
+Node/Bun consumers. At that time, the prerelease tooling preserved stable
 `latest=0.2.0` for the six established packages. npm assigned React's initial
-`latest` to the alpha and rejected removing that tag.
+`latest` to the alpha and rejected removing that tag. Stable 0.3.0 replaced that
+initial React `latest` value.
 
 React's reviewed trusted-publisher binding completed its first CI/OIDC
 publication in the [November 7, 2026 run](https://github.com/keshavkatwe/toolgrain/actions/runs/42393275595).

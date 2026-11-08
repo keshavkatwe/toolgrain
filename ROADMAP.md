@@ -1,12 +1,12 @@
 # Roadmap
 
-Toolgrain's seven library workspaces share a fixed Changesets release group.
-Stable publication uses npm `latest`; see the [current release status](docs/project/releases.mdx#current-release-status).
+Toolgrain 0.3.0 is published for all seven libraries under npm `latest`.
+See the [release verification record](docs/project/releases.mdx#current-release-status).
 The initial [0.1.0 release](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0)
 and [RC0 prerelease](https://github.com/keshavkatwe/toolgrain/releases/tag/v0.1.0-rc.0)
 remain available; `next` retains `0.1.0-rc.0`.
 
-## Implemented in the repository
+## Available in 0.3.0
 
 - Native MCP Apps and typed React widgets, including separate/shared entries,
   host styling, refresh calls, and capability-gated host actions.
@@ -14,6 +14,7 @@ remain available; `next` retains `0.1.0-rc.0`.
   request context, and endpoint authorization.
 - Reusable, typed tools with Zod 4 Classic/Mini inputs, optional output schemas,
   ordinary JSON results, and explicit rich MCP results.
+- Typed content helpers for text, images, audio, resource links, and embedded files.
 - MCP `2026-07-28` and initialization-based `2025-06-18` over stdio and
   independent HTTP POSTs with JSON responses or request-scoped SSE progress.
 - Node hosting and framework examples for Express, Hono, Elysia, and Next.js.
@@ -40,9 +41,8 @@ These items describe remaining review or verification, without a release date:
   Claude Desktop 4.23118.0 passed local stdio widget rendering, refresh, and theme
   checks on 2026-11-06. Other host versions and live HTTP widget flows remain
   unverified; see the [Apps acceptance record](docs/mcp-apps/compatibility.mdx).
-- Collect feedback from published stable releases in real applications and
-  prioritize reproduced defects. The combined 0.3.0 scope is progress, fixed
-  resources, MCP Apps/React, and host actions; publication remains a separate decision.
+- Collect feedback from the published 0.3.0 release in real applications and
+  prioritize reproduced defects.
 - Complete fresh CIMD/DCR authorization and refresh acceptance for the native
   scope configuration before closing [#53](https://github.com/keshavkatwe/toolgrain/issues/53).
   The scope metadata and `insufficient_scope` APIs are implemented; dated
