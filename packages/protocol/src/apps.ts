@@ -109,7 +109,7 @@ export interface AppHostContext {
   toolInfo?: { id?: string | number; tool: Tool };
   [key: string]: unknown;
 }
-/** Content kinds a host advertises for an optional action; this declares no React action API. */
+/** Content kinds a host advertises for message and model-context actions. */
 export interface AppContentModalities {
   text?: Record<string, unknown>;
   image?: Record<string, unknown>;

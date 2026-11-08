@@ -2,7 +2,7 @@
 
 Historical notes for the initial Toolgrain releases. Subsequent releases use
 Changesets-generated `packages/*/CHANGELOG.md` files and package-scoped GitHub
-releases; see [the release guide](docs/releases.md). All six libraries continue
+releases; see [the release guide](docs/releases.md). All seven libraries continue
 to share a version.
 
 ## [Unreleased]

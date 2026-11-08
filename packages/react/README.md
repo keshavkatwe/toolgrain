@@ -3,20 +3,21 @@
 Native React 19 widgets for MCP Apps hosts. Toolgrain implements the iframe
 protocol directly; no official MCP or Apps SDK is used by this package.
 
-Alpha candidate: `0.3.0-alpha.3`. Install the exact candidate
-versions together while testing the prerelease:
+Requires Toolgrain 0.3.0 or later. Install matching versions across Toolgrain
+packages. Check the [publication status](https://toolgrain.mintlify.site/project/releases#current-release-status)
+before installing; these commands resolve npm's `latest` tag:
 
 ```sh
-npm install @toolgrain/react@0.3.0-alpha.3 @toolgrain/mcp@0.3.0-alpha.3 @toolgrain/protocol@0.3.0-alpha.3 react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
+npm install @toolgrain/react @toolgrain/mcp @toolgrain/protocol react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
 ```
 
-Use the same version for HTTP/Node adapters and any JWT/Clerk integrations. The
-six established libraries retain stable `latest=0.2.0`; React's first `latest`
-points to `0.3.0-alpha.2`. See the [alpha.2 verification](https://github.com/keshavkatwe/toolgrain/actions/runs/42244638853).
+Use the same version for HTTP/Node adapters and any JWT/Clerk integrations.
+The [repository example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/react-apps-example)
+can be built from source before the combined release is published.
 
 Import your server's registered tool map with
 `import type`, then call `createApp<typeof tools>()` to obtain `AppProvider`,
-`useToolResult`, `useToolCall`, and `useHostContext`. The factory is safe to import
+`useToolResult`, `useToolCall`, `useHostContext`, and `useHostActions`. The factory is safe to import
 on the server; mounting the provider connects the browser widget to its host.
 
 Provide `appInfo={{ name, version }}` and either `tool="registered_name"` or
@@ -52,11 +53,10 @@ the host choose. Put `resourceUri` and `visibility` on the tool; `visibility:
 ["app"]` enables host-enforced app-only refresh/filter tools and does not replace
 endpoint authorization.
 
-The `0.3.0-alpha.3` candidate adds `useHostActions()` to the factory. It exposes
+`useHostActions()` exposes
 `available`, `openLink(url, options?)`, `sendMessage(params, options?)`,
 `updateModelContext(params, options?)`, and `requestDisplayMode(mode, options?)`.
-These APIs are absent from `0.3.0-alpha.2`. Requests require advertised
-host support, including each message/context content kind. The provider accepts
+Requests require advertised host support, including each message/context content kind. The provider accepts
 `availableDisplayModes` (default `["inline"]`); mode requests require the
 host/provider intersection and return the actual selected mode. Live host context
 continues to follow notifications. Actions use the same signal/deadline options,

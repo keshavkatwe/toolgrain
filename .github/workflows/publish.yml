@@ -148,7 +148,7 @@ jobs:
     needs: [select-mode, pack]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Keep this filename and environment: all six npm OIDC bindings name them.
+    # Keep this filename and environment: all seven npm OIDC bindings name them.
     environment: npm
     permissions:
       contents: write
@@ -204,7 +204,7 @@ jobs:
           push-git-tags: true
 
   registry:
-    name: Verify all six published packages
+    name: Verify all seven published packages
     needs: [select-mode, pack, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 10

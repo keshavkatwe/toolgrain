@@ -21,13 +21,14 @@ Call `weather` or `sales` for individual entries; `shared_weather` and
 `shared_sales` both reference the shared HTML resource. Shared routing uses the
 result's application-owned `_meta.view`. Buttons call back through the host.
 
-The `0.3.0-alpha.3` candidate also demonstrates `useHostActions()`: open the project
+The example also demonstrates `useHostActions()`: open the project
 source, ask the conversation to explain the current view, share the selection
 as context for future turns, and request fullscreen/inline display. These controls
 run only on clicks and are disabled until the host advertises support. Content
 modalities are checked per request; a host advertising the action without the
 requested content kind produces a visible error. The example declares inline and
-fullscreen support at initialization. These actions are not in published alpha.2.
+fullscreen support at initialization. Published consumers need matching Toolgrain
+0.3.0 or later packages; see the [publication status](../../docs/project/releases.mdx#current-release-status).
 
 The pinned Vite/single-file build belongs to this application. `dev:ui` watches
 the shared entry; `dev` watches the Bun server. Rebuild other entries when editing
