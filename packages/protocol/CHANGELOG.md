@@ -1,5 +1,29 @@
 # @toolgrain/protocol
 
+## 0.3.0
+
+### Minor Changes
+
+- 1cde354: Add named Apps resource, styling, theme-token, and content-modality wire types,
+  with explicit host capability advertisements and pinned specification/type
+  provenance. Preserve custom styling variables and unknown host capability fields.
+  
+  `AppToolMeta` now rejects resource-only CSP and permissions, including metadata
+  assigned through a variable. Put those fields on the resource content item's
+  `_meta.ui`; tool metadata retains its resource URI and visibility settings.
+  
+  Document React widgets, matching-version installation, resource
+  metadata examples, and implemented versus deferred React protocol features.
+- 712e975: Add native React host actions for links, user messages, replacement model context,
+  and display modes, with capability checks, cancellation/deadlines, and typed
+  request/result contracts. Let providers declare supported display modes and expose
+  live action availability through `useHostActions()`.
+- 1cde354: Add native MCP Apps protocol contracts and typed React widgets with shared-entry routing.
+
+### Patch Changes
+
+- 414e8f5: Clarify MCP Apps installation, browser support, and implemented React APIs for the combined 0.3.0 release; preserve dated prerelease acceptance evidence.
+
 ## 0.2.0
 
 No changes in this release.

@@ -1,5 +1,17 @@
 # @toolgrain/clerk
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [0e1669b]
+- Updated dependencies [0e1669b]
+- Updated dependencies [e4ac322]
+- Updated dependencies [1cf25e6]
+- Updated dependencies [1cde354]
+  - @toolgrain/mcp@0.3.0
+  - @toolgrain/jwt@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
