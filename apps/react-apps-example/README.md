@@ -28,7 +28,7 @@ run only on clicks and are disabled until the host advertises support. Content
 modalities are checked per request; a host advertising the action without the
 requested content kind produces a visible error. The example declares inline and
 fullscreen support at initialization. Published consumers need matching Toolgrain
-0.3.0 or later packages; see the [publication status](../../docs/project/releases.mdx#current-release-status).
+0.3.0 or later packages; see the [React quickstart](../../docs/mcp-apps/quickstart.mdx).
 
 The pinned Vite/single-file build belongs to this application. `dev:ui` watches
 the shared entry; `dev` watches the Bun server. Rebuild other entries when editing

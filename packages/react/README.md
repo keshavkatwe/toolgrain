@@ -3,9 +3,8 @@
 Native React 19 widgets for MCP Apps hosts. Toolgrain implements the iframe
 protocol directly; no official MCP or Apps SDK is used by this package.
 
-Requires Toolgrain 0.3.0 or later. Install matching versions across Toolgrain
-packages. Check the [publication status](https://toolgrain.mintlify.site/project/releases#current-release-status)
-before installing; these commands resolve npm's `latest` tag:
+Available in Toolgrain 0.3.0 or later. Install matching stable versions across
+Toolgrain packages; these commands resolve npm's `latest` tag:
 
 ```sh
 npm install @toolgrain/react @toolgrain/mcp @toolgrain/protocol react@^19.3.1 react-dom@^19.3.1 zod@^4.6.6
@@ -13,7 +12,7 @@ npm install @toolgrain/react @toolgrain/mcp @toolgrain/protocol react@^19.3.1 re
 
 Use the same version for HTTP/Node adapters and any JWT/Clerk integrations.
 The [repository example](https://github.com/keshavkatwe/toolgrain/tree/main/apps/react-apps-example)
-can be built from source before the combined release is published.
+demonstrates weather and sales widgets with separate and shared HTML entries.
 
 Import your server's registered tool map with
 `import type`, then call `createApp<typeof tools>()` to obtain `AppProvider`,

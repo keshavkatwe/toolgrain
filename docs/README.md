@@ -3,9 +3,8 @@
 Read the published guides at [toolgrain.mintlify.site](https://toolgrain.mintlify.site/).
 
 Start with the [quickstart](https://toolgrain.mintlify.site/quickstart) to build a typed tool and
-serve it over stdio or HTTP. Install matching versions across Toolgrain packages;
-check the [current release status](./project/releases.mdx#current-release-status)
-before using the new MCP Apps APIs.
+serve it over stdio or HTTP. Install matching stable versions across Toolgrain
+packages. Toolgrain 0.3.0 includes native MCP Apps and React support.
 
 ## Build a server
 
@@ -81,8 +80,7 @@ mark. Both come from `brand/`. See
 Current support covers tools over MCP `2026-07-28` and `2025-06-18`, using stdio
 or independent HTTP POSTs with JSON responses or request-scoped SSE progress.
 Fixed resources support listing and text/binary reads.
-Native MCP Apps and React widgets require Toolgrain 0.3.0 or later; check
-[publication status](./project/releases.mdx#current-release-status), then use
+Native MCP Apps and React widgets are available in Toolgrain 0.3.0 or later. Use
 the [Apps quickstart](./mcp-apps/quickstart.mdx) for matching package installation
 and [capability coverage](./mcp-apps/capabilities.mdx) for implemented/deferred APIs.
 Resource templates, prompts, elicitation, sessions, and subscriptions are outside the current implementation.
