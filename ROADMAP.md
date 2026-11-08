@@ -43,12 +43,16 @@ These items describe remaining review or verification, without a release date:
   unverified; see the [Apps acceptance record](docs/mcp-apps/compatibility.mdx).
 - Collect feedback from the published 0.3.0 release in real applications and
   prioritize reproduced defects.
-- Complete fresh CIMD/DCR authorization and refresh acceptance for the native
-  scope configuration before closing [#53](https://github.com/keshavkatwe/toolgrain/issues/53).
-  The scope metadata and `insufficient_scope` APIs are implemented; dated
-  protocol tests do not establish the remaining live OAuth flows.
 - Expand client coverage for live OAuth login and client configurations/GUI flows
-  beyond the dated reviews. These remain unverified.
+  beyond the dated reviews, including production Clerk and packaged client UIs.
+
+Fresh CIMD and DCR authorization, automatic resource-scope selection, refresh,
+and tool access passed against a Clerk development instance on 2026-11-08,
+using published Toolgrain 0.3.0 and a self-authored client with the official MCP
+OAuth helper 2.3.1. Both MCP revisions passed over loopback HTTP without the
+metadata workaround from [#53](https://github.com/keshavkatwe/toolgrain/issues/53).
+See the [live scope acceptance record](docs/guides/authorization.mdx#live-scope-acceptance)
+for the exact setup and remaining limits.
 
 A local application pilot passed nine automated checks against published
 Toolgrain 0.1.2 packages on 2026-10-27, covering persistent task workflows,
