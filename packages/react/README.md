@@ -64,6 +64,10 @@ pending/error state. Use explicit interaction handlers; sending a user message
 can trigger a follow-up, while replacement context applies to future turns.
 See the [host actions guide](https://toolgrain.mintlify.site/mcp-apps/host-actions).
 
+Initialization advertises Apps `2026-01-26` and accepts either that revision or
+the compatible `2025-11-21` host reply. Unknown revisions are rejected; source,
+origin, capability and payload checks still apply.
+
 Partial tool arguments are ignored. File downloads, resource reads, and sampling
 remain outside the public React API. See the
 [protocol support table](https://toolgrain.mintlify.site/mcp-apps/capabilities#react-protocol-support).

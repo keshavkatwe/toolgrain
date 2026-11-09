@@ -23,6 +23,8 @@ The React iframe handshake negotiates host capabilities separately. `useToolCall
 
 The Toolgrain 0.3.0 API exposes the provider and four hooks. Start with [`AppProvider` and `useToolResult()`](/mcp-apps/quickstart), then add optional hooks as needed. An upstream advertisement describes what a host can accept; only implemented APIs can send the corresponding requests.
 
+The provider advertises Apps `2026-01-26`. It also accepts an initialization reply selecting `2025-11-21`, used by older hosts such as the observed `grok-web` 1.0.0 build. The implemented message contracts are shared by these revisions; capability advertisements, message-source/origin checks, and payload validation still apply. Other Apps revisions are rejected. These UI revisions are independent of the outer MCP transport revision.
+
 | Wire feature | Toolgrain React behavior |
 | --- | --- |
 | `ui/initialize` and `ui/notifications/initialized` | Native provider handshake and revision check |
