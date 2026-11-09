@@ -74,6 +74,30 @@ Run `bun run test:interop` from the repository root. It builds an independently 
 
 Use an independently built widget using the official Apps SDK, served by a Toolgrain resource and tool. Verify initial results, host-mediated tool calls, and security metadata. Keep SDK dependencies confined to that external acceptance fixture, outside Toolgrain's runtime packages.
 
+## Grok compatibility candidate — November 9, 2026
+
+The unreleased compatibility fix accepts the `2025-11-21` Apps initialization
+reply observed from `grok-web` 1.0.0 while continuing to request `2026-01-26`.
+Published React 0.3.0 rejects that reply with `Unsupported MCP Apps revision`.
+The host build inspected was
+[`3oyj98v985_o5.js`](https://cdn.grok.com/_next/static/chunks/3oyj98v985_o5.js);
+its identity and behavior may change independently of its reported version.
+
+A consumer widget rebuilt with the candidate was loaded in an existing Grok
+conversation through a temporary local sandbox-response override. Grok's host
+code and initialization reply were unchanged. The widget completed initialization,
+rendered its real initiating account result, and completed a manual refresh through
+the host's tool proxy. The override configuration was removed afterward. This is
+candidate acceptance, not verification of a published Toolgrain fix or a deployed
+consumer release. Other host actions, permission policies and quota widgets were
+not verified live in this test.
+
+The captured handshake has regression coverage for both accepted revisions,
+initiating results, host context, sizing, open links, refresh calls, cancellation,
+teardown, source/origin checks, invalid payloads and unreviewed revisions. These
+fixtures do not establish every older host's behavior or widen the supported
+outer MCP revisions.
+
 ## Troubleshooting
 
 A connection timeout usually means the page was opened without an Apps host, the host does not support Apps, or its iframe handshake did not complete. Verify the resource MIME type and tool URI. A routing error means a shared entry could not select a tool; inspect its application-owned marker. An unsupported tool-call error means the host did not advertise serverTools. Inspect errors and preserve useful assistant content for all cases.
