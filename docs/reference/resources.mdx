@@ -67,6 +67,9 @@ The optional array enables the capability even when empty. Duplicate URIs,
 invalid metadata, or unbranded definitions fail construction. `tools` remains
 required; resource-only applications pass `tools: {}`.
 
+`ServerOptions.listPageSize` controls tool and resource list pages (default `100`).
+Follow `nextCursor` until absent; see [list pagination](/reference/mcp#list-pagination).
+
 The same reader and metadata serve both supported revisions and every authorized
 caller. Context uses existing auth accessors, lazy providers, and cooperative
 cancellation. See [resource behavior](/guides/resources#protocol-behavior-and-limits)

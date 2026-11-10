@@ -53,7 +53,9 @@ exact URIs, and shares tool request context, providers, and endpoint auth.
 
 Modern discovery lists both supported versions. Modern discovery and tool lists
 use `ttlMs: 0` and `cacheScope: "private"`; legacy listings omit modern result and
-cache fields. Tool lists are a single page in either era.
+cache fields. Tool and fixed-resource lists share stateless cursor pagination
+over their registration snapshots, with a configurable `listPageSize` (default
+`100`). Only the requested page is cloned; cursors belong to one server and list.
 
 Tool inputs must convert to JSON Schema with an object root. Conversion uses the
 schema's input shape, preserving transforms/defaults for execution. Invalid

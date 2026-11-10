@@ -140,6 +140,7 @@ const transport: Transport = {
 const server = createServer({
   name: "smoke",
   version: "1.0",
+  listPageSize: 2,
   onError(error, details) {
     const original: unknown = error;
     const diagnostic: ToolErrorDetails | undefined = details;

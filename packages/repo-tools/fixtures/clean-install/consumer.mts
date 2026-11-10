@@ -76,6 +76,7 @@ export function server() {
   return createServer({
     name: "clean-install",
     version: "1.0.0",
+    listPageSize: 1,
     tools: { greet, report },
     context: [greeting],
     resources: [
@@ -98,6 +99,11 @@ export function server() {
             _meta: { "example.com/result": true },
           };
         },
+      }),
+      resource({
+        uri: "docs://second",
+        name: "second",
+        read: () => ({ contents: [] }),
       }),
     ],
   });

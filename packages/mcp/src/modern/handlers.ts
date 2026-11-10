@@ -33,13 +33,15 @@ export function listTools(
   tools: ToolAdapter,
 ): ListToolsResult {
   const parsed = listParams.safeParse(params);
-  if (!parsed.success || parsed.data.cursor)
+  if (!parsed.success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool list parameters");
+  const { items, ...pagination } = tools.page(parsed.data.cursor || undefined);
   return {
     resultType: "complete",
     ttlMs: 0,
     cacheScope: "private",
-    tools: tools.list(),
+    tools: items,
+    ...pagination,
   };
 }
 

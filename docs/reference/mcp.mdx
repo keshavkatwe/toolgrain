@@ -18,12 +18,42 @@ createServer<const Tools extends ToolMap>(options: ServerOptions<Tools>): Server
 | `name`, `version` | Required server identity strings |
 | `tools` | Required registration-name → `tool()` definition map |
 | `resources` | Optional readonly array of `resource()` definitions; an empty array enables an empty resource service |
+| `listPageSize` | Optional positive safe integer; maximum entries per tool/resource page, default `100` |
 | `instructions` | Optional server instructions |
 | `onError` | Optional `(error: unknown, details?: ToolErrorDetails) => void` diagnostic callback |
 | `auth` | Optional `AuthProvider`, for HTTP request authorization |
 | `context` | Optional readonly provider/binding array |
 
 Construction validates tool names, representable schemas, resource URIs/duplicates, metadata, and provider registrations. It does not open a transport. Registrations are snapshots; definitions remain reusable.
+
+### List pagination
+
+`tools/list` and `resources/list` return at most `listPageSize` entries in
+registration order in both protocol revisions. For example:
+
+```ts
+const server = createServer({
+  name: "catalog",
+  version: "1.0.0",
+  tools,
+  resources,
+  listPageSize: 50,
+});
+```
+
+Start without a `cursor`. When the result includes `nextCursor`, pass that exact
+string as `params.cursor` to the same list method. Continue until `nextCursor`
+is absent. Empty lists and final pages omit it; invalid cursors return JSON-RPC
+`-32602`. Cursors are opaque, reusable for the same server instance and list,
+and invalid after recreating the server. They require no HTTP session and do
+not grant authorization; every HTTP request authenticates normally.
+
+Each response contains copied metadata from the static registration snapshot.
+Listing does not run handlers, readers, or context providers.
+`getToolDefinitions()` still returns the complete copied tool list.
+`resources/templates/list` remains empty and rejects supplied cursors.
+For compatibility, `tools/list` also accepts an empty cursor as the first page;
+`resources/list` rejects it.
 
 ### Server methods
 

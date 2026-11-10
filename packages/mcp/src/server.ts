@@ -42,6 +42,8 @@ export interface ServerOptions<Tools extends ToolMap = ToolMap> {
   tools: Tools;
   /** Fixed resources made with `resource()`; supplying an empty array enables an empty resource service. */
   resources?: readonly Resource[];
+  /** Maximum entries per tool/resource list page; defaults to 100. Must be a positive safe integer. */
+  listPageSize?: number;
   /** Optional usage instructions advertised to clients during discovery or initialization. */
   instructions?: string;
   /**
@@ -138,7 +140,11 @@ export function createServer<const Tools extends ToolMap>(
   options: ServerOptions<Tools>,
 ): Server {
   const authorization = createAuthorization(options.auth);
-  const tools = createToolAdapter(options.tools, options.onError);
+  const tools = createToolAdapter(
+    options.tools,
+    options.onError,
+    options.listPageSize,
+  );
   const dispatch = createDispatcher(
     tools,
     { name: options.name, version: options.version },
@@ -146,7 +152,11 @@ export function createServer<const Tools extends ToolMap>(
     createContextRegistry(options.context),
     options.resources === undefined
       ? undefined
-      : createResourceRegistry(options.resources, options.onError),
+      : createResourceRegistry(
+          options.resources,
+          options.onError,
+          options.listPageSize,
+        ),
   );
   let closed = false;
   const running = new Set<AbortController>();

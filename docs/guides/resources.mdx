@@ -97,7 +97,11 @@ header matching the URI, plus the usual request metadata and version header. See
 [HTTP transport](/transports/http) for header encoding and hosting requirements.
 
 Supplying `resources`, even `[]`, advertises `resources: {}`. Omitting it leaves
-resource methods disabled. Lists are unpaginated and reject every supplied cursor.
+resource methods disabled. `resources/list` pages through the static registration
+snapshot in registration order, with at most `listPageSize` entries (default
+`100`). Pass each response's `nextCursor` as the next request's `cursor` until
+`nextCursor` is absent. Invalid cursors return `-32602`. See
+[list pagination](/reference/mcp#list-pagination) for cursor lifetime and configuration.
 `resources/templates/list` returns an empty list; template declarations,
 subscriptions, and list-change notifications are not supported.
 

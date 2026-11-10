@@ -14,11 +14,11 @@ Toolgrain targets two explicit MCP revisions. Protocol support, runtime support,
 
 Other revisions are unsupported. Legacy initialization can negotiate down to the supported older revision; this does not mean Toolgrain implements the client's originally offered revision. Modern stdio requests can interleave with legacy traffic after era selection.
 
-Modern listings include cache/server metadata and icons. Legacy results omit modern envelope metadata; listings omit icons and non-object-root output schemas. Legacy structured content is object-only; other JSON results remain text. Tool lists are a single page and nonempty cursors are rejected.
+Modern listings include cache/server metadata and icons. Legacy results omit modern envelope metadata; listings omit icons and non-object-root output schemas. Legacy structured content is object-only; other JSON results remain text. Tool and fixed-resource lists support cursor pagination in both revisions, with a default page size of `100`. See [list pagination](/reference/mcp#list-pagination).
 
 Fixed resources implement `resources/list`, `resources/read`, and an empty
-`resources/templates/list` in both revisions. Lists are static and unpaginated;
-all supplied cursors are rejected. Modern list/read results use `ttlMs: 0` and
+`resources/templates/list` in both revisions. Lists are static; the empty template
+list rejects supplied cursors. Modern list/read results use `ttlMs: 0` and
 `cacheScope: "private"`; legacy results omit modern fields and listing icons.
 Resource support does not establish MCP Apps or widget rendering compatibility.
 See [resources](/guides/resources).
