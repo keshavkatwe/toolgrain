@@ -1,5 +1,16 @@
 # @toolgrain/react
 
+## 0.4.0
+
+### Patch Changes
+
+- 56b7de5: Update packaged documentation for stable 0.3.0 availability and remove prepublication installation warnings.
+- 23b424d: Accept the compatible MCP Apps `2025-11-21` initialization reply used by older Grok hosts while continuing to advertise `2026-01-26`. Preserve message-source/origin checks, capability gates and payload validation, and reject unreviewed revisions.
+- Updated dependencies [56b7de5]
+- Updated dependencies [bfd6bb5]
+  - @toolgrain/protocol@0.4.0
+  - @toolgrain/mcp@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

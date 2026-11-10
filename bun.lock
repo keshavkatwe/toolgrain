@@ -166,7 +166,7 @@
     },
     "packages/clerk": {
       "name": "@toolgrain/clerk",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@clerk/backend": "3.26.0",
         "@clerk/shared": "4.41.0",
@@ -184,7 +184,7 @@
     },
     "packages/http": {
       "name": "@toolgrain/http",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@toolgrain/mcp": "workspace:*",
         "@toolgrain/protocol": "workspace:*",
@@ -199,7 +199,7 @@
     },
     "packages/jwt": {
       "name": "@toolgrain/jwt",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@toolgrain/mcp": "workspace:*",
         "jose": "6.2.13",
@@ -214,7 +214,7 @@
     },
     "packages/mcp": {
       "name": "@toolgrain/mcp",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@toolgrain/protocol": "workspace:*",
       },
@@ -233,7 +233,7 @@
     },
     "packages/node": {
       "name": "@toolgrain/node",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@toolgrain/http": "workspace:*",
         "@toolgrain/mcp": "workspace:*",
@@ -249,7 +249,7 @@
     },
     "packages/protocol": {
       "name": "@toolgrain/protocol",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "devDependencies": {
         "@toolgrain/repo-tools": "workspace:*",
         "@types/node": "24.10.0",
@@ -259,7 +259,7 @@
     },
     "packages/react": {
       "name": "@toolgrain/react",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@toolgrain/mcp": "workspace:*",
         "@toolgrain/protocol": "workspace:*",
