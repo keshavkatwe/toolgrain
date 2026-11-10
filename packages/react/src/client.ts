@@ -48,6 +48,9 @@ export interface RequestOptions {
 type Pending = { resolve(value: unknown): void; reject(reason: unknown): void };
 let nextConnection = 0;
 const ownership = Symbol.for("@toolgrain/react/connection@1");
+// Older Apps hosts use the same wire contracts for the implemented API surface.
+// Keep advertising the stable revision and reject any unreviewed host revision.
+const supportedAppsRevisions = [APPS_PROTOCOL_VERSION, "2025-11-21"];
 
 export function deadline(value = 30_000) {
   if (!Number.isSafeInteger(value) || value <= 0 || value > 2_147_483_647)
@@ -112,7 +115,7 @@ export class AppClient {
       });
       if (this.closed) return;
       const result = wire.initialized.parse(raw);
-      if (result.protocolVersion !== APPS_PROTOCOL_VERSION)
+      if (!supportedAppsRevisions.includes(result.protocolVersion))
         throw new Error("Unsupported MCP Apps revision");
       this.capabilities =
         result.hostCapabilities as unknown as AppHostCapabilities;
