@@ -1,5 +1,6 @@
 import type { Tool as ProtocolTool } from "@toolgrain/protocol";
 import { type ErrorHandler, reportError } from "../diagnostics.js";
+import { createListPager, type ListPage } from "../protocol/pagination.js";
 import type { ToolContext } from "./context.js";
 import { ToolInputError } from "./errors.js";
 import { createRegistry, type ToolMap } from "./registry.js";
@@ -13,6 +14,7 @@ import { describeTool } from "./schema.js";
 export interface ToolAdapter {
   has(name: string): boolean;
   list(): ProtocolTool[];
+  page(cursor?: string): ListPage<ProtocolTool>;
   execute(
     name: string,
     input: unknown,
@@ -23,6 +25,7 @@ export interface ToolAdapter {
 export function createToolAdapter(
   tools: ToolMap,
   onError?: ErrorHandler,
+  pageSize?: number,
 ): ToolAdapter {
   const registry = createRegistry(tools);
   const entries = registry.list();
@@ -32,6 +35,7 @@ export function createToolAdapter(
   return {
     has: (name: string) => names.has(name),
     list: () => structuredClone(listed),
+    page: createListPager(listed, pageSize),
     async execute(
       name: string,
       input: unknown,

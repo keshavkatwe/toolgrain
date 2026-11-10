@@ -3,6 +3,7 @@ import {
   type Resource as ProtocolResource,
 } from "@toolgrain/protocol";
 import { type ErrorHandler, reportError } from "../diagnostics.js";
+import { createListPager, type ListPage } from "../protocol/pagination.js";
 import { ProtocolError } from "../protocol/responses.js";
 import type { ToolContext } from "../tools/context.js";
 import { assertJSON } from "../tools/json-value.js";
@@ -21,13 +22,14 @@ type Reader = (
   ctx: ToolContext,
 ) => Promise<ResourceExecutionResult | undefined>;
 export interface ResourceRegistry {
-  list(): ProtocolResource[];
+  list(cursor?: string): ListPage<ProtocolResource>;
   reader(uri: string): Reader | undefined;
 }
 
 export function createResourceRegistry(
   definitions: readonly Resource[],
   onError?: ErrorHandler,
+  pageSize?: number,
 ): ResourceRegistry {
   const entries = new Map<
     string,
@@ -65,8 +67,10 @@ export function createResourceRegistry(
     });
   }
   return {
-    list: () =>
-      structuredClone(Array.from(entries.values(), ({ metadata }) => metadata)),
+    list: createListPager(
+      Array.from(entries.values(), ({ metadata }) => metadata),
+      pageSize,
+    ),
     reader: (uri) => entries.get(uri)?.read,
   };
 }

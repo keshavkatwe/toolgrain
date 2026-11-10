@@ -87,6 +87,7 @@ export function createLegacyDispatcher(
           requireResources(resources),
         );
         result = {
+          ...listed,
           resources: listed.resources.map(
             ({ icons: _icons, ...entry }) => entry,
           ),

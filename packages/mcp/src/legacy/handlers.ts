@@ -50,17 +50,17 @@ export function listTools(
   tools: ToolAdapter,
 ): ListToolsResult {
   const parsed = listParams.safeParse(params ?? {});
-  if (!parsed.success || parsed.data.cursor)
+  if (!parsed.success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid tool list parameters");
+  const { items, ...pagination } = tools.page(parsed.data.cursor || undefined);
   return {
-    tools: tools
-      .list()
-      .map(({ icons: _icons, outputSchema, ...definition }) => ({
-        ...definition,
-        ...(outputSchema?.type === "object"
-          ? { outputSchema: { ...outputSchema, type: "object" as const } }
-          : {}),
-      })),
+    ...pagination,
+    tools: items.map(({ icons: _icons, outputSchema, ...definition }) => ({
+      ...definition,
+      ...(outputSchema?.type === "object"
+        ? { outputSchema: { ...outputSchema, type: "object" as const } }
+        : {}),
+    })),
   };
 }
 

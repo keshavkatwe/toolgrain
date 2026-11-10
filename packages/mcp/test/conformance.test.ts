@@ -55,6 +55,66 @@ it("rejects malformed results in both revisions", () => {
 });
 
 it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
+  "emits paginated tool/resource results conforming to the pinned %s schema",
+  async (revision) => {
+    const listedTool = tool({ input: z.object({}), execute: () => "ok" });
+    const paged = createServer({
+      name: "pagination-conformance",
+      version: "1",
+      listPageSize: 1,
+      tools: { first: listedTool, second: listedTool },
+      resources: ["first", "second"].map((name) =>
+        resource({
+          uri: `docs://${name}`,
+          name,
+          read: () => ({ contents: [] }),
+        }),
+      ),
+    });
+    try {
+      for (const [method, type] of [
+        ["tools/list", "ListToolsResult"],
+        ["resources/list", "ListResourcesResult"],
+      ]) {
+        const validate =
+          revision === PROTOCOL_VERSION
+            ? definition(modern, `modern#/$defs/${type}`)
+            : definition(legacy, `legacy#/definitions/${type}`);
+        let cursor: unknown;
+        for (let page = 0; page < 2; page++) {
+          const response = await paged.handle(
+            {
+              jsonrpc: "2.0",
+              id: page,
+              method,
+              params: {
+                ...(cursor === undefined ? {} : { cursor }),
+                ...(revision === PROTOCOL_VERSION
+                  ? {
+                      _meta: {
+                        "io.modelcontextprotocol/protocolVersion": revision,
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                      },
+                    }
+                  : {}),
+              },
+            },
+            { protocolVersion: revision },
+          );
+          if (!response || !("result" in response))
+            throw new Error("Expected list page");
+          expectValid(validate, response.result);
+          cursor = response.result.nextCursor;
+          expect(typeof cursor).toBe(page === 0 ? "string" : "undefined");
+        }
+      }
+    } finally {
+      await paged.close();
+    }
+  },
+);
+
+it.each([PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION] as const)(
   "emits progress conforming to the pinned %s schema",
   async (revision) => {
     const validate =

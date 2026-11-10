@@ -24,20 +24,23 @@ export function requireResources(
 
 function validateList(params: unknown) {
   const parsed = listParams.safeParse(params ?? {});
-  if (!parsed.success || parsed.data.cursor !== undefined)
+  if (!parsed.success)
     throw new ProtocolError(INVALID_PARAMS, "Invalid resource list parameters");
+  return parsed.data;
 }
 
 export function listResources(params: unknown, resources: ResourceRegistry) {
-  validateList(params);
-  return { resources: resources.list() };
+  const { cursor } = validateList(params);
+  const { items, ...pagination } = resources.list(cursor);
+  return { resources: items, ...pagination };
 }
 
 export function listResourceTemplates(
   params: unknown,
   _resources: ResourceRegistry,
 ) {
-  validateList(params);
+  if (validateList(params).cursor !== undefined)
+    throw new ProtocolError(INVALID_PARAMS, "Invalid resource list parameters");
   return { resourceTemplates: [] };
 }
 

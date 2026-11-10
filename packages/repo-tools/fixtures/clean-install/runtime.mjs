@@ -160,10 +160,20 @@ async function exercise(request, notify) {
         version,
       );
     }
-    const resources = (await send("resources/list")).resources;
+    const firstResources = await send("resources/list");
+    const { resources } = firstResources;
     assert.equal(resources.length, 1);
     assert.equal(resources[0].uri, "docs://guide");
     assert.equal(Object.hasOwn(resources[0], "icons"), modern);
+    assert.equal(typeof firstResources.nextCursor, "string");
+    const lastResources = await send("resources/list", {
+      cursor: firstResources.nextCursor,
+    });
+    assert.deepEqual(
+      lastResources.resources.map(({ uri }) => uri),
+      ["docs://second"],
+    );
+    assert.equal(Object.hasOwn(lastResources, "nextCursor"), false);
     assert.deepEqual(
       (await send("resources/templates/list")).resourceTemplates,
       [],
@@ -178,8 +188,18 @@ async function exercise(request, notify) {
       { uri: "docs://binary", blob: "YQ==" },
     ]);
     assert.equal(resource._meta["example.com/result"], true);
-    const { tools } = await send("tools/list");
-    assert.equal(tools.length, 2);
+    const firstTools = await send("tools/list");
+    const { tools } = firstTools;
+    assert.equal(tools.length, 1);
+    assert.equal(typeof firstTools.nextCursor, "string");
+    const lastTools = await send("tools/list", {
+      cursor: firstTools.nextCursor,
+    });
+    assert.deepEqual(
+      lastTools.tools.map(({ name }) => name),
+      ["report"],
+    );
+    assert.equal(Object.hasOwn(lastTools, "nextCursor"), false);
     assert.equal(tools[0].name, "greet");
     assert.equal(tools[0].title, "Greeting");
     assert.equal(tools[0].annotations.readOnlyHint, true);
