@@ -1,5 +1,15 @@
 # @toolgrain/node
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [56b7de5]
+- Updated dependencies [bfd6bb5]
+  - @toolgrain/protocol@0.4.0
+  - @toolgrain/mcp@0.4.0
+  - @toolgrain/http@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

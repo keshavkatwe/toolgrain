@@ -1,5 +1,11 @@
 # @toolgrain/protocol
 
+## 0.4.0
+
+### Patch Changes
+
+- 56b7de5: Update packaged documentation for stable 0.3.0 availability and remove prepublication installation warnings.
+
 ## 0.3.0
 
 ### Minor Changes

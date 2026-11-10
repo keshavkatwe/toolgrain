@@ -1,5 +1,16 @@
 # @toolgrain/mcp
 
+## 0.4.0
+
+### Minor Changes
+
+- bfd6bb5: Add cursor pagination to tool and fixed-resource listings in both protocol revisions, with a configurable listPageSize defaulting to 100 and server-scoped continuation cursors.
+
+### Patch Changes
+
+- Updated dependencies [56b7de5]
+  - @toolgrain/protocol@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
